@@ -1,0 +1,71 @@
+:root {
+  /* Brand & Primary Palette (Fintech Royal Blue) */
+  --primary: #1665D8;
+  --primary-hover: #1254B7;
+  --primary-light: #EBF3FF;
+  --primary-gradient: linear-gradient(135deg, #176BFF 0%, #0D4FC2 100%);
+  --primary-gradient-subtle: linear-gradient(180deg, #1665D8 0%, #1A73E8 100%);
+  --hero-card-bg: linear-gradient(145deg, #176BFF 0%, #1054C7 100%);
+
+  /* Accent & State Colors */
+  --accent-gold: #F59E0B;
+  --accent-gold-light: #FEF3C7;
+  --accent-gold-gradient: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+  
+  --success: #10B981;
+  --success-light: #ECFDF5;
+  --success-text: #047857;
+  
+  --danger: #EF4444;
+  --danger-light: #FEF2F2;
+  --danger-text: #B91C1C;
+  
+  --warning: #F97316;
+  --warning-light: #FFF7ED;
+
+  --info: #0EA5E9;
+  --info-light: #E0F2FE;
+
+  /* Neutral & Surfaces */
+  --bg-app: #F6F8FB;
+  --bg-card: #FFFFFF;
+  --bg-card-secondary: #F8FAFC;
+  --bg-input: #F1F5F9;
+  --bg-pill: rgba(255, 255, 255, 0.2);
+  --bg-pill-active: #FFFFFF;
+
+  /* Text Colors */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --text-white: #FFFFFF;
+  --text-white-muted: rgba(255, 255, 255, 0.82);
+
+  /* Borders & Dividers */
+  --border-light: #E2E8F0;
+  --border-subtle: #F1F5F9;
+  --border-focus: #3B82F6;
+
+  /* Radiuses */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 30px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 10px 25px rgba(22, 101, 216, 0.12);
+  --shadow-gold: 0 8px 20px rgba(245, 158, 11, 0.35);
+  --shadow-bottom-bar: 0 -4px 20px rgba(15, 23, 42, 0.06);
+
+  /* Typography */
+  --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  /* Layout Dimensions */
+  --app-max-width: 440px;
+  --bottom-nav-height: 72px;
+  --safe-bottom: env(safe-area-inset-bottom, 16px);
+}
