@@ -259,6 +259,54 @@ export const AppProvider = ({ children }) => {
     });
   };
 
+  const editTransaction = (txId, updatedFields) => {
+    setData(prev => {
+      const oldTx = prev.transactions.find(t => t.id === txId);
+      if (!oldTx) return prev;
+
+      // 1. Rollback old transaction effect on balances
+      let tempAccounts = prev.accounts.map(acc => {
+        let balance = acc.balance;
+        if (acc.name === oldTx.accountName) {
+          if (oldTx.type === 'expense') balance += oldTx.amount;
+          else if (oldTx.type === 'income') balance = Math.max(0, balance - oldTx.amount);
+          else if (oldTx.type === 'transfer') balance += oldTx.amount;
+        }
+        if (oldTx.type === 'transfer' && acc.name === oldTx.toAccountName) {
+          balance = Math.max(0, balance - oldTx.amount);
+        }
+        return { ...acc, balance };
+      });
+
+      // 2. Build updated transaction
+      const newTx = {
+        ...oldTx,
+        ...updatedFields,
+        amount: Number(updatedFields.amount !== undefined ? updatedFields.amount : oldTx.amount)
+      };
+
+      // 3. Apply updated transaction effect on balances
+      const finalAccounts = tempAccounts.map(acc => {
+        let balance = acc.balance;
+        if (acc.name === newTx.accountName) {
+          if (newTx.type === 'expense') balance = Math.max(0, balance - newTx.amount);
+          else if (newTx.type === 'income') balance += newTx.amount;
+          else if (newTx.type === 'transfer') balance = Math.max(0, balance - newTx.amount);
+        }
+        if (newTx.type === 'transfer' && acc.name === newTx.toAccountName) {
+          balance += newTx.amount;
+        }
+        return { ...acc, balance, updated: 'Baru saja' };
+      });
+
+      return {
+        ...prev,
+        accounts: finalAccounts,
+        transactions: prev.transactions.map(t => t.id === txId ? newTx : t)
+      };
+    });
+  };
+
   // Budget
   const updateBudget = (newTotal, updatedCategories) => {
     setData(prev => ({
@@ -375,13 +423,154 @@ export const AppProvider = ({ children }) => {
     }));
   };
 
+  const updateCourse = (courseId, updatedFields) => {
+    setData(prev => {
+      const targetCourse = prev.courses.find(c => c.id === courseId);
+      if (!targetCourse) return prev;
+
+      const updatedCourse = {
+        ...targetCourse,
+        ...updatedFields,
+        sks: updatedFields.sks !== undefined ? Number(updatedFields.sks) : targetCourse.sks
+      };
+
+      const updatedCourses = prev.courses.map(c => c.id === courseId ? updatedCourse : c);
+
+      // Sync name changes to assignments and notes
+      const updatedAssignments = prev.assignments.map(a => 
+        a.courseId === courseId ? { ...a, courseName: updatedCourse.name } : a
+      );
+      const updatedCourseNotes = prev.courseNotes.map(n => 
+        n.courseId === courseId ? { ...n, courseName: updatedCourse.name } : n
+      );
+
+      // Sync with semester grades if already graded
+      const updatedSemesters = prev.semesters.map(s => {
+        if (s.semesterNumber === updatedCourse.semester) {
+          const hasCourse = s.courses.some(c => c.courseId === courseId || c.name === targetCourse.name);
+          if (hasCourse) {
+            const newSemCourses = s.courses.map(c => {
+              if (c.courseId === courseId || c.name === targetCourse.name) {
+                return { ...c, courseId: updatedCourse.id, name: updatedCourse.name, sks: updatedCourse.sks };
+              }
+              return c;
+            });
+            const totalSks = newSemCourses.reduce((sum, c) => sum + c.sks, 0);
+            const totalPoints = newSemCourses.reduce((sum, c) => sum + (c.sks * c.point), 0);
+            const ips = totalSks > 0 ? Number((totalPoints / totalSks).toFixed(2)) : 0;
+            return { ...s, totalSks, ips, courses: newSemCourses };
+          }
+        }
+        return s;
+      });
+
+      return {
+        ...prev,
+        courses: updatedCourses,
+        assignments: updatedAssignments,
+        courseNotes: updatedCourseNotes,
+        semesters: updatedSemesters
+      };
+    });
+  };
+
   const deleteCourse = (courseId) => {
-    setData(prev => ({
-      ...prev,
-      courses: prev.courses.filter(c => c.id !== courseId),
-      assignments: prev.assignments.filter(a => a.courseId !== courseId),
-      courseNotes: prev.courseNotes.filter(n => n.courseId !== courseId)
-    }));
+    setData(prev => {
+      const targetCourse = prev.courses.find(c => c.id === courseId);
+      const targetName = targetCourse?.name;
+
+      const updatedSemesters = prev.semesters.map(s => {
+        const filteredCourses = s.courses.filter(c => c.courseId !== courseId && c.name !== targetName);
+        if (filteredCourses.length !== s.courses.length) {
+          const totalSks = filteredCourses.reduce((sum, c) => sum + c.sks, 0);
+          const totalPoints = filteredCourses.reduce((sum, c) => sum + (c.sks * c.point), 0);
+          const ips = totalSks > 0 ? Number((totalPoints / totalSks).toFixed(2)) : 0;
+          return { ...s, totalSks, ips, courses: filteredCourses };
+        }
+        return s;
+      });
+
+      return {
+        ...prev,
+        courses: prev.courses.filter(c => c.id !== courseId),
+        assignments: prev.assignments.filter(a => a.courseId !== courseId),
+        courseNotes: prev.courseNotes.filter(n => n.courseId !== courseId),
+        semesters: updatedSemesters
+      };
+    });
+  };
+
+  const setCourseGrade = (courseId, letter, point) => {
+    setData(prev => {
+      const targetCourse = prev.courses.find(c => c.id === courseId);
+      if (!targetCourse) return prev;
+
+      const gradeObj = { letter, point: Number(point) };
+      const updatedCourses = prev.courses.map(c => 
+        c.id === courseId ? { ...c, grade: gradeObj } : c
+      );
+
+      const targetSemesterNum = targetCourse.semester || activeSemester;
+      const semExists = prev.semesters.some(s => s.semesterNumber === targetSemesterNum);
+
+      let updatedSemesters;
+      if (semExists) {
+        updatedSemesters = prev.semesters.map(s => {
+          if (s.semesterNumber === targetSemesterNum) {
+            const courseIdx = s.courses.findIndex(c => c.courseId === courseId || c.name === targetCourse.name);
+            let newSemCourses;
+            if (courseIdx >= 0) {
+              newSemCourses = [...s.courses];
+              newSemCourses[courseIdx] = {
+                ...newSemCourses[courseIdx],
+                courseId: targetCourse.id,
+                name: targetCourse.name,
+                sks: Number(targetCourse.sks) || 3,
+                letter,
+                point: Number(point)
+              };
+            } else {
+              newSemCourses = [
+                ...s.courses,
+                {
+                  courseId: targetCourse.id,
+                  name: targetCourse.name,
+                  sks: Number(targetCourse.sks) || 3,
+                  letter,
+                  point: Number(point)
+                }
+              ];
+            }
+            const totalSks = newSemCourses.reduce((sum, c) => sum + c.sks, 0);
+            const totalPoints = newSemCourses.reduce((sum, c) => sum + (c.sks * c.point), 0);
+            const ips = totalSks > 0 ? Number((totalPoints / totalSks).toFixed(2)) : 0;
+            return { ...s, totalSks, ips, courses: newSemCourses };
+          }
+          return s;
+        });
+      } else {
+        const initialCourse = {
+          courseId: targetCourse.id,
+          name: targetCourse.name,
+          sks: Number(targetCourse.sks) || 3,
+          letter,
+          point: Number(point)
+        };
+        const newSem = {
+          semesterNumber: targetSemesterNum,
+          totalSks: initialCourse.sks,
+          ips: initialCourse.point,
+          courses: [initialCourse]
+        };
+        updatedSemesters = [...prev.semesters, newSem].sort((a, b) => a.semesterNumber - b.semesterNumber);
+      }
+
+      return {
+        ...prev,
+        courses: updatedCourses,
+        semesters: updatedSemesters
+      };
+    });
   };
 
   const updateAttendance = (courseId, meetingNumber, status) => {
@@ -419,6 +608,13 @@ export const AppProvider = ({ children }) => {
     }));
   };
 
+  const editAssignment = (asgId, updatedFields) => {
+    setData(prev => ({
+      ...prev,
+      assignments: prev.assignments.map(a => a.id === asgId ? { ...a, ...updatedFields } : a)
+    }));
+  };
+
   const toggleAssignmentStatus = (asgId) => {
     setData(prev => ({
       ...prev,
@@ -449,6 +645,13 @@ export const AppProvider = ({ children }) => {
     setData(prev => ({
       ...prev,
       courseNotes: [newNote, ...prev.courseNotes]
+    }));
+  };
+
+  const editCourseNote = (noteId, updatedFields) => {
+    setData(prev => ({
+      ...prev,
+      courseNotes: prev.courseNotes.map(n => n.id === noteId ? { ...n, ...updatedFields } : n)
     }));
   };
 
@@ -522,19 +725,96 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-  // Overall Academic Calculations (IPK Kumulatif)
+  // Overall Academic Calculations (IPK Kumulatif & Sinkronisasi Matakuliah per Semester)
+  const unifiedSemesterData = useMemo(() => {
+    const courseSemesters = (data.courses || []).map(c => c.semester || 1);
+    const gradeSemesters = (data.semesters || []).map(s => s.semesterNumber || 1);
+    const activeSem = data.activeSemester || data.profile?.semester || 1;
+    const maxSem = Math.max(activeSem, ...courseSemesters, ...gradeSemesters, 1);
+    const semNums = Array.from({ length: maxSem }, (_, i) => i + 1);
+
+    return semNums.map(semNum => {
+      const regCourses = (data.courses || []).filter(c => (c.semester || 1) === semNum);
+      const semRec = (data.semesters || []).find(s => s.semesterNumber === semNum);
+      const recCourses = semRec?.courses || [];
+
+      const merged = [];
+      const seen = new Set();
+
+      regCourses.forEach(rc => {
+        seen.add(rc.name.toLowerCase());
+        const match = recCourses.find(
+          ec => (ec.courseId && ec.courseId === rc.id) || ec.name.toLowerCase() === rc.name.toLowerCase()
+        );
+        const hasGrade = Boolean(rc.grade?.letter || match?.letter);
+        const letter = rc.grade?.letter || match?.letter || 'E';
+        const point = rc.grade?.point !== undefined ? Number(rc.grade.point) : (match?.point !== undefined ? Number(match.point) : 0);
+
+        merged.push({
+          id: rc.id,
+          courseId: rc.id,
+          name: rc.name,
+          code: rc.code || 'MK',
+          sks: Number(rc.sks) || 3,
+          lecturer: rc.lecturer,
+          room: rc.room,
+          dayOfWeek: rc.dayOfWeek,
+          time: `${rc.startTime || ''} - ${rc.endTime || ''}`,
+          color: rc.color,
+          semester: semNum,
+          isFromCourses: true,
+          isGraded: hasGrade,
+          letter,
+          point
+        });
+      });
+
+      recCourses.forEach(ec => {
+        if (!seen.has(ec.name.toLowerCase())) {
+          seen.add(ec.name.toLowerCase());
+          merged.push({
+            id: ec.courseId || `ec-${ec.name}`,
+            courseId: ec.courseId,
+            name: ec.name,
+            code: ec.code || 'MK',
+            sks: Number(ec.sks) || 3,
+            semester: semNum,
+            isFromCourses: false,
+            isGraded: true,
+            letter: ec.letter || 'E',
+            point: Number(ec.point) || 0
+          });
+        }
+      });
+
+      const totalSks = merged.reduce((sum, c) => sum + c.sks, 0);
+      const graded = merged.filter(c => c.isGraded);
+      const gradedSks = graded.reduce((sum, c) => sum + c.sks, 0);
+      const gradedPoints = graded.reduce((sum, c) => sum + (c.sks * c.point), 0);
+      const ips = gradedSks > 0 ? Number((gradedPoints / gradedSks).toFixed(2)) : null;
+
+      return {
+        semesterNumber: semNum,
+        courses: merged,
+        totalSks,
+        gradedCourses: graded,
+        gradedSks,
+        gradedPoints,
+        ips
+      };
+    });
+  }, [data.courses, data.semesters, data.activeSemester, data.profile?.semester]);
+
   const totalCumulativeSks = useMemo(() => {
-    return data.semesters.reduce((sum, s) => sum + s.totalSks, 0);
-  }, [data.semesters]);
+    return unifiedSemesterData.reduce((sum, s) => sum + s.gradedSks, 0);
+  }, [unifiedSemesterData]);
 
   const cumulativeGpa = useMemo(() => {
-    const totalPoints = data.semesters.reduce((sum, s) => {
-      return sum + s.courses.reduce((csum, c) => csum + (c.sks * c.point), 0);
-    }, 0);
+    const totalPoints = unifiedSemesterData.reduce((sum, s) => sum + s.gradedPoints, 0);
     return totalCumulativeSks > 0
       ? Number((totalPoints / totalCumulativeSks).toFixed(2))
       : 0.0;
-  }, [data.semesters, totalCumulativeSks]);
+  }, [unifiedSemesterData, totalCumulativeSks]);
 
   return (
     <AppContext.Provider
@@ -580,6 +860,7 @@ export const AppProvider = ({ children }) => {
         editAccount,
         deleteAccount,
         addTransaction,
+        editTransaction,
         deleteTransaction,
         updateBudget,
         addBill,
@@ -591,13 +872,18 @@ export const AppProvider = ({ children }) => {
         // Academic CRUD
         cumulativeGpa,
         totalCumulativeSks,
+        unifiedSemesterData,
         addCourse,
+        updateCourse,
         deleteCourse,
+        setCourseGrade,
         updateAttendance,
         addAssignment,
+        editAssignment,
         toggleAssignmentStatus,
         deleteAssignment,
         addCourseNote,
+        editCourseNote,
         deleteCourseNote,
         addSemesterCourse,
         deleteSemesterCourse

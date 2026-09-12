@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { DonutChart } from '../components/charts/DonutChart';
 import { formatRupiahNumber, parseRupiahNumber, maskMoney } from '../utils/formatters';
+import SwipeableItem from '../components/common/SwipeableItem';
+import EditTransactionModal from '../components/finance/EditTransactionModal';
 import {
   Wallet,
   Receipt,
@@ -17,7 +19,8 @@ import {
   Clock,
   ChevronRight,
   Trash2,
-  Edit2
+  Edit2,
+  MoreVertical
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -50,6 +53,9 @@ export const FinanceView = () => {
 
   const [financeSubtab, setFinanceSubtab] = useState('budget'); // budget | history | report | bills | targets | accounts
   const [reportFilter, setReportFilter] = useState('kategori'); // kategori | akun | merchant
+
+  // Edit transaction modal state
+  const [editingTransaction, setEditingTransaction] = useState(null);
 
   // Deposit modal state
   const [depositModalTarget, setDepositModalTarget] = useState(null);
@@ -419,6 +425,26 @@ export const FinanceView = () => {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Gesture Hint Banner */}
+              <div
+                style={{
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '12px',
+                  padding: '8px 12px',
+                  fontSize: '11px',
+                  color: '#475569',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>💡</span>
+                <span>
+                  <strong>Tips:</strong> Geser kanan untuk <strong>Hapus</strong>, geser kiri untuk <strong>Edit</strong>, atau ketuk transaksi untuk koreksi data.
+                </span>
+              </div>
+
               {Object.entries(groupedTransactions).map(([date, txs]) => {
                 const dayExpense = txs
                   .filter(t => t.type === 'expense')
@@ -440,37 +466,53 @@ export const FinanceView = () => {
                       </span>
                     </div>
 
-                    {txs.map(tx => (
-                      <div key={tx.id} className="transaction-card">
-                        <div className="transaction-left">
-                          <div className="category-icon-box" style={{ background: '#F1F5F9' }}>
-                            {tx.icon}
-                          </div>
-                          <div>
-                            <div className="transaction-title">{tx.category}</div>
-                            <div className="transaction-subtitle">
-                              <span className="account-badge-micro">{tx.accountName}</span>
-                              <span>{tx.merchant} {tx.note ? `• ${tx.note}` : ''}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {txs.map(tx => (
+                        <SwipeableItem
+                          key={tx.id}
+                          itemTitle={`${tx.category} (Rp ${formatRupiahNumber(tx.amount)})`}
+                          showDots={false}
+                          onEdit={() => setEditingTransaction(tx)}
+                          onDelete={() => deleteTransaction(tx.id, true)}
+                          onClick={() => setEditingTransaction(tx)}
+                        >
+                          <div className="transaction-card" style={{ margin: 0, cursor: 'pointer' }}>
+                            <div className="transaction-left">
+                              <div className="category-icon-box" style={{ background: '#F1F5F9' }}>
+                                {tx.icon}
+                              </div>
+                              <div>
+                                <div className="transaction-title">{tx.category}</div>
+                                <div className="transaction-subtitle">
+                                  <span className="account-badge-micro">{tx.accountName}</span>
+                                  <span>{tx.merchant} {tx.note ? `• ${tx.note}` : ''}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div className={`transaction-amount ${tx.type}`}>
+                                {tx.type === 'expense'
+                                  ? `-${maskMoney(tx.amount, isBalanceVisible)}`
+                                  : `+${maskMoney(tx.amount, isBalanceVisible)}`}
+                              </div>
+                              <button
+                                type="button"
+                                className="dots-action-btn"
+                                style={{ width: '28px', height: '28px' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingTransaction(tx);
+                                }}
+                                title="Edit Transaksi"
+                              >
+                                <MoreVertical size={14} />
+                              </button>
                             </div>
                           </div>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div className={`transaction-amount ${tx.type}`}>
-                            {tx.type === 'expense'
-                              ? `-${maskMoney(tx.amount, isBalanceVisible)}`
-                              : `+${maskMoney(tx.amount, isBalanceVisible)}`}
-                          </div>
-                          <button
-                            onClick={() => handleDeleteTransaction(tx.id, tx.note || tx.category, tx.amount)}
-                            style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px' }}
-                            title="Hapus Transaksi & Kembalikan Saldo"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                        </SwipeableItem>
+                      ))}
+                    </div>
                   </div>
                 );
               })}
@@ -1035,6 +1077,13 @@ export const FinanceView = () => {
           )}
         </div>
       )}
+
+      {/* Edit Transaction Modal */}
+      <EditTransactionModal
+        transaction={editingTransaction}
+        isOpen={Boolean(editingTransaction)}
+        onClose={() => setEditingTransaction(null)}
+      />
     </div>
   );
 };

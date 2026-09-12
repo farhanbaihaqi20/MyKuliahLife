@@ -11,11 +11,18 @@ import {
   Trash2,
   GraduationCap,
   ChevronDown,
+  ChevronRight,
   X,
   Check,
-  Clock
+  Clock,
+  Award,
+  Edit2,
+  MoreVertical
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import SwipeableItem from '../components/common/SwipeableItem';
+import CourseDetailModal from '../components/academic/CourseDetailModal';
+import EditCourseModal from '../components/academic/EditCourseModal';
 
 export const AcademicView = () => {
   const {
@@ -36,6 +43,11 @@ export const AcademicView = () => {
 
   const [academicTab, setAcademicTab] = useState('schedule'); // schedule | assignments | attendance | notes
   const [selectedDay, setSelectedDay] = useState('Semua');
+
+  // Course Detail, Edit & Action states
+  const [selectedCourseForDetail, setSelectedCourseForDetail] = useState(null);
+  const [selectedCourseForEdit, setSelectedCourseForEdit] = useState(null);
+  const [selectedCourseForAction, setSelectedCourseForAction] = useState(null);
 
   // Dedicated Add Course Modal state
   const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
@@ -168,24 +180,28 @@ export const AcademicView = () => {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          gap: '8px',
+          flexWrap: 'wrap',
           boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <GraduationCap size={18} style={{ color: '#1665D8' }} />
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>Semester:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 auto', minWidth: '170px' }}>
+          <GraduationCap size={18} style={{ color: '#1665D8', flexShrink: 0 }} />
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155', flexShrink: 0 }}>Semester:</span>
           <select
             value={viewSemester}
             onChange={(e) => setViewSemester(Number(e.target.value))}
             style={{
-              padding: '6px 12px',
+              padding: '6px 10px',
               borderRadius: '10px',
               border: '1px solid #CBD5E1',
               background: '#F8FAFC',
               fontWeight: 800,
-              fontSize: '13px',
+              fontSize: '12px',
               color: '#1665D8',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              flex: '1 1 auto',
+              maxWidth: '180px'
             }}
           >
             {availableSemesters.map(s => (
@@ -198,6 +214,7 @@ export const AcademicView = () => {
 
         {viewSemester === activeSemester && (
           <button
+            type="button"
             onClick={() => {
               if (window.confirm(`Buka lembar kerja Semester ${activeSemester + 1}? Semua data semester ${activeSemester} tetap tersimpan aman di arsip.`)) {
                 promoteToNextSemester();
@@ -208,17 +225,19 @@ export const AcademicView = () => {
               border: '1px solid #BFDBFE',
               color: '#1665D8',
               borderRadius: '10px',
-              padding: '6px 12px',
-              fontSize: '12px',
+              padding: '6px 10px',
+              fontSize: '11px',
               fontWeight: 700,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px'
+              gap: '4px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
             title="Buka Lembar Kerja Semester Baru"
           >
-            <Plus size={14} /> Buka Semester Baru
+            <Plus size={13} /> Semester Baru
           </button>
         )}
       </div>
@@ -321,34 +340,118 @@ export const AcademicView = () => {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {filteredCourses.map(course => (
-                <div key={course.id} className="course-card" style={{ borderLeftColor: course.color || '#1665D8' }}>
-                  <div className="course-top-row">
-                    <div>
-                      <span className="course-badge">{course.code || 'MK'}</span>
-                      <h4 className="course-title" style={{ marginTop: '6px' }}>{course.name}</h4>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '13px', color: '#1665D8' }}>
-                        {course.sks} SKS
-                      </span>
-                      <button
-                        onClick={() => handleDeleteCourse(course.id, course.name)}
-                        style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px' }}
-                        title="Hapus Matakuliah"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
+              {/* Interaction Hint Banner */}
+              <div
+                style={{
+                  background: '#F0FDF4',
+                  border: '1px solid #BBF7D0',
+                  borderRadius: '12px',
+                  padding: '8px 12px',
+                  fontSize: '11px',
+                  color: '#166534',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>💡</span>
+                <span>
+                  <strong>Tips:</strong> Ketuk matkul untuk buka <strong>Hub Presensi, Tugas, Catatan & Nilai</strong>. Geser kanan untuk <strong>Hapus</strong>, geser kiri untuk <strong>Edit</strong>.
+                </span>
+              </div>
 
-                  <div className="course-meta">
-                    <span>📅 {course.dayOfWeek}, {course.startTime} - {course.endTime}</span>
-                    <span>📍 {course.room}</span>
-                    <span>👨‍🏫 {course.lecturer}</span>
-                  </div>
-                </div>
-              ))}
+              {filteredCourses.map(course => {
+                const stats = getAttendanceStats(course);
+                const semRecord = data.semesters?.find(s => s.semesterNumber === course.semester);
+                const gradeRecord = semRecord?.courses?.find(c => c.courseId === course.id || c.name === course.name);
+                const currentGrade = course.grade?.letter || gradeRecord?.letter;
+
+                return (
+                  <SwipeableItem
+                    key={course.id}
+                    itemTitle={course.name}
+                    showDots={false}
+                    onEdit={() => setSelectedCourseForEdit(course)}
+                    onDelete={() => deleteCourse(course.id)}
+                    onClick={() => setSelectedCourseForDetail(course)}
+                  >
+                    <div
+                      className="course-card"
+                      style={{
+                        borderLeftColor: course.color || '#1665D8',
+                        cursor: 'pointer',
+                        margin: 0
+                      }}
+                    >
+                      <div className="course-top-row">
+                        <div style={{ flex: 1, paddingRight: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span className="course-badge">{course.code || 'MK'}</span>
+                            {currentGrade && (
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 800,
+                                  padding: '2px 8px',
+                                  borderRadius: '6px',
+                                  background: '#EFF6FF',
+                                  color: '#1665D8',
+                                  border: '1px solid #BFDBFE'
+                                }}
+                              >
+                                Nilai: {currentGrade}
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="course-title" style={{ marginTop: '6px' }}>{course.name}</h4>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                          <span style={{ fontWeight: 800, fontSize: '13px', color: '#1665D8' }}>
+                            {course.sks} SKS
+                          </span>
+                          <button
+                            type="button"
+                            className="dots-action-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCourseForAction(course);
+                            }}
+                            title="Menu Aksi"
+                          >
+                            <MoreVertical size={15} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="course-meta" style={{ marginTop: '8px' }}>
+                        <span>📅 {course.dayOfWeek}, {course.startTime} - {course.endTime}</span>
+                        <span>📍 {course.room || 'Ruang Kuliah'}</span>
+                        <span>👨‍🏫 {course.lecturer || 'Dosen Pengampu'}</span>
+                      </div>
+
+                      {/* Mini footer status */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginTop: '10px',
+                          paddingTop: '8px',
+                          borderTop: '1px solid #F1F5F9',
+                          fontSize: '11px'
+                        }}
+                      >
+                        <span style={{ color: stats.isDisqualified ? '#EF4444' : (stats.isNearDanger ? '#F59E0B' : '#10B981'), fontWeight: 700 }}>
+                          Kehadiran: {stats.currentRate}% ({stats.totalMeetingsRecorded}/16)
+                        </span>
+                        <span style={{ color: '#1665D8', fontWeight: 700 }}>
+                          Buka Hub Kuliah →
+                        </span>
+                      </div>
+                    </div>
+                  </SwipeableItem>
+                );
+              })}
             </div>
           )}
         </div>
@@ -819,6 +922,100 @@ export const AcademicView = () => {
                 <Check size={16} /> Simpan Mata Kuliah
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Integrated Course Detail Hub Modal */}
+      <CourseDetailModal
+        course={selectedCourseForDetail}
+        isOpen={Boolean(selectedCourseForDetail)}
+        onClose={() => setSelectedCourseForDetail(null)}
+        onEditCourse={(courseToEdit) => {
+          setSelectedCourseForEdit(courseToEdit);
+        }}
+      />
+
+      {/* Course Edit Modal */}
+      <EditCourseModal
+        course={selectedCourseForEdit}
+        isOpen={Boolean(selectedCourseForEdit)}
+        onClose={() => setSelectedCourseForEdit(null)}
+      />
+
+      {/* Course Action Sheet Modal */}
+      {selectedCourseForAction && (
+        <div className="action-sheet-overlay" onClick={() => setSelectedCourseForAction(null)}>
+          <div className="action-sheet-box" onClick={(e) => e.stopPropagation()}>
+            <div className="action-sheet-header">
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>
+                  {selectedCourseForAction.name}
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748B' }}>
+                  Semester {selectedCourseForAction.semester} • {selectedCourseForAction.sks} SKS
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedCourseForAction(null)}
+                style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#F1F5F9', border: 'none', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div>
+              <button
+                type="button"
+                className="action-sheet-item"
+                style={{ background: '#EFF6FF', color: '#1665D8' }}
+                onClick={() => {
+                  const c = selectedCourseForAction;
+                  setSelectedCourseForAction(null);
+                  setSelectedCourseForDetail(c);
+                }}
+              >
+                <BookOpen size={16} />
+                <span>Buka Hub Kuliah (Presensi & Nilai)</span>
+              </button>
+
+              <button
+                type="button"
+                className="action-sheet-item edit"
+                onClick={() => {
+                  const c = selectedCourseForAction;
+                  setSelectedCourseForAction(null);
+                  setSelectedCourseForEdit(c);
+                }}
+              >
+                <Edit2 size={16} />
+                <span>Edit Rincian Mata Kuliah</span>
+              </button>
+
+              <button
+                type="button"
+                className="action-sheet-item delete"
+                onClick={() => {
+                  const c = selectedCourseForAction;
+                  setSelectedCourseForAction(null);
+                  if (window.confirm(`Hapus matakuliah "${c.name}" beserta jadwal, tugas, dan presensinya?`)) {
+                    deleteCourse(c.id);
+                  }
+                }}
+              >
+                <Trash2 size={16} />
+                <span>Hapus Mata Kuliah</span>
+              </button>
+
+              <button
+                type="button"
+                className="action-sheet-item cancel"
+                onClick={() => setSelectedCourseForAction(null)}
+              >
+                Batal
+              </button>
+            </div>
           </div>
         </div>
       )}

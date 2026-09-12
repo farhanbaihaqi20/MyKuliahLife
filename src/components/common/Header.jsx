@@ -34,12 +34,14 @@ export const Header = () => {
       {/* Top Bar: User Greeting, Semester Badge & Avatar */}
       <div className="header-top-row">
         <div className="user-greeting">
-          <span style={{ fontSize: '22px' }}>👋</span>
+          <span style={{ fontSize: '24px' }}>🤖</span>
           <div>
             <div className="greeting-text">Hai {data.profile.fullName ? data.profile.fullName.split(' ')[0] : 'Mahasiswa'}!</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '1px' }}>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px' }}>
               <GraduationCap size={12} />
               <span>Semester {activeSemester} Aktif</span>
+              <span>•</span>
+              <span style={{ color: '#FDE68A', fontWeight: 700 }}>Mahasiswa ⭐</span>
             </div>
           </div>
         </div>
@@ -74,27 +76,6 @@ export const Header = () => {
 
       {/* Hero Financial Balance Card */}
       <div className="hero-balance-box">
-        {/* Mascot Flair (Bottom-Right, non-blocking) */}
-        <div
-          className="mascot-student-badge"
-          style={{
-            position: 'absolute',
-            right: '16px',
-            bottom: '16px',
-            pointerEvents: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            background: 'rgba(255,255,255,0.12)',
-            padding: '4px 10px',
-            borderRadius: '12px',
-            backdropFilter: 'blur(4px)'
-          }}
-        >
-          <span style={{ fontSize: '16px' }}>🤖</span>
-          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>Mahasiswa ⭐</span>
-        </div>
-
         <div className="hero-balance-top">
           <div className="balance-status-tag">
             <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#6EE7B7', display: 'inline-block' }}></span>
@@ -111,20 +92,18 @@ export const Header = () => {
             style={{
               background: 'rgba(255,255,255,0.18)',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '20px',
               color: 'white',
               cursor: 'pointer',
-              padding: '6px 10px',
+              padding: '4px 12px',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               fontSize: '11px',
-              fontWeight: 700,
-              zIndex: 10,
-              position: 'relative'
+              fontWeight: 700
             }}
           >
-            {isBalanceVisible ? <Eye size={15} /> : <EyeOff size={15} />}
+            {isBalanceVisible ? <Eye size={14} /> : <EyeOff size={14} />}
             <span>{isBalanceVisible ? 'Intip' : 'Tutup'}</span>
           </button>
         </div>
