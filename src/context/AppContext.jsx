@@ -1,13 +1,21 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { loadLocalData, saveLocalData, syncWithCloud } from '../services/db';
+import { loadLocalData, saveLocalData } from '../services/db';
 import { isSupabaseConfigured, supabase } from '../services/supabase';
+import { authService, profileService, dataSyncService, cloudService, generateUUID } from '../services/supabaseService';
 import { INITIAL_DATA, CLEAN_DATA } from '../constants/initialData';
 import { getFinancialCycle } from '../utils/dateCycle';
 
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  const [data, setData] = useState(() => loadLocalData());
+  // Auth states
+  const [session, setSession] = useState(null);
+  const [user, setUser] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isGuestMode, setIsGuestMode] = useState(false);
+
+  // Clean data as safe initial state so demo data never leaks into authenticated accounts
+  const [data, setData] = useState(CLEAN_DATA);
   const [activeTab, setActiveTab] = useState('home'); // 'home' | 'academic' | 'finance' | 'grades' | 'profile'
   const [financeSubtab, setFinanceSubtab] = useState('budget'); // 'budget' | 'history' | 'report' | 'bills' | 'targets' | 'accounts'
   const [academicTab, setAcademicTab] = useState('schedule'); // 'schedule' | 'assignments' | 'attendance' | 'notes'
@@ -29,6 +37,7 @@ export const AppProvider = ({ children }) => {
 
   // Active semester vs viewed semester
   const activeSemester = data.activeSemester || data.profile?.semester || 1;
+  const unlockedSemesters = data.unlockedSemesters || [activeSemester];
   const [viewSemester, setViewSemester] = useState(activeSemester);
 
   // Sync viewSemester when activeSemester changes
@@ -37,48 +46,149 @@ export const AppProvider = ({ children }) => {
   }, [activeSemester]);
 
   const [syncStatus, setSyncStatus] = useState({
-    mode: isSupabaseConfigured() ? 'connecting' : 'offline',
-    message: isSupabaseConfigured() ? 'Menghubungkan ke Supabase...' : 'Mode Offline Lokal',
+    mode: isSupabaseConfigured() ? 'online' : 'offline',
+    message: isSupabaseConfigured() ? '⚡ Auto-Sync Supabase Aktif' : 'Mode Offline Lokal',
     lastSynced: null
   });
 
-  // Save changes to localStorage whenever data updates
+  // Save changes to localStorage only after auth finishes resolving
   useEffect(() => {
-    saveLocalData(data);
-  }, [data]);
-
-  // Check Supabase connection on load
-  useEffect(() => {
-    if (!isSupabaseConfigured() || !supabase) {
-      setSyncStatus({
-        mode: 'offline',
-        message: 'Tersimpan di Penyimpanan Lokal (Offline)',
-        lastSynced: new Date().toLocaleTimeString('id-ID')
-      });
-      return;
+    if (!isAuthLoading) {
+      saveLocalData(data, user?.id);
     }
+  }, [data, user?.id, isAuthLoading]);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+  // Supabase Auth & Session Bootstrapping
+  useEffect(() => {
+    let mounted = true;
+
+    const bootstrapAuth = async () => {
+      try {
+        const { session: currSession, user: currUser } = await authService.getSession();
+        if (!mounted) return;
+
+        setSession(currSession);
+        setUser(currUser);
+
+        if (currUser) {
+          setSyncStatus({
+            mode: 'online',
+            message: 'Tersinkron Cloud Supabase',
+            lastSynced: new Date().toLocaleTimeString('id-ID')
+          });
+
+          // Check if user has cloud data
+          const cloudData = await dataSyncService.loadUserData(currUser.id);
+          if (cloudData) {
+            setData(cloudData);
+            saveLocalData(cloudData, currUser.id);
+            setIsOnboardingOpen(false);
+          } else {
+            // New user without cloud profile
+            const cached = loadLocalData(currUser.id);
+            if (cached && cached.profile?.fullName && cached.profile.fullName !== 'Mahasiswa') {
+              setData(cached);
+              setIsOnboardingOpen(false);
+            } else {
+              setData(CLEAN_DATA);
+              setIsOnboardingOpen(true);
+            }
+          }
+        } else {
+          setSyncStatus({
+            mode: 'offline',
+            message: 'Belum Masuk Akun',
+            lastSynced: null
+          });
+        }
+      } catch (err) {
+        console.warn('Auth bootstrapping error:', err);
+      } finally {
+        if (mounted) setIsAuthLoading(false);
+      }
+    };
+
+    bootstrapAuth();
+
+    // Listen to real-time auth changes
+    const { data: authListener } = authService.onAuthStateChange(async (event, newSession) => {
+      if (!mounted) return;
+      setSession(newSession);
+      const newUser = newSession?.user || null;
+      setUser(newUser);
+
+      if (newUser && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
         setSyncStatus({
           mode: 'online',
           message: 'Tersinkron Cloud Supabase',
           lastSynced: new Date().toLocaleTimeString('id-ID')
         });
-      } else {
+
+        const cloudData = await dataSyncService.loadUserData(newUser.id);
+        if (cloudData) {
+          setData(cloudData);
+          saveLocalData(cloudData, newUser.id);
+          setIsOnboardingOpen(false);
+        } else {
+          setData(CLEAN_DATA);
+          setIsOnboardingOpen(true);
+        }
+      } else if (event === 'SIGNED_OUT') {
         setSyncStatus({
-          mode: 'ready',
-          message: 'Supabase Terhubung (Mode Tamu Lokal)',
+          mode: 'offline',
+          message: 'Telah Keluar Akun',
           lastSynced: null
         });
+        setData(CLEAN_DATA);
+        setIsGuestMode(false);
+        setIsOnboardingOpen(false);
       }
     });
+
+    return () => {
+      mounted = false;
+      authListener?.subscription?.unsubscribe();
+    };
   }, []);
+
+  // Auth Action Methods
+  const login = async (email, password) => {
+    try {
+      const authData = await authService.signIn(email, password);
+      return { success: true, data: authData };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const register = async (email, password, metadata = {}) => {
+    try {
+      const authData = await authService.signUp(email, password, metadata);
+      return { success: true, data: authData };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const logout = async () => {
+    await authService.signOut();
+    setSession(null);
+    setUser(null);
+    setIsGuestMode(false);
+    setData(CLEAN_DATA);
+    setActiveTab('home');
+  };
+
+  const enterGuestMode = () => {
+    setIsGuestMode(true);
+    setData(INITIAL_DATA);
+    setIsOnboardingOpen(false);
+  };
 
   // Sync Action
   const triggerSync = async () => {
     setSyncStatus(prev => ({ ...prev, message: 'Menyinkronkan data...' }));
-    const res = await syncWithCloud(data);
+    const res = await syncWithCloud(data, user?.id);
     setSyncStatus({
       mode: res.mode === 'cloud' ? 'online' : (res.mode === 'offline' ? 'offline' : 'ready'),
       message: res.message,
@@ -89,10 +199,61 @@ export const AppProvider = ({ children }) => {
 
   // Profile Management
   const updateProfile = (fields) => {
+    setData(prev => {
+      const updated = {
+        ...prev,
+        profile: { ...prev.profile, ...fields }
+      };
+      if (user?.id) {
+        profileService.upsertProfile(user.id, updated.profile).catch(err => console.warn(err));
+      }
+      return updated;
+    });
+  };
+
+  // Semester Management (Centrally in Profile)
+  const changeActiveSemester = async (targetSem) => {
+    const semNum = Number(targetSem);
     setData(prev => ({
       ...prev,
-      profile: { ...prev.profile, ...fields }
+      activeSemester: semNum,
+      profile: {
+        ...prev.profile,
+        semester: semNum
+      }
     }));
+    setViewSemester(semNum);
+    if (user?.id) {
+      try {
+        await profileService.updateSemesters(user.id, semNum, data.unlockedSemesters || [semNum]);
+      } catch (e) {
+        console.warn('Sync semester error:', e);
+      }
+    }
+  };
+
+  const unlockNewSemester = async (targetSem) => {
+    const semNum = Number(targetSem);
+    const currentUnlocked = data.unlockedSemesters || [activeSemester];
+    const newUnlocked = Array.from(new Set([...currentUnlocked, semNum])).sort((a, b) => a - b);
+
+    setData(prev => ({
+      ...prev,
+      activeSemester: semNum,
+      unlockedSemesters: newUnlocked,
+      profile: {
+        ...prev.profile,
+        semester: semNum
+      }
+    }));
+    setViewSemester(semNum);
+    if (user?.id) {
+      try {
+        await profileService.updateSemesters(user.id, semNum, newUnlocked);
+      } catch (e) {
+        console.warn('Sync unlock semester error:', e);
+      }
+    }
   };
 
   // Reset & Onboarding Operations
@@ -106,24 +267,40 @@ export const AppProvider = ({ children }) => {
     setIsOnboardingOpen(true);
   };
 
-  const completeOnboarding = ({ profile, startDayOfMonth, initialAccounts, initialBudget }) => {
+  const completeOnboarding = async ({ profile, startDayOfMonth, initialAccounts, initialBudget }) => {
+    const sem = Number(profile.semester) || 1;
     const newData = {
       ...CLEAN_DATA,
-      activeSemester: Number(profile.semester) || 1,
+      activeSemester: sem,
+      unlockedSemesters: [sem],
       profile: {
         ...CLEAN_DATA.profile,
         ...profile,
-        semester: Number(profile.semester) || 1
+        semester: sem
       },
       accounts: initialAccounts && initialAccounts.length > 0 ? initialAccounts : CLEAN_DATA.accounts,
       budget: {
         ...CLEAN_DATA.budget,
         startDayOfMonth: Number(startDayOfMonth) || 1,
-        totalBudget: Number(initialBudget) || 1000000
+        totalBudget: Number(initialBudget) || 1500000
       }
     };
     setData(newData);
     setIsOnboardingOpen(false);
+    saveLocalData(newData, user?.id);
+
+    if (user?.id) {
+      try {
+        await dataSyncService.initializeNewUser(user.id, {
+          profile,
+          startDayOfMonth,
+          initialAccounts,
+          initialBudget
+        });
+      } catch (err) {
+        console.warn('Failed cloud user init, kept in local storage:', err);
+      }
+    }
   };
 
   // Financial Cycle Calculation
@@ -157,6 +334,28 @@ export const AppProvider = ({ children }) => {
       .reduce((sum, t) => sum + t.amount, 0);
   }, [data.transactions, financialCycle]);
 
+  // Today's transaction summary
+  const todayDateStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  const todayTransactions = useMemo(() => {
+    return data.transactions.filter(t => t.date === todayDateStr || (t.date && t.date.startsWith(todayDateStr)));
+  }, [data.transactions, todayDateStr]);
+
+  const todayIncome = useMemo(() => {
+    return todayTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+  }, [todayTransactions]);
+
+  const todayExpenses = useMemo(() => {
+    return todayTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+  }, [todayTransactions]);
+
+  const todayNet = todayIncome - todayExpenses;
+  const todayTxCount = todayTransactions.length;
+
   const totalBalance = useMemo(() => {
     return data.accounts.reduce((sum, acc) => sum + acc.balance, 0);
   }, [data.accounts]);
@@ -168,8 +367,9 @@ export const AppProvider = ({ children }) => {
 
   // --- ACCOUNTS CRUD ---
   const addAccount = (acc) => {
+    const accId = generateUUID();
     const newAccount = {
-      id: `acc-${Date.now()}`,
+      id: accId,
       name: acc.name,
       type: acc.type || 'bank',
       balance: Number(acc.balance) || 0,
@@ -182,6 +382,9 @@ export const AppProvider = ({ children }) => {
       ...prev,
       accounts: [...prev.accounts, newAccount]
     }));
+    if (user?.id) {
+      cloudService.insertAccount(user.id, newAccount);
+    }
   };
 
   const editAccount = (accId, updatedFields) => {
@@ -189,6 +392,9 @@ export const AppProvider = ({ children }) => {
       ...prev,
       accounts: prev.accounts.map(a => a.id === accId ? { ...a, ...updatedFields } : a)
     }));
+    if (user?.id) {
+      cloudService.updateAccount(accId, updatedFields);
+    }
   };
 
   const deleteAccount = (accId) => {
@@ -196,12 +402,16 @@ export const AppProvider = ({ children }) => {
       ...prev,
       accounts: prev.accounts.filter(a => a.id !== accId)
     }));
+    if (user?.id) {
+      cloudService.deleteAccount(accId);
+    }
   };
 
   // --- TRANSACTIONS CRUD ---
   const addTransaction = (tx) => {
+    const txId = generateUUID();
     const newTx = {
-      id: `tx-${Date.now()}`,
+      id: txId,
       date: tx.date || new Date().toISOString().split('T')[0],
       type: tx.type, // 'expense' | 'income' | 'transfer'
       category: tx.category,
@@ -213,7 +423,7 @@ export const AppProvider = ({ children }) => {
       icon: tx.icon || '💸'
     };
 
-    // Update account balances
+    let updatedAccountsList = [];
     setData(prev => {
       const updatedAccounts = prev.accounts.map(acc => {
         if (acc.name === tx.accountName) {
@@ -230,6 +440,7 @@ export const AppProvider = ({ children }) => {
         }
         return acc;
       });
+      updatedAccountsList = updatedAccounts;
 
       return {
         ...prev,
@@ -237,9 +448,14 @@ export const AppProvider = ({ children }) => {
         transactions: [newTx, ...prev.transactions]
       };
     });
+
+    if (user?.id) {
+      cloudService.insertTransaction(user.id, newTx, updatedAccountsList);
+    }
   };
 
   const deleteTransaction = (txId, rollbackBalance = true) => {
+    let updatedAccountsList = [];
     setData(prev => {
       const targetTx = prev.transactions.find(t => t.id === txId);
       if (!targetTx) return prev;
@@ -262,6 +478,7 @@ export const AppProvider = ({ children }) => {
           return acc;
         });
       }
+      updatedAccountsList = updatedAccounts;
 
       return {
         ...prev,
@@ -269,9 +486,14 @@ export const AppProvider = ({ children }) => {
         transactions: prev.transactions.filter(t => t.id !== txId)
       };
     });
+
+    if (user?.id) {
+      cloudService.deleteTransaction(txId, updatedAccountsList);
+    }
   };
 
   const editTransaction = (txId, updatedFields) => {
+    let finalAccountsList = [];
     setData(prev => {
       const oldTx = prev.transactions.find(t => t.id === txId);
       if (!oldTx) return prev;
@@ -310,6 +532,7 @@ export const AppProvider = ({ children }) => {
         }
         return { ...acc, balance, updated: 'Baru saja' };
       });
+      finalAccountsList = finalAccounts;
 
       return {
         ...prev,
@@ -317,6 +540,15 @@ export const AppProvider = ({ children }) => {
         transactions: prev.transactions.map(t => t.id === txId ? newTx : t)
       };
     });
+
+    if (user?.id) {
+      cloudService.updateTransaction(txId, updatedFields);
+      if (finalAccountsList && finalAccountsList.length > 0) {
+        for (const acc of finalAccountsList) {
+          supabase.from('accounts').update({ balance: Number(acc.balance) }).eq('id', acc.id).catch(console.error);
+        }
+      }
+    }
   };
 
   // Budget
@@ -329,12 +561,19 @@ export const AppProvider = ({ children }) => {
         categories: updatedCategories || prev.budget.categories
       }
     }));
+    if (user?.id) {
+      profileService.upsertProfile(user.id, {
+        monthlyBudget: newTotal !== undefined ? newTotal : data.budget.totalBudget,
+        startDayOfMonth: data.budget.startDayOfMonth || 1
+      });
+    }
   };
 
   // --- BILLS CRUD ---
   const addBill = (bill) => {
+    const billId = generateUUID();
     const newBill = {
-      id: `bill-${Date.now()}`,
+      id: billId,
       ...bill,
       amount: Number(bill.amount),
       isPaid: false
@@ -343,13 +582,26 @@ export const AppProvider = ({ children }) => {
       ...prev,
       bills: [newBill, ...prev.bills]
     }));
+    if (user?.id) {
+      cloudService.insertBill(user.id, newBill);
+    }
   };
 
   const toggleBillPaid = (billId) => {
+    let nextPaid = false;
     setData(prev => ({
       ...prev,
-      bills: prev.bills.map(b => b.id === billId ? { ...b, isPaid: !b.isPaid } : b)
+      bills: prev.bills.map(b => {
+        if (b.id === billId) {
+          nextPaid = !b.isPaid;
+          return { ...b, isPaid: nextPaid };
+        }
+        return b;
+      })
     }));
+    if (user?.id) {
+      cloudService.toggleBill(billId, nextPaid);
+    }
   };
 
   const deleteBill = (billId) => {
@@ -357,12 +609,16 @@ export const AppProvider = ({ children }) => {
       ...prev,
       bills: prev.bills.filter(b => b.id !== billId)
     }));
+    if (user?.id) {
+      cloudService.deleteBill(billId);
+    }
   };
 
   // --- SAVINGS TARGETS CRUD ---
   const addSavingsTarget = (target) => {
+    const targetId = generateUUID();
     const newTarget = {
-      id: `st-${Date.now()}`,
+      id: targetId,
       ...target,
       targetAmount: Number(target.targetAmount),
       currentAmount: Number(target.currentAmount || 0),
@@ -372,14 +628,19 @@ export const AppProvider = ({ children }) => {
       ...prev,
       savingsTargets: [newTarget, ...prev.savingsTargets]
     }));
+    if (user?.id) {
+      cloudService.insertTarget(user.id, newTarget);
+    }
   };
 
   const depositToTarget = (targetId, amount, note = 'Setoran tabungan') => {
     const depositAmount = Number(amount);
+    let finalAmount = 0;
     setData(prev => ({
       ...prev,
       savingsTargets: prev.savingsTargets.map(st => {
         if (st.id === targetId) {
+          finalAmount = st.currentAmount + depositAmount;
           const newHistory = [
             {
               id: `sh-${Date.now()}`,
@@ -391,13 +652,16 @@ export const AppProvider = ({ children }) => {
           ];
           return {
             ...st,
-            currentAmount: st.currentAmount + depositAmount,
+            currentAmount: finalAmount,
             history: newHistory
           };
         }
         return st;
       })
     }));
+    if (user?.id) {
+      cloudService.updateTargetAmount(targetId, finalAmount);
+    }
   };
 
   const deleteSavingsTarget = (targetId) => {
@@ -405,6 +669,9 @@ export const AppProvider = ({ children }) => {
       ...prev,
       savingsTargets: prev.savingsTargets.filter(t => t.id !== targetId)
     }));
+    if (user?.id) {
+      cloudService.deleteTarget(targetId);
+    }
   };
 
   // --- SEMESTER & ACADEMIC TRANSITION ---
@@ -421,18 +688,35 @@ export const AppProvider = ({ children }) => {
     setViewSemester(nextSem);
   };
 
-  // --- COURSES CRUD (Bound to semester) ---
+  // --- COURSES CRUD (Bound to semester & auto-synced) ---
   const addCourse = (course) => {
+    const courseId = generateUUID();
     const newCourse = {
-      id: `crs-${Date.now()}`,
-      semester: course.semester || viewSemester,
-      ...course,
+      id: courseId,
+      semester: Number(course.semester || viewSemester || activeSemester),
+      code: course.code || 'MK',
+      name: course.name,
+      sks: Number(course.sks) || 3,
+      lecturer: course.lecturer || 'Dosen Pengampu',
+      room: course.room || 'Ruang Kuliah',
+      dayOfWeek: course.dayOfWeek || 'Senin',
+      startTime: course.startTime || '08:00',
+      endTime: course.endTime || '10:30',
+      color: course.color || '#1665D8',
+      grade: {
+        letter: 'E',
+        point: 0.0,
+        isGraded: false
+      },
       attendance: []
     };
     setData(prev => ({
       ...prev,
       courses: [...prev.courses, newCourse]
     }));
+    if (user?.id) {
+      cloudService.insertCourse(user.id, newCourse);
+    }
   };
 
   const updateCourse = (courseId, updatedFields) => {
@@ -510,6 +794,10 @@ export const AppProvider = ({ children }) => {
         semesters: updatedSemesters
       };
     });
+
+    if (user?.id) {
+      cloudService.deleteCourse(courseId);
+    }
   };
 
   const setCourseGrade = (courseId, letter, point) => {
@@ -583,41 +871,57 @@ export const AppProvider = ({ children }) => {
         semesters: updatedSemesters
       };
     });
+
+    if (user?.id) {
+      cloudService.setCourseGrade(courseId, letter, point);
+    }
   };
 
   const updateAttendance = (courseId, meetingNumber, status) => {
-    setData(prev => ({
-      ...prev,
-      courses: prev.courses.map(crs => {
-        if (crs.id === courseId) {
-          const existingAtt = crs.attendance || [];
-          const idx = existingAtt.findIndex(a => a.meeting === meetingNumber);
-          let newAtt;
-          if (idx >= 0) {
-            newAtt = [...existingAtt];
-            newAtt[idx] = { ...newAtt[idx], status };
-          } else {
-            newAtt = [...existingAtt, { meeting: meetingNumber, status, date: new Date().toISOString().split('T')[0] }];
-          }
-          return { ...crs, attendance: newAtt };
-        }
-        return crs;
-      })
-    }));
+    setData(prev => {
+      const targetCourse = prev.courses.find(c => c.id === courseId);
+      const existingAtt = targetCourse?.attendance || [];
+      const idx = existingAtt.findIndex(a => a.meeting === meetingNumber);
+      let newAtt;
+      if (idx >= 0) {
+        newAtt = [...existingAtt];
+        newAtt[idx] = { ...newAtt[idx], status };
+      } else {
+        newAtt = [...existingAtt, { meeting: meetingNumber, status, date: new Date().toISOString().split('T')[0] }];
+      }
+
+      return {
+        ...prev,
+        courses: prev.courses.map(crs => crs.id === courseId ? { ...crs, attendance: newAtt } : crs)
+      };
+    });
+
+    if (user?.id) {
+      cloudService.upsertAttendance(user.id, { courseId, meetingNumber, status });
+    }
   };
 
   // --- ASSIGNMENTS CRUD (Bound to semester) ---
   const addAssignment = (asg) => {
+    const asgId = generateUUID();
     const newAsg = {
-      id: `asg-${Date.now()}`,
-      semester: asg.semester || viewSemester,
-      ...asg,
+      id: asgId,
+      courseId: asg.courseId,
+      courseName: asg.courseName,
+      semester: Number(asg.semester || viewSemester || activeSemester),
+      title: asg.title,
+      description: asg.description || '',
+      deadline: asg.deadline,
+      priority: asg.priority || 'medium',
       status: 'pending'
     };
     setData(prev => ({
       ...prev,
       assignments: [newAsg, ...prev.assignments]
     }));
+    if (user?.id) {
+      cloudService.insertAssignment(user.id, newAsg);
+    }
   };
 
   const editAssignment = (asgId, updatedFields) => {
@@ -625,19 +929,26 @@ export const AppProvider = ({ children }) => {
       ...prev,
       assignments: prev.assignments.map(a => a.id === asgId ? { ...a, ...updatedFields } : a)
     }));
+    if (user?.id) {
+      cloudService.updateAssignment(asgId, updatedFields);
+    }
   };
 
   const toggleAssignmentStatus = (asgId) => {
+    let nextStatus = 'pending';
     setData(prev => ({
       ...prev,
       assignments: prev.assignments.map(a => {
         if (a.id === asgId) {
-          const nextStatus = a.status === 'completed' ? 'pending' : 'completed';
+          nextStatus = a.status === 'completed' ? 'pending' : 'completed';
           return { ...a, status: nextStatus };
         }
         return a;
       })
     }));
+    if (user?.id) {
+      cloudService.updateAssignment(asgId, { status: nextStatus });
+    }
   };
 
   const deleteAssignment = (asgId) => {
@@ -645,19 +956,31 @@ export const AppProvider = ({ children }) => {
       ...prev,
       assignments: prev.assignments.filter(a => a.id !== asgId)
     }));
+    if (user?.id) {
+      cloudService.deleteAssignment(asgId);
+    }
   };
 
   // --- COURSE NOTES CRUD (Bound to semester) ---
   const addCourseNote = (note) => {
+    const noteId = generateUUID();
     const newNote = {
-      id: `note-${Date.now()}`,
-      semester: note.semester || viewSemester,
-      ...note
+      id: noteId,
+      courseId: note.courseId,
+      courseName: note.courseName,
+      semester: Number(note.semester || viewSemester || activeSemester),
+      weekNumber: Number(note.weekNumber) || 1,
+      topic: note.topic,
+      content: note.content || '',
+      materialUrl: note.materialUrl || null
     };
     setData(prev => ({
       ...prev,
       courseNotes: [newNote, ...prev.courseNotes]
     }));
+    if (user?.id) {
+      cloudService.insertNote(user.id, newNote);
+    }
   };
 
   const editCourseNote = (noteId, updatedFields) => {
@@ -665,6 +988,9 @@ export const AppProvider = ({ children }) => {
       ...prev,
       courseNotes: prev.courseNotes.map(n => n.id === noteId ? { ...n, ...updatedFields } : n)
     }));
+    if (user?.id) {
+      cloudService.updateNote(noteId, updatedFields);
+    }
   };
 
   const deleteCourseNote = (noteId) => {
@@ -672,6 +998,9 @@ export const AppProvider = ({ children }) => {
       ...prev,
       courseNotes: prev.courseNotes.filter(n => n.id !== noteId)
     }));
+    if (user?.id) {
+      cloudService.deleteNote(noteId);
+    }
   };
 
   // --- GRADES & IPS/IPK CRUD ---
@@ -851,16 +1180,27 @@ export const AppProvider = ({ children }) => {
         setIsCycleModalOpen,
         syncStatus,
         triggerSync,
+        // Auth & User Session
+        session,
+        user,
+        isAuthLoading,
+        isGuestMode,
+        login,
+        register,
+        logout,
+        enterGuestMode,
         // Onboarding & Reset
         resetToDemoData,
         resetToCleanData,
         completeOnboarding,
         updateProfile,
-        // Semester System
+        // Semester System (Centralized in Profile)
         activeSemester,
+        unlockedSemesters,
         viewSemester,
         setViewSemester,
-        promoteToNextSemester,
+        changeActiveSemester,
+        unlockNewSemester,
         // Financial cycle
         financialCycle,
         startDayOfMonth,
@@ -869,6 +1209,11 @@ export const AppProvider = ({ children }) => {
         totalBudget,
         cycleExpenses,
         cycleIncome,
+        todayIncome,
+        todayExpenses,
+        todayNet,
+        todayTxCount,
+        todayDateStr,
         remainingBudget,
         percentUsed,
         dailyAllowance,

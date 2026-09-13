@@ -10,6 +10,7 @@ import { AcademicView } from './views/AcademicView';
 import { FinanceView } from './views/FinanceView';
 import { GradesView } from './views/GradesView';
 import { ProfileSyncView } from './views/ProfileSyncView';
+import { AuthView } from './views/AuthView';
 import { ArrowLeft } from 'lucide-react';
 import './styles/app.css';
 
@@ -21,7 +22,7 @@ const MainScreen = () => {
       case 'academic': return 'Akademik & Perkuliahan';
       case 'finance': return 'Keuangan & Dompet';
       case 'grades': return 'Rekap Nilai & IPK';
-      case 'profile': return 'Profil & Sinkronisasi';
+      case 'profile': return 'Profil & Pengaturan';
       default: return 'MyUang';
     }
   };
@@ -86,11 +87,38 @@ const MainScreen = () => {
   );
 };
 
+const AppContent = () => {
+  const { session, isGuestMode, isAuthLoading } = useApp();
+
+  if (isAuthLoading) {
+    return (
+      <div className="mobile-device-frame" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '620px' }}>
+        <div style={{ textAlign: 'center', padding: '30px' }}>
+          <div style={{ fontSize: '38px', marginBottom: '12px' }}>🎓</div>
+          <div style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>MyUang & EduTrack</div>
+          <div style={{ fontSize: '12px', color: '#64748B', marginTop: '6px' }}>Menghubungkan ke Supabase Cloud...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mandatory Login Gate
+  if (!session && !isGuestMode) {
+    return (
+      <div className="mobile-device-frame">
+        <AuthView />
+      </div>
+    );
+  }
+
+  return <MainScreen />;
+};
+
 export default function App() {
   return (
     <div className="app-viewport">
       <AppProvider>
-        <MainScreen />
+        <AppContent />
       </AppProvider>
     </div>
   );

@@ -20,10 +20,21 @@ export const QuickAddModal = () => {
   // Transaction form state
   const [txType, setTxType] = useState('expense'); // expense | income | transfer
   const [txAmount, setTxAmount] = useState('');
-  const [txAccount, setTxAccount] = useState(data.accounts[0]?.name || 'Sea Bank');
-  const [txCategory, setTxCategory] = useState(data.budget.categories[0]?.name || 'Makanan & minuman');
+  const [txAccount, setTxAccount] = useState(data.accounts[0]?.name || '');
+  const [txCategory, setTxCategory] = useState(data.budget?.categories?.[0]?.name || 'Makanan & minuman');
   const [txMerchant, setTxMerchant] = useState('');
   const [txNote, setTxNote] = useState('');
+  const [txError, setTxError] = useState('');
+
+  // Synchronize txAccount with available accounts dynamically
+  React.useEffect(() => {
+    if (data.accounts && data.accounts.length > 0) {
+      const exists = data.accounts.some(a => a.name === txAccount);
+      if (!exists || !txAccount) {
+        setTxAccount(data.accounts[0].name);
+      }
+    }
+  }, [data.accounts, isQuickAddOpen]);
 
   // Assignment form state
   const [asgCourseId, setAsgCourseId] = useState(data.courses[0]?.id || '');
@@ -48,13 +59,35 @@ export const QuickAddModal = () => {
 
   const handleTransactionSubmit = (e) => {
     e.preventDefault();
+    setTxError('');
+
     const rawAmount = parseRupiahNumber(txAmount);
-    if (!rawAmount || rawAmount <= 0) return;
+    if (!rawAmount || rawAmount <= 0) {
+      setTxError('Masukkan nominal transaksi yang valid.');
+      return;
+    }
+
+    if (!data.accounts || data.accounts.length === 0) {
+      setTxError('Kamu belum memiliki dompet/rekening aktif. Silakan tambahkan dompet di menu Keuangan.');
+      return;
+    }
+
+    const currentAcc = data.accounts.find(a => a.name === txAccount) || data.accounts[0];
+    if (!currentAcc) {
+      setTxError('Pilih dompet sumber transaksi yang valid.');
+      return;
+    }
+
+    // Cek kecukupan saldo untuk Pengeluaran & Transfer
+    if ((txType === 'expense' || txType === 'transfer') && rawAmount > currentAcc.balance) {
+      setTxError(`Saldo di ${currentAcc.name} tidak mencukupi! Saldo saat ini: Rp ${currentAcc.balance.toLocaleString('id-ID')}, sedangkan transaksi sebesar Rp ${rawAmount.toLocaleString('id-ID')}.`);
+      return;
+    }
 
     addTransaction({
       type: txType,
       amount: rawAmount,
-      accountName: txAccount,
+      accountName: currentAcc.name,
       category: txType === 'income' ? 'Pemasukan' : txCategory,
       merchant: txMerchant || (txType === 'expense' ? 'Kantin / Toko' : 'Sumber Dana'),
       note: txNote,
@@ -66,6 +99,7 @@ export const QuickAddModal = () => {
     setTxAmount('');
     setTxMerchant('');
     setTxNote('');
+    setTxError('');
   };
 
   const handleAssignmentSubmit = (e) => {
@@ -295,6 +329,23 @@ export const QuickAddModal = () => {
                 onChange={(e) => setTxNote(e.target.value)}
               />
             </div>
+
+            {txError && (
+              <div style={{
+                background: '#FEF2F2',
+                border: '1px solid #F87171',
+                borderRadius: '12px',
+                padding: '10px 14px',
+                fontSize: '12px',
+                color: '#B91C1C',
+                lineHeight: '1.4',
+                marginTop: '8px',
+                marginBottom: '8px',
+                fontWeight: 600
+              }}>
+                ⚠️ {txError}
+              </div>
+            )}
 
             <button type="submit" className="btn-primary" style={{ marginTop: '12px' }}>
               <Check size={18} /> Simpan Transaksi

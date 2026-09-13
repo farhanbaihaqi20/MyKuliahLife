@@ -1,55 +1,64 @@
-import { INITIAL_DATA } from '../constants/initialData';
+import { INITIAL_DATA, CLEAN_DATA } from '../constants/initialData';
 import { supabase, isSupabaseConfigured } from './supabase';
+import { profileService, dataSyncService } from './supabaseService';
 
-const STORAGE_KEY = 'myuang_app_data_v1';
+const BASE_STORAGE_KEY = 'myuang_app_data';
 
-export const loadLocalData = () => {
+export const getStorageKey = (userId = null) => {
+  return userId ? `${BASE_STORAGE_KEY}_${userId}` : `${BASE_STORAGE_KEY}_guest`;
+};
+
+export const loadLocalData = (userId = null) => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const key = getStorageKey(userId);
+    const raw = localStorage.getItem(key);
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Merge with initial data to ensure all keys exist
-      return { ...INITIAL_DATA, ...parsed };
+      return { ...CLEAN_DATA, ...parsed };
     }
   } catch (e) {
     console.error('Error loading local storage data:', e);
   }
-  return INITIAL_DATA;
+  return userId ? CLEAN_DATA : INITIAL_DATA;
 };
 
-export const saveLocalData = (data) => {
+export const saveLocalData = (data, userId = null) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const key = getStorageKey(userId);
+    localStorage.setItem(key, JSON.stringify(data));
   } catch (e) {
     console.error('Error saving local storage data:', e);
   }
 };
 
 /**
- * Cloud Sync Engine: Mengirim snapshot data lokal ke Supabase jika aktif & terhubung
+ * Sync Local Snapshot with Supabase Cloud
  */
-export const syncWithCloud = async (localData) => {
+export const syncWithCloud = async (localData, userId = null) => {
   if (!isSupabaseConfigured() || !supabase) {
-    return { success: false, mode: 'offline', message: 'Berjalan dalam mode offline lokal (.env.local belum diisi)' };
+    return { success: false, mode: 'offline', message: 'Koneksi Supabase belum terkonfigurasi' };
   }
 
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !session.user) {
-      return { success: false, mode: 'local', message: 'Belum login ke akun Supabase' };
+    let targetUserId = userId;
+    if (!targetUserId) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || !session.user) {
+        return { success: false, mode: 'local', message: 'Belum login ke akun Supabase' };
+      }
+      targetUserId = session.user.id;
     }
 
-    const userId = session.user.id;
-
-    // 1. Sync Profile
-    await supabase.from('profiles').upsert({
-      id: userId,
-      full_name: localData.profile.fullName,
-      university: localData.profile.university,
-      major: localData.profile.major,
-      current_semester: localData.profile.semester,
-      target_gpa: localData.profile.targetGpa,
-      updated_at: new Date().toISOString()
+    // 1. Sync Profile & Semester
+    await profileService.upsertProfile(targetUserId, {
+      fullName: localData.profile?.fullName,
+      university: localData.profile?.university,
+      major: localData.profile?.major,
+      activeSemester: localData.activeSemester || localData.profile?.semester || 1,
+      unlockedSemesters: localData.unlockedSemesters || [localData.activeSemester || 1],
+      targetGpa: localData.profile?.targetGpa || 3.80,
+      startDayOfMonth: localData.budget?.startDayOfMonth || 1,
+      monthlyBudget: localData.budget?.totalBudget || 1500000
     });
 
     return { success: true, mode: 'cloud', message: 'Data berhasil disinkronkan ke Supabase Cloud!' };

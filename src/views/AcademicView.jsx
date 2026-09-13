@@ -30,7 +30,7 @@ export const AcademicView = () => {
     activeSemester,
     viewSemester,
     setViewSemester,
-    promoteToNextSemester,
+    navigateTo,
     toggleAssignmentStatus,
     deleteAssignment,
     updateAttendance,
@@ -213,34 +213,29 @@ export const AcademicView = () => {
           </select>
         </div>
 
-        {viewSemester === activeSemester && (
-          <button
-            type="button"
-            onClick={() => {
-              if (window.confirm(`Buka lembar kerja Semester ${activeSemester + 1}? Semua data semester ${activeSemester} tetap tersimpan aman di arsip.`)) {
-                promoteToNextSemester();
-              }
-            }}
-            style={{
-              background: '#EFF6FF',
-              border: '1px solid #BFDBFE',
-              color: '#1665D8',
-              borderRadius: '10px',
-              padding: '6px 10px',
-              fontSize: '11px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              whiteSpace: 'nowrap',
-              flexShrink: 0
-            }}
-            title="Buka Lembar Kerja Semester Baru"
-          >
-            <Plus size={13} /> Semester Baru
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => navigateTo('profile')}
+          style={{
+            background: '#F1F5F9',
+            border: '1px solid #E2E8F0',
+            color: '#475569',
+            borderRadius: '10px',
+            padding: '6px 10px',
+            fontSize: '11px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            whiteSpace: 'nowrap',
+            flexShrink: 0
+          }}
+          title="Buka Pusat Manajemen Semester di Profil"
+        >
+          <span>⚙️ Atur di Profil</span>
+          <ChevronRight size={12} />
+        </button>
       </div>
 
       {/* Sub Tabs: Jadwal, Tugas, Presensi, Catatan */}

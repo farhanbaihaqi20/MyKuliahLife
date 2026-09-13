@@ -94,9 +94,9 @@ export const FinanceView = () => {
     return acc;
   }, {});
 
-  // Data for Donut Chart
+  // Data for Donut Chart (Strictly filtered to active financial cycle)
   const getDonutData = () => {
-    const expenses = data.transactions.filter(t => t.type === 'expense');
+    const expenses = data.transactions.filter(t => t.type === 'expense' && financialCycle.isDateInCycle(t.date));
     const colorPalette = ['#F97316', '#3B82F6', '#10B981', '#EC4899', '#8B5CF6', '#EAB308', '#64748B'];
 
     if (reportFilter === 'kategori') {
@@ -112,7 +112,8 @@ export const FinanceView = () => {
     } else if (reportFilter === 'akun') {
       const accMap = {};
       expenses.forEach(t => {
-        accMap[t.accountName] = (accMap[t.accountName] || 0) + t.amount;
+        const aName = t.accountName || 'Lainnya';
+        accMap[aName] = (accMap[aName] || 0) + t.amount;
       });
       return Object.entries(accMap).map(([label, amount], i) => ({
         label,
@@ -567,37 +568,49 @@ export const FinanceView = () => {
             </button>
           </div>
 
-          <div className="card-standard">
-            <h4 style={{ fontSize: '15px', fontWeight: 800, textAlign: 'center', color: '#0F172A' }}>
-              Breakdown Pengeluaran ({reportFilter.toUpperCase()})
-            </h4>
+          {donutItems.length === 0 ? (
+            <div className="card-standard" style={{ textAlign: 'center', padding: '36px 20px', color: '#64748B' }}>
+              <div style={{ fontSize: '36px', marginBottom: '8px' }}>📊</div>
+              <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>Belum Ada Pengeluaran Periode Ini</h4>
+              <p style={{ fontSize: '12px', marginTop: '4px', lineHeight: '1.5' }}>
+                Transaksi pengeluaran pada periode <strong>{financialCycle.label}</strong> akan otomatis dirangkum dan divisualisasikan dalam grafik ini.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="card-standard">
+                <h4 style={{ fontSize: '15px', fontWeight: 800, textAlign: 'center', color: '#0F172A' }}>
+                  Breakdown Pengeluaran ({reportFilter.toUpperCase()})
+                </h4>
 
-            <DonutChart
-              items={donutItems}
-              totalAmount={cycleExpenses}
-              centerLabel={`Total ${reportFilter}`}
-            />
-          </div>
+                <DonutChart
+                  items={donutItems}
+                  totalAmount={cycleExpenses}
+                  centerLabel={`Total ${reportFilter}`}
+                />
+              </div>
 
-          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {donutItems.map((item, idx) => (
-              <div key={idx} className="card-standard" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: item.color }}></span>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{item.label}</div>
-                    <div style={{ fontSize: '11px', color: '#64748B' }}>
-                      {cycleExpenses > 0 ? Math.round((item.amount / cycleExpenses) * 100) : 0}% dari siklus ini
+              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {donutItems.map((item, idx) => (
+                  <div key={idx} className="card-standard" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: item.color }}></span>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{item.label}</div>
+                        <div style={{ fontSize: '11px', color: '#64748B' }}>
+                          {cycleExpenses > 0 ? Math.round((item.amount / cycleExpenses) * 100) : 0}% dari siklus ini
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#EF4444' }}>
+                      Rp {item.amount.toLocaleString('id-ID')}
                     </div>
                   </div>
-                </div>
-
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#EF4444' }}>
-                  Rp {item.amount.toLocaleString('id-ID')}
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       )}
 
