@@ -17,7 +17,7 @@ import {
 export const HomeView = () => {
   const {
     data,
-    setActiveTab,
+    navigateTo,
     setIsQuickAddOpen,
     setQuickAddType,
     totalBudget,
@@ -49,7 +49,8 @@ export const HomeView = () => {
       <div className="quick-action-grid">
         <button
           className="quick-action-item"
-          onClick={() => setActiveTab('finance')}
+          onClick={() => navigateTo('finance', 'report')}
+          title="Buka Laporan & Grafik Keuangan"
         >
           <div className="action-icon-circle" style={{ background: '#EFF6FF', color: '#1665D8' }}>
             <PieChart size={22} />
@@ -59,7 +60,8 @@ export const HomeView = () => {
 
         <button
           className="quick-action-item"
-          onClick={() => setActiveTab('academic')}
+          onClick={() => navigateTo('academic', 'schedule')}
+          title="Buka Jadwal Kuliah"
         >
           <div className="action-icon-circle" style={{ background: '#ECFDF5', color: '#059669' }}>
             <Calendar size={22} />
@@ -69,7 +71,8 @@ export const HomeView = () => {
 
         <button
           className="quick-action-item"
-          onClick={() => setActiveTab('finance')}
+          onClick={() => navigateTo('finance', 'targets')}
+          title="Buka Target Celengan / Nabung"
         >
           <div className="action-icon-circle" style={{ background: '#FEF3C7', color: '#D97706' }}>
             <Target size={22} />
@@ -79,7 +82,8 @@ export const HomeView = () => {
 
         <button
           className="quick-action-item"
-          onClick={() => setActiveTab('finance')}
+          onClick={() => navigateTo('finance', 'bills')}
+          title="Buka Daftar Tagihan"
         >
           <div className="action-icon-circle" style={{ background: '#FEE2E2', color: '#DC2626' }}>
             <FileCheck2 size={22} />
@@ -89,7 +93,8 @@ export const HomeView = () => {
 
         <button
           className="quick-action-item"
-          onClick={() => setActiveTab('academic')}
+          onClick={() => navigateTo('academic', 'assignments')}
+          title="Buka Daftar Tugas Kuliah"
         >
           <div className="action-icon-circle" style={{ background: '#F3E8FF', color: '#7C3AED' }}>
             <Clock size={22} />
@@ -99,10 +104,8 @@ export const HomeView = () => {
 
         <button
           className="quick-action-item"
-          onClick={() => {
-            setQuickAddType('attendance');
-            setIsQuickAddOpen(true);
-          }}
+          onClick={() => navigateTo('academic', 'attendance')}
+          title="Buka Presensi 16 Pertemuan Kuliah"
         >
           <div className="action-icon-circle" style={{ background: '#E0F2FE', color: '#0284C7' }}>
             <BookOpen size={22} />
@@ -112,7 +115,8 @@ export const HomeView = () => {
 
         <button
           className="quick-action-item"
-          onClick={() => setActiveTab('academic')}
+          onClick={() => navigateTo('academic', 'notes')}
+          title="Buka Catatan Materi Kuliah"
         >
           <div className="action-icon-circle" style={{ background: '#FCE7F3', color: '#DB2777' }}>
             <BookOpen size={22} />
@@ -122,7 +126,8 @@ export const HomeView = () => {
 
         <button
           className="quick-action-item"
-          onClick={() => setActiveTab('grades')}
+          onClick={() => navigateTo('grades')}
+          title="Buka Rekap Nilai & IPK"
         >
           <div className="action-icon-circle" style={{ background: '#FEF9C3', color: '#CA8A04' }}>
             <GraduationCap size={22} />
@@ -149,7 +154,11 @@ export const HomeView = () => {
             <Calendar size={18} style={{ color: '#1665D8' }} />
             Jadwal Kuliah Terdekat
           </h3>
-          <span className="section-action-link" onClick={() => setActiveTab('academic')}>
+          <span
+            className="section-action-link"
+            onClick={() => navigateTo('academic', 'schedule')}
+            style={{ cursor: 'pointer' }}
+          >
             Lihat Semua <ChevronRight size={14} />
           </span>
         </div>
@@ -158,6 +167,7 @@ export const HomeView = () => {
           {todayClasses.map(crs => (
             <div
               key={crs.id}
+              onClick={() => navigateTo('academic', 'schedule')}
               style={{
                 background: '#F8FAFC',
                 borderRadius: '14px',
@@ -165,8 +175,10 @@ export const HomeView = () => {
                 borderLeft: `4px solid ${crs.color || '#1665D8'}`,
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center'
+                alignItems: 'center',
+                cursor: 'pointer'
               }}
+              title="Buka Jadwal Kuliah"
             >
               <div>
                 <div style={{ fontSize: '14px', fontWeight: '700', color: '#0F172A' }}>
@@ -190,7 +202,11 @@ export const HomeView = () => {
               <AlertCircle size={18} style={{ color: '#EF4444' }} />
               Tugas Mendekati Deadline
             </h3>
-            <span className="section-action-link" onClick={() => setActiveTab('academic')}>
+            <span
+              className="section-action-link"
+              onClick={() => navigateTo('academic', 'assignments')}
+              style={{ cursor: 'pointer' }}
+            >
               Buka Tugas <ChevronRight size={14} />
             </span>
           </div>
@@ -199,6 +215,7 @@ export const HomeView = () => {
             {pendingAssignments.map(asg => (
               <div
                 key={asg.id}
+                onClick={() => navigateTo('academic', 'assignments')}
                 style={{
                   background: '#FEF2F2',
                   border: '1px solid #FEE2E2',
@@ -206,8 +223,10 @@ export const HomeView = () => {
                   padding: '12px 14px',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  cursor: 'pointer'
                 }}
+                title="Buka Daftar Tugas Kuliah"
               >
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: '700', color: '#991B1B' }}>
@@ -225,10 +244,21 @@ export const HomeView = () => {
       )}
 
       {/* 5. Keuangan Bulan Ini (Sesuai Home.jpg) */}
-      <div className="card-standard">
+      <div
+        className="card-standard"
+        onClick={() => navigateTo('finance', 'budget')}
+        style={{ cursor: 'pointer' }}
+        title="Buka Budget Keuangan"
+      >
         <div className="section-header-row">
           <h3 className="section-title">Keuangan Bulan Ini</h3>
-          <span className="section-action-link" onClick={() => setActiveTab('finance')}>
+          <span
+            className="section-action-link"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigateTo('finance', 'budget');
+            }}
+          >
             Detail <ChevronRight size={14} />
           </span>
         </div>
@@ -257,14 +287,24 @@ export const HomeView = () => {
       <div>
         <div className="section-header-row">
           <h3 className="section-title">Transaksi Terakhir</h3>
-          <span className="section-action-link" onClick={() => setActiveTab('finance')}>
+          <span
+            className="section-action-link"
+            onClick={() => navigateTo('finance', 'history')}
+            style={{ cursor: 'pointer' }}
+          >
             Lihat Semua <ChevronRight size={14} />
           </span>
         </div>
 
         <div className="transaction-group">
           {recentTransactions.map(tx => (
-            <div key={tx.id} className="transaction-card">
+            <div
+              key={tx.id}
+              className="transaction-card"
+              onClick={() => navigateTo('finance', 'history')}
+              style={{ cursor: 'pointer' }}
+              title="Buka Riwayat Transaksi"
+            >
               <div className="transaction-left">
                 <div className="category-icon-box" style={{ background: '#FEF3C7' }}>
                   {tx.icon}

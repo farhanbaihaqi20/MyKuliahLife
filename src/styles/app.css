@@ -505,6 +505,7 @@ html, body {
   justify-content: space-between;
   border: 1px solid var(--border-subtle);
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .transaction-card:active {

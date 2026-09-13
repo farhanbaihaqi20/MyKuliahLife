@@ -11,7 +11,7 @@ export const Header = () => {
     isBalanceVisible,
     setIsBalanceVisible,
     syncStatus,
-    setActiveTab,
+    navigateTo,
     financialCycle,
     setIsCycleModalOpen,
     activeSemester
@@ -48,7 +48,7 @@ export const Header = () => {
 
         <button
           className="user-avatar-btn"
-          onClick={() => setActiveTab('profile')}
+          onClick={() => navigateTo('profile')}
           title="Buka Pengaturan & Akun"
         >
           <User size={20} />
@@ -69,7 +69,11 @@ export const Header = () => {
           <span>{financialCycle.label}</span>
           <ChevronDown size={14} />
         </button>
-        <button className="pill-btn" onClick={() => setActiveTab('finance')}>
+        <button
+          className="pill-btn"
+          onClick={() => navigateTo('finance', 'accounts')}
+          title="Buka Kelola Dompet & Akun"
+        >
           <span>Total Saldo</span>
         </button>
       </div>
@@ -109,12 +113,22 @@ export const Header = () => {
         </div>
 
         {/* Big Balance */}
-        <div className="main-balance-display">
+        <div
+          className="main-balance-display"
+          onClick={() => navigateTo('finance', 'accounts')}
+          style={{ cursor: 'pointer' }}
+          title="Kelola Dompet & Akun"
+        >
           <div className="main-balance-text">{formattedBalance}</div>
           <ChevronRight size={22} style={{ color: 'rgba(255,255,255,0.7)', marginLeft: '6px' }} />
         </div>
 
-        <div className="balance-sub-label">
+        <div
+          className="balance-sub-label"
+          onClick={() => navigateTo('finance', 'accounts')}
+          style={{ cursor: 'pointer' }}
+          title="Kelola Dompet & Akun"
+        >
           <span>Dompet Aktif: {data.accounts.length} Akun</span>
           <span>•</span>
           <span>{syncStatus.mode === 'online' ? 'Cloud Synced ☁️' : 'Offline Mode 💾'}</span>
@@ -122,7 +136,12 @@ export const Header = () => {
 
         {/* Income & Expense Summary Pills (Dynamic to active cycle) */}
         <div className="income-expense-row">
-          <div className="summary-pill-card">
+          <div
+            className="summary-pill-card"
+            onClick={() => navigateTo('finance', 'history')}
+            style={{ cursor: 'pointer' }}
+            title="Lihat Riwayat Transaksi (Pemasukan)"
+          >
             <div className="summary-pill-icon income">
               <ArrowDown size={16} />
             </div>
@@ -132,7 +151,12 @@ export const Header = () => {
             </div>
           </div>
 
-          <div className="summary-pill-card">
+          <div
+            className="summary-pill-card"
+            onClick={() => navigateTo('finance', 'history')}
+            style={{ cursor: 'pointer' }}
+            title="Lihat Riwayat Transaksi (Pengeluaran)"
+          >
             <div className="summary-pill-icon expense">
               <ArrowUp size={16} />
             </div>

@@ -9,11 +9,23 @@ const AppContext = createContext();
 export const AppProvider = ({ children }) => {
   const [data, setData] = useState(() => loadLocalData());
   const [activeTab, setActiveTab] = useState('home'); // 'home' | 'academic' | 'finance' | 'grades' | 'profile'
+  const [financeSubtab, setFinanceSubtab] = useState('budget'); // 'budget' | 'history' | 'report' | 'bills' | 'targets' | 'accounts'
+  const [academicTab, setAcademicTab] = useState('schedule'); // 'schedule' | 'assignments' | 'attendance' | 'notes'
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [quickAddType, setQuickAddType] = useState('transaction');
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isCycleModalOpen, setIsCycleModalOpen] = useState(false);
+
+  // Global navigation helper that synchronizes active tab and subtab
+  const navigateTo = (mainTab, subTab = null) => {
+    setActiveTab(mainTab);
+    if (mainTab === 'finance' && subTab) {
+      setFinanceSubtab(subTab);
+    } else if (mainTab === 'academic' && subTab) {
+      setAcademicTab(subTab);
+    }
+  };
 
   // Active semester vs viewed semester
   const activeSemester = data.activeSemester || data.profile?.semester || 1;
@@ -822,6 +834,11 @@ export const AppProvider = ({ children }) => {
         data,
         activeTab,
         setActiveTab,
+        financeSubtab,
+        setFinanceSubtab,
+        academicTab,
+        setAcademicTab,
+        navigateTo,
         isBalanceVisible,
         setIsBalanceVisible,
         isQuickAddOpen,

@@ -48,10 +48,11 @@ export const FinanceView = () => {
     setIsQuickAddOpen,
     setQuickAddType,
     setIsCycleModalOpen,
-    isBalanceVisible
+    isBalanceVisible,
+    financeSubtab,
+    setFinanceSubtab
   } = useApp();
 
-  const [financeSubtab, setFinanceSubtab] = useState('budget'); // budget | history | report | bills | targets | accounts
   const [reportFilter, setReportFilter] = useState('kategori'); // kategori | akun | merchant
 
   // Edit transaction modal state

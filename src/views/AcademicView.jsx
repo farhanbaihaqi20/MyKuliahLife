@@ -38,10 +38,11 @@ export const AcademicView = () => {
     deleteCourse,
     deleteCourseNote,
     setIsQuickAddOpen,
-    setQuickAddType
+    setQuickAddType,
+    academicTab,
+    setAcademicTab
   } = useApp();
 
-  const [academicTab, setAcademicTab] = useState('schedule'); // schedule | assignments | attendance | notes
   const [selectedDay, setSelectedDay] = useState('Semua');
 
   // Course Detail, Edit & Action states
