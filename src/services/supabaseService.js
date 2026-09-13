@@ -219,7 +219,9 @@ export const dataSyncService = {
           balance: Number(a.balance),
           icon: a.icon || '💳',
           color: a.color || '#1665D8',
-          isPrimary: a.is_primary
+          isPrimary: a.is_primary,
+          accountNumber: a.account_number || '',
+          notes: a.notes || ''
         })),
         transactions: (transactionsRes.data || []).map(t => ({
           id: t.id,
@@ -557,7 +559,9 @@ export const cloudService = {
         balance: Number(acc.balance) || 0,
         icon: acc.icon || '💳',
         color: acc.color || '#1665D8',
-        is_primary: Boolean(acc.isPrimary)
+        is_primary: Boolean(acc.isPrimary),
+        account_number: acc.accountNumber || null,
+        notes: acc.notes || null
       };
       const { error } = await supabase.from('accounts').insert(payload);
       if (error) console.error('Cloud insert account error:', error);
@@ -576,6 +580,8 @@ export const cloudService = {
       if (fields.icon !== undefined) payload.icon = fields.icon;
       if (fields.color !== undefined) payload.color = fields.color;
       if (fields.isPrimary !== undefined) payload.is_primary = Boolean(fields.isPrimary);
+      if (fields.accountNumber !== undefined) payload.account_number = fields.accountNumber;
+      if (fields.notes !== undefined) payload.notes = fields.notes;
       const { error } = await supabase.from('accounts').update(payload).eq('id', accId);
       if (error) console.error('Cloud update account error:', error);
     } catch (e) {

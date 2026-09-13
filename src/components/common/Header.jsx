@@ -15,6 +15,7 @@ import {
   Calendar,
   Layers
 } from 'lucide-react';
+import { AccountDetailModal } from '../finance/AccountDetailModal';
 
 export const Header = () => {
   const {
@@ -32,7 +33,10 @@ export const Header = () => {
     navigateTo,
     financialCycle,
     setIsCycleModalOpen,
-    activeSemester
+    activeSemester,
+    deleteAccount,
+    setQuickAddType,
+    setIsQuickAddOpen
   } = useApp();
 
   // Header Tab: 'cycle' = Arus Kas Periode (Kas Harian & Siklus), 'total' = Kotak Total Saldo Akumulatif
@@ -40,6 +44,7 @@ export const Header = () => {
   // Slide state inside cycle: 0 = Arus Kas Hari Ini (Default), 1 = Siklus Keuangan Bulanan
   const [activeSlide, setActiveSlide] = useState(0);
   const [isAccumulativeModalOpen, setIsAccumulativeModalOpen] = useState(false);
+  const [selectedAccountForDetail, setSelectedAccountForDetail] = useState(null);
 
   // Touch swipe gesture handlers
   const touchStartX = useRef(null);
@@ -209,52 +214,38 @@ export const Header = () => {
             <span>{syncStatus.mode === 'online' ? 'Cloud Synced ☁️' : 'Offline Mode 💾'}</span>
           </div>
 
-          {/* Account Summary Pills */}
+          {/* Account Summary Pills with Distinct Actions */}
           <div className="income-expense-row">
             <div
               className="summary-pill-card"
               onClick={() => setIsAccumulativeModalOpen(true)}
               style={{ cursor: 'pointer' }}
-              title="Lihat Dompet Terdaftar"
+              title="Intip Rincian Modal di Beranda"
             >
               <div className="summary-pill-icon" style={{ backgroundColor: '#2563EB' }}>
-                <Wallet size={16} />
+                <Layers size={16} />
               </div>
               <div className="summary-pill-info">
-                <span className="summary-pill-label">Dompet Aktif</span>
-                <span className="summary-pill-amount">{data.accounts.length} Akun</span>
+                <span className="summary-pill-label">Rincian Cepat</span>
+                <span className="summary-pill-amount" style={{ fontSize: '13px' }}>{data.accounts.length} Akun 👁️</span>
               </div>
             </div>
 
             <div
               className="summary-pill-card"
-              onClick={() => setIsAccumulativeModalOpen(true)}
+              onClick={() => navigateTo('finance', 'accounts')}
               style={{ cursor: 'pointer', background: 'rgba(255, 255, 255, 0.22)', borderColor: 'rgba(255, 255, 255, 0.35)' }}
-              title="Buka Rincian Lengkap Saldo"
+              title="Buka Halaman Kelola Dompet & Akun"
             >
               <div className="summary-pill-icon" style={{ backgroundColor: '#7C3AED' }}>
-                <Layers size={16} />
+                <Wallet size={16} />
               </div>
               <div className="summary-pill-info">
-                <span className="summary-pill-label">Rincian Lengkap</span>
-                <span className="summary-pill-amount" style={{ fontSize: '13px', color: '#FDE68A' }}>Buka Detail ➔</span>
+                <span className="summary-pill-label">Kelola Dompet</span>
+                <span className="summary-pill-amount" style={{ fontSize: '13px', color: '#FDE68A' }}>Buka Tab ➔</span>
               </div>
             </div>
           </div>
-
-          {/* Banner Button to open detailed modal */}
-          <button
-            type="button"
-            className="total-breakdown-banner-btn"
-            onClick={() => setIsAccumulativeModalOpen(true)}
-            title="Tampilkan rincian saldo per rekening / dompet"
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Layers size={15} style={{ color: '#FCD34D' }} />
-              <span>Lihat Rincian Lengkap Semua Dompet</span>
-            </div>
-            <ChevronRight size={16} />
-          </button>
         </div>
       ) : (
         /* 2. SWIPEABLE HERO FINANCIAL BALANCE & CASHFLOW CAROUSEL (DEFAULT: KAS HARI INI DULU) */
@@ -517,7 +508,9 @@ export const Header = () => {
             <div className="accumulative-breakdown-section">
               <div className="accumulative-section-title">
                 <span>RINCIAN SALDO PER AKUN</span>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{data.accounts.length} Dompet</span>
+                <span style={{ fontSize: '11px', color: '#2563EB', fontWeight: 700 }}>
+                  Ketuk untuk buka kartu ➔
+                </span>
               </div>
 
               <div className="accumulative-account-list">
@@ -529,7 +522,14 @@ export const Header = () => {
                   data.accounts.map((acc) => {
                     const percentage = totalBalance > 0 ? Math.max(0, Math.round((acc.balance / totalBalance) * 100)) : 0;
                     return (
-                      <div key={acc.id} className="accumulative-account-item">
+                      <div
+                        key={acc.id}
+                        className="accumulative-account-item"
+                        onClick={() => setSelectedAccountForDetail(acc)}
+                        role="button"
+                        tabIndex={0}
+                        title={`Buka rincian & kartu dompet ${acc.name}`}
+                      >
                         <div className="accumulative-item-left">
                           <div
                             className="accumulative-item-icon"
@@ -552,24 +552,27 @@ export const Header = () => {
                           </div>
                         </div>
 
-                        <div className="accumulative-item-right">
-                          <div className="accumulative-item-balance">
-                            {isBalanceVisible
-                              ? `Rp ${acc.balance.toLocaleString('id-ID')}`
-                              : 'Rp ••••••'}
-                          </div>
-                          <div className="accumulative-item-pct">
-                            <span>{percentage}%</span>
-                            <div className="accumulative-pct-bar-bg">
-                              <div
-                                className="accumulative-pct-bar-fill"
-                                style={{
-                                  width: `${percentage}%`,
-                                  backgroundColor: acc.color || '#1665D8'
-                                }}
-                              />
+                        <div className="accumulative-item-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <div className="accumulative-item-balance">
+                              {isBalanceVisible
+                                ? `Rp ${acc.balance.toLocaleString('id-ID')}`
+                                : 'Rp ••••••'}
+                            </div>
+                            <div className="accumulative-item-pct">
+                              <span>{percentage}%</span>
+                              <div className="accumulative-pct-bar-bg">
+                                <div
+                                  className="accumulative-pct-bar-fill"
+                                  style={{
+                                    width: `${percentage}%`,
+                                    backgroundColor: acc.color || '#1665D8'
+                                  }}
+                                />
+                              </div>
                             </div>
                           </div>
+                          <ChevronRight size={16} className="accumulative-item-arrow" />
                         </div>
                       </div>
                     );
@@ -598,6 +601,36 @@ export const Header = () => {
           </div>
         </div>
       )}
+      {/* Account Detail Modal Hub when opened from Accumulative Modal */}
+      <AccountDetailModal
+        account={selectedAccountForDetail ? (data.accounts.find(a => a.id === selectedAccountForDetail.id) || selectedAccountForDetail) : null}
+        isOpen={Boolean(selectedAccountForDetail)}
+        onClose={() => setSelectedAccountForDetail(null)}
+        transactions={data.transactions}
+        totalBalance={totalBalance}
+        isBalanceVisible={isBalanceVisible}
+        onEdit={(acc) => {
+          setSelectedAccountForDetail(null);
+          setIsAccumulativeModalOpen(false);
+          navigateTo('finance', 'accounts');
+        }}
+        onDelete={(accId, accName) => {
+          if (data.accounts.length <= 1) {
+            alert('Kamu harus memiliki minimal satu dompet aktif!');
+            return;
+          }
+          if (window.confirm(`Hapus dompet "${accName}"?`)) {
+            deleteAccount(accId);
+            setSelectedAccountForDetail(null);
+          }
+        }}
+        onQuickAdd={() => {
+          setSelectedAccountForDetail(null);
+          setIsAccumulativeModalOpen(false);
+          setQuickAddType('expense');
+          setIsQuickAddOpen(true);
+        }}
+      />
     </header>
   );
 };

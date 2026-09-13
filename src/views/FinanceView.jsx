@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { DonutChart } from '../components/charts/DonutChart';
 import { formatRupiahNumber, parseRupiahNumber, maskMoney } from '../utils/formatters';
 import SwipeableItem from '../components/common/SwipeableItem';
 import EditTransactionModal from '../components/finance/EditTransactionModal';
+import { AccountDetailModal } from '../components/finance/AccountDetailModal';
 import {
   Wallet,
   Receipt,
@@ -20,7 +21,9 @@ import {
   ChevronRight,
   Trash2,
   Edit2,
-  MoreVertical
+  MoreVertical,
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -76,16 +79,21 @@ export const FinanceView = () => {
   const [newBillDate, setNewBillDate] = useState('');
   const [newBillCategory, setNewBillCategory] = useState('Kost & Rumah');
 
-  // Account Form modals
+  // Account Form modals & Interactive Detail Modal
+  const [selectedAccountDetail, setSelectedAccountDetail] = useState(null);
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
   const [newAccName, setNewAccName] = useState('');
   const [newAccType, setNewAccType] = useState('bank');
   const [newAccBalance, setNewAccBalance] = useState('');
   const [newAccIcon, setNewAccIcon] = useState('💳');
+  const [newAccNumber, setNewAccNumber] = useState('');
+  const [newAccNotes, setNewAccNotes] = useState('');
 
   const [editingAccount, setEditingAccount] = useState(null);
   const [editAccName, setEditAccName] = useState('');
   const [editAccBalance, setEditAccBalance] = useState('');
+  const [editAccNumber, setEditAccNumber] = useState('');
+  const [editAccNotes, setEditAccNotes] = useState('');
 
   // Group transactions by date
   const groupedTransactions = data.transactions.reduce((acc, tx) => {
@@ -135,6 +143,11 @@ export const FinanceView = () => {
   };
 
   const donutItems = getDonutData();
+
+  const bankTotal = useMemo(() => (data.accounts || []).filter(a => a.type === 'bank').reduce((s, a) => s + a.balance, 0), [data.accounts]);
+  const ewalletTotal = useMemo(() => (data.accounts || []).filter(a => a.type === 'ewallet').reduce((s, a) => s + a.balance, 0), [data.accounts]);
+  const cashTotal = useMemo(() => (data.accounts || []).filter(a => a.type === 'cash').reduce((s, a) => s + a.balance, 0), [data.accounts]);
+  const unpaidBillsCount = useMemo(() => (data.bills || []).filter(b => !b.isPaid).length, [data.bills]);
 
   const handleDepositSubmit = (e) => {
     e.preventDefault();
@@ -194,22 +207,46 @@ export const FinanceView = () => {
       name: newAccName,
       type: newAccType,
       balance: parseRupiahNumber(newAccBalance) || 0,
+      accountNumber: newAccNumber.trim(),
+      notes: newAccNotes.trim(),
       icon: newAccType === 'bank' ? '🏦' : (newAccType === 'ewallet' ? '📱' : '💵')
     });
 
     setIsAddAccountOpen(false);
     setNewAccName('');
     setNewAccBalance('');
+    setNewAccNumber('');
+    setNewAccNotes('');
+  };
+
+  const openEditModal = (acc) => {
+    setEditingAccount(acc);
+    setEditAccName(acc.name);
+    setEditAccBalance(formatRupiahNumber(acc.balance));
+    setEditAccNumber(acc.accountNumber || '');
+    setEditAccNotes(acc.notes || '');
   };
 
   const handleSaveEditAccount = (e) => {
     e.preventDefault();
     if (!editingAccount) return;
 
-    editAccount(editingAccount.id, {
+    const updatedData = {
       name: editAccName,
-      balance: parseRupiahNumber(editAccBalance) || 0
-    });
+      balance: parseRupiahNumber(editAccBalance) || 0,
+      accountNumber: editAccNumber.trim(),
+      notes: editAccNotes.trim()
+    };
+
+    editAccount(editingAccount.id, updatedData);
+
+    // If modal detail is currently open for this account, update it too
+    if (selectedAccountDetail && selectedAccountDetail.id === editingAccount.id) {
+      setSelectedAccountDetail(prev => ({
+        ...prev,
+        ...updatedData
+      }));
+    }
 
     setEditingAccount(null);
   };
@@ -244,43 +281,61 @@ export const FinanceView = () => {
 
   return (
     <div className="main-content" style={{ paddingTop: '16px' }}>
-      {/* Subtab Bar */}
-      <div className="subtab-bar" style={{ overflowX: 'auto' }}>
+      {/* Subtab Bar (Modern Capsule Navigation) */}
+      <div className="subtab-bar">
         <button
           className={`subtab-btn ${financeSubtab === 'budget' ? 'active' : ''}`}
           onClick={() => setFinanceSubtab('budget')}
         >
-          Budget
+          <span>📊</span>
+          <span>Budget</span>
         </button>
         <button
           className={`subtab-btn ${financeSubtab === 'history' ? 'active' : ''}`}
           onClick={() => setFinanceSubtab('history')}
         >
-          Riwayat
+          <span>🕒</span>
+          <span>Riwayat</span>
+          {data.transactions.length > 0 && (
+            <span className="subtab-btn-badge">{data.transactions.length}</span>
+          )}
         </button>
         <button
           className={`subtab-btn ${financeSubtab === 'report' ? 'active' : ''}`}
           onClick={() => setFinanceSubtab('report')}
         >
-          Laporan
+          <span>📈</span>
+          <span>Laporan</span>
         </button>
         <button
           className={`subtab-btn ${financeSubtab === 'bills' ? 'active' : ''}`}
           onClick={() => setFinanceSubtab('bills')}
         >
-          Tagihan
+          <span>🧾</span>
+          <span>Tagihan</span>
+          {unpaidBillsCount > 0 ? (
+            <span className="subtab-btn-badge alert">{unpaidBillsCount}</span>
+          ) : data.bills.length > 0 ? (
+            <span className="subtab-btn-badge">{data.bills.length}</span>
+          ) : null}
         </button>
         <button
           className={`subtab-btn ${financeSubtab === 'targets' ? 'active' : ''}`}
           onClick={() => setFinanceSubtab('targets')}
         >
-          Target Nabung
+          <span>🎯</span>
+          <span>Target</span>
+          {data.savingsTargets.length > 0 && (
+            <span className="subtab-btn-badge">{data.savingsTargets.length}</span>
+          )}
         </button>
         <button
           className={`subtab-btn ${financeSubtab === 'accounts' ? 'active' : ''}`}
           onClick={() => setFinanceSubtab('accounts')}
         >
-          Dompet / Akun ({data.accounts.length})
+          <span>💳</span>
+          <span>Dompet</span>
+          <span className="subtab-btn-badge">{data.accounts.length}</span>
         </button>
       </div>
 
@@ -422,8 +477,23 @@ export const FinanceView = () => {
           </div>
 
           {data.transactions.length === 0 ? (
-            <div className="card-standard" style={{ textAlign: 'center', padding: '30px', color: '#64748B' }}>
-              Belum ada transaksi yang dicatat. Yuk catat pengeluaran pertamamu!
+            <div className="empty-state-card">
+              <div className="empty-icon-circle">💸</div>
+              <h4 className="empty-title">Belum Ada Transaksi Tercatat</h4>
+              <p className="empty-desc">
+                Semua catatan pemasukan dan pengeluaran harianmu akan otomatis tersusun rapi per tanggal di sini.
+              </p>
+              <button
+                type="button"
+                className="btn-primary empty-cta-btn"
+                onClick={() => {
+                  setQuickAddType('expense');
+                  setIsQuickAddOpen(true);
+                }}
+              >
+                <Plus size={15} />
+                <span>Catat Transaksi Pertama</span>
+              </button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -639,51 +709,69 @@ export const FinanceView = () => {
             </button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {data.bills.map(bill => (
-              <div key={bill.id} className="card-standard" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ fontSize: '24px' }}>{bill.icon}</div>
-                  <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>
-                      {bill.title}
-                    </h4>
-                    <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
-                      Jatuh Tempo: {new Date(bill.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} • {bill.category}
-                    </div>
-                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#1665D8', marginTop: '4px' }}>
-                      Rp {bill.amount.toLocaleString('id-ID')}
+          {data.bills.length === 0 ? (
+            <div className="empty-state-card">
+              <div className="empty-icon-circle">🧾</div>
+              <h4 className="empty-title">Belum Ada Tagihan Aktif</h4>
+              <p className="empty-desc">
+                Catat tagihan kos, SPP/UKT, Wi-Fi, atau langganan aplikasi agar kamu selalu ingat sebelum jatuh tempo dan bebas denda.
+              </p>
+              <button
+                type="button"
+                className="btn-primary empty-cta-btn"
+                onClick={() => setIsAddBillOpen(true)}
+              >
+                <Plus size={15} />
+                <span>Catat Tagihan Pertama</span>
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {data.bills.map(bill => (
+                <div key={bill.id} className="card-standard" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ fontSize: '24px' }}>{bill.icon}</div>
+                    <div>
+                      <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>
+                        {bill.title}
+                      </h4>
+                      <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
+                        Jatuh Tempo: {new Date(bill.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} • {bill.category}
+                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: 800, color: '#1665D8', marginTop: '4px' }}>
+                        Rp {bill.amount.toLocaleString('id-ID')}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button
-                    onClick={() => toggleBillPaid(bill.id)}
-                    style={{
-                      padding: '8px 12px',
-                      borderRadius: '12px',
-                      border: 'none',
-                      background: bill.isPaid ? '#ECFDF5' : '#FEF2F2',
-                      color: bill.isPaid ? '#047857' : '#B91C1C',
-                      fontWeight: 800,
-                      fontSize: '12px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {bill.isPaid ? '✓ Lunas' : 'Bayar'}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteBill(bill.id, bill.title)}
-                    style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px' }}
-                    title="Hapus Tagihan"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      onClick={() => toggleBillPaid(bill.id)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: bill.isPaid ? '#ECFDF5' : '#FEF2F2',
+                        color: bill.isPaid ? '#047857' : '#B91C1C',
+                        fontWeight: 800,
+                        fontSize: '12px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {bill.isPaid ? '✓ Lunas' : 'Bayar'}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteBill(bill.id, bill.title)}
+                      style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px' }}
+                      title="Hapus Tagihan"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Modal Tambah Tagihan */}
           {isAddBillOpen && (
@@ -773,71 +861,89 @@ export const FinanceView = () => {
             </button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {data.savingsTargets.map(target => {
-              const percent = Math.min(100, Math.round((target.currentAmount / target.targetAmount) * 100));
-              const remaining = Math.max(0, target.targetAmount - target.currentAmount);
+          {data.savingsTargets.length === 0 ? (
+            <div className="empty-state-card">
+              <div className="empty-icon-circle">🎯</div>
+              <h4 className="empty-title">Belum Ada Target Celengan</h4>
+              <p className="empty-desc">
+                Punya rencana beli laptop baru, liburan semester, atau dana darurat? Buat target celengan sekarang dan tabung sedikit demi sedikit.
+              </p>
+              <button
+                type="button"
+                className="btn-primary empty-cta-btn"
+                onClick={() => setIsAddTargetOpen(true)}
+              >
+                <Plus size={15} />
+                <span>Buat Target Nabung Pertama</span>
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {data.savingsTargets.map(target => {
+                const percent = Math.min(100, Math.round((target.currentAmount / target.targetAmount) * 100));
+                const remaining = Math.max(0, target.targetAmount - target.currentAmount);
 
-              return (
-                <div key={target.id} className="card-standard">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                      <span style={{ fontSize: '26px' }}>{target.icon}</span>
-                      <div>
-                        <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>{target.title}</h4>
-                        <div style={{ fontSize: '11px', color: '#64748B' }}>Target: {target.deadline}</div>
+                return (
+                  <div key={target.id} className="card-standard">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '26px' }}>{target.icon}</span>
+                        <div>
+                          <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>{target.title}</h4>
+                          <div style={{ fontSize: '11px', color: '#64748B' }}>Target: {target.deadline}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 800, color: '#1665D8' }}>
+                          {percent}%
+                        </span>
+                        <button
+                          onClick={() => handleDeleteTarget(target.id, target.title)}
+                          style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px' }}
+                          title="Hapus Target"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 800, color: '#1665D8' }}>
-                        {percent}%
-                      </span>
-                      <button
-                        onClick={() => handleDeleteTarget(target.id, target.title)}
-                        style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px' }}
-                        title="Hapus Target"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
 
-                  <div className="progress-bar-container">
-                    <div className="progress-bar-fill success" style={{ width: `${percent}%` }} />
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginTop: '6px' }}>
-                    <div>
-                      <span style={{ fontSize: '11px', color: '#64748B' }}>Terkumpul: </span>
-                      <strong style={{ color: '#10B981' }}>Rp {target.currentAmount.toLocaleString('id-ID')}</strong>
+                    <div className="progress-bar-container">
+                      <div className="progress-bar-fill success" style={{ width: `${percent}%` }} />
                     </div>
-                    <div>
-                      <span style={{ fontSize: '11px', color: '#64748B' }}>Kurang: </span>
-                      <strong style={{ color: '#475569' }}>Rp {remaining.toLocaleString('id-ID')}</strong>
-                    </div>
-                  </div>
 
-                  <button
-                    onClick={() => setDepositModalTarget(target)}
-                    style={{
-                      width: '100%',
-                      background: '#EFF6FF',
-                      color: '#1665D8',
-                      border: '1px solid #BFDBFE',
-                      borderRadius: '12px',
-                      padding: '10px',
-                      fontWeight: 700,
-                      fontSize: '13px',
-                      marginTop: '12px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    + Tambah Setoran Tabungan
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginTop: '6px' }}>
+                      <div>
+                        <span style={{ fontSize: '11px', color: '#64748B' }}>Terkumpul: </span>
+                        <strong style={{ color: '#10B981' }}>Rp {target.currentAmount.toLocaleString('id-ID')}</strong>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '11px', color: '#64748B' }}>Kurang: </span>
+                        <strong style={{ color: '#475569' }}>Rp {remaining.toLocaleString('id-ID')}</strong>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setDepositModalTarget(target)}
+                      style={{
+                        width: '100%',
+                        background: '#EFF6FF',
+                        color: '#1665D8',
+                        border: '1px solid #BFDBFE',
+                        borderRadius: '12px',
+                        padding: '10px',
+                        fontWeight: 700,
+                        fontSize: '13px',
+                        marginTop: '12px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      + Tambah Setoran Tabungan
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Modal Setoran */}
           {depositModalTarget && (
@@ -928,78 +1034,193 @@ export const FinanceView = () => {
         </div>
       )}
 
-      {/* 6. DAFTAR SEMUA AKUN / DOMPET DENGAN CRUD LENGKAP */}
+      {/* 6. DAFTAR SEMUA AKUN / DOMPET (ROMBAK TOTAL: MINIMALIS, MODERN & KEREN) */}
       {financeSubtab === 'accounts' && (
-        <div>
-          <div className="section-header-row">
-            <div>
-              <h3 className="section-title">Akun & Dompet Aktif</h3>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#1665D8', marginTop: '2px' }}>
-                Total Kekayaan: {maskMoney(totalBalance, isBalanceVisible)}
+        <div className="accounts-management-view">
+          {/* Hero Wealth Overview Banner */}
+            <div className="accounts-hero-banner">
+              <div className="accounts-hero-header">
+                <div className="accounts-hero-tag">
+                  <Sparkles size={13} style={{ color: '#FCD34D' }} />
+                  <span>TOTAL AKUMULASI SELURUH ASET</span>
+                </div>
+                <div className="accounts-sync-pill">
+                  <span>● Terhubung Cloud</span>
+                </div>
               </div>
-            </div>
-            <button
-              onClick={() => setIsAddAccountOpen(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                background: '#1665D8',
-                color: 'white',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '8px 14px',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              <Plus size={14} /> Tambah Dompet
-            </button>
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '14px' }}>
-            {data.accounts.map(acc => (
-              <div key={acc.id} className="card-standard" style={{ padding: '16px 14px', position: 'relative' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '24px' }}>{acc.icon}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <button
-                      onClick={() => {
-                        setEditingAccount(acc);
-                        setEditAccName(acc.name);
-                        setEditAccBalance(formatRupiahNumber(acc.balance));
-                      }}
-                      style={{ background: '#F1F5F9', border: 'none', borderRadius: '6px', padding: '4px', cursor: 'pointer', color: '#64748B' }}
-                      title="Edit Dompet"
-                    >
-                      <Edit2 size={13} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteAccount(acc.id, acc.name)}
-                      style={{ background: '#FEF2F2', border: 'none', borderRadius: '6px', padding: '4px', cursor: 'pointer', color: '#EF4444' }}
-                      title="Hapus Dompet"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+              <div className="accounts-hero-amount">
+                {maskMoney(totalBalance, isBalanceVisible)}
+              </div>
+
+              <div className="accounts-hero-subtitle">
+                Portofolio gabungan dari {data.accounts.length} dompet & rekening aktif
+              </div>
+
+              {/* Assets Distribution Strip */}
+              <div className="accounts-distribution-row">
+                <div className="distribution-chip">
+                  <span className="chip-icon">🏦</span>
+                  <div className="chip-info">
+                    <span className="chip-label">Bank</span>
+                    <span className="chip-val">{maskMoney(bankTotal, isBalanceVisible)}</span>
                   </div>
                 </div>
 
-                <div style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', marginTop: '10px' }}>
-                  {acc.name}
-                </div>
-                <div style={{ fontSize: '10px', color: '#64748B' }}>
-                  {acc.type.toUpperCase()} • {acc.updated || 'Hari ini'}
+                <div className="distribution-chip">
+                  <span className="chip-icon">📱</span>
+                  <div className="chip-info">
+                    <span className="chip-label">E-Wallet</span>
+                    <span className="chip-val">{maskMoney(ewalletTotal, isBalanceVisible)}</span>
+                  </div>
                 </div>
 
-                <div style={{ fontSize: '15px', fontWeight: 800, color: '#1665D8', marginTop: '12px' }}>
-                  {maskMoney(acc.balance, isBalanceVisible)}
+                <div className="distribution-chip">
+                  <span className="chip-icon">💵</span>
+                  <div className="chip-info">
+                    <span className="chip-label">Tunai</span>
+                    <span className="chip-val">{maskMoney(cashTotal, isBalanceVisible)}</span>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
 
-          {/* Modal Tambah Dompet Baru */}
+            {/* Section Header & Add Account CTA */}
+            <div className="accounts-section-header">
+              <div>
+                <h3 className="section-title">Daftar Dompet & Rekening</h3>
+                <p className="section-subtitle">Kelola saldo, edit detail, atau tambah dompet baru</p>
+              </div>
+              <button
+                onClick={() => setIsAddAccountOpen(true)}
+                className="add-account-btn"
+              >
+                <Plus size={15} />
+                <span>Tambah Dompet</span>
+              </button>
+            </div>
+
+            {/* Smart Pocket Cards Grid */}
+            <div className="smart-pocket-grid">
+              {data.accounts.length === 0 ? (
+                <div className="empty-state-card" style={{ gridColumn: '1 / -1', padding: '36px 20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '36px', marginBottom: '8px' }}>💳</div>
+                  <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>Belum Ada Dompet</h4>
+                  <p style={{ fontSize: '13px', color: '#64748B', maxWidth: '320px', margin: '4px auto 16px' }}>
+                    Tambahkan rekening bank, e-wallet, atau uang tunai untuk mulai mencatat keuangan Anda.
+                  </p>
+                  <button
+                    onClick={() => setIsAddAccountOpen(true)}
+                    className="btn-primary"
+                    style={{ padding: '10px 20px', borderRadius: '12px' }}
+                  >
+                    <Plus size={14} style={{ marginRight: '6px' }} /> Tambah Dompet Pertama
+                  </button>
+                </div>
+              ) : (
+                data.accounts.map(acc => {
+                  const pct = totalBalance > 0 ? Math.max(0, Math.round((acc.balance / totalBalance) * 100)) : 0;
+                  const isBank = acc.type === 'bank';
+                  const isEwallet = acc.type === 'ewallet';
+                  const isCash = acc.type === 'cash';
+
+                  const themeClass = isBank ? 'theme-bank' : isEwallet ? 'theme-ewallet' : isCash ? 'theme-cash' : 'theme-other';
+                  const accentColor = isBank ? '#2563EB' : isEwallet ? '#8B5CF6' : isCash ? '#059669' : '#64748B';
+
+                  return (
+                    <div
+                      key={acc.id}
+                      className={`smart-pocket-card ${themeClass}`}
+                      onClick={() => setSelectedAccountDetail(acc)}
+                      style={{ cursor: 'pointer' }}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      {/* Top Row: Icon, Tag & Actions */}
+                      <div className="pocket-card-top">
+                        <div className="pocket-card-badge">
+                          <span className="pocket-icon">{acc.icon || (isBank ? '🏦' : isEwallet ? '📱' : '💵')}</span>
+                          <span className="pocket-type-tag">
+                            {isBank ? 'REKENING BANK' : isEwallet ? 'E-WALLET' : isCash ? 'UANG TUNAI' : 'INVESTASI'}
+                          </span>
+                        </div>
+
+                        <div className="pocket-card-actions">
+                          <button
+                            type="button"
+                            className="pocket-action-btn edit"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditModal(acc);
+                            }}
+                            title="Edit Dompet"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className="pocket-action-btn delete"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteAccount(acc.id, acc.name);
+                            }}
+                            title="Hapus Dompet"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Middle: Account Name & Status */}
+                      <div className="pocket-card-body">
+                        <div className="pocket-name">
+                          <span>{acc.name}</span>
+                          {acc.isPrimary && <span className="primary-star-badge" title="Dompet Utama">⭐ Utama</span>}
+                        </div>
+                        <div className="pocket-status-info">
+                          <span className="pocket-status-dot"></span>
+                          <span>{acc.accountNumber ? `${acc.accountNumber} • ` : ''}{acc.updated || 'Tersinkron'}</span>
+                        </div>
+                        <div className="pocket-click-hint">
+                          <span>Ketuk untuk rincian & riwayat ➔</span>
+                        </div>
+                      </div>
+
+                      {/* Bottom: Big Balance & Portfolio Share Progress */}
+                      <div className="pocket-card-footer">
+                        <div className="pocket-balance-label">SALDO TERSEDIA</div>
+                        <div className="pocket-balance-value">
+                          {maskMoney(acc.balance, isBalanceVisible)}
+                        </div>
+
+                        <div className="pocket-progress-wrap">
+                          <div className="pocket-progress-label">
+                            <span>Porsi Portofolio</span>
+                            <span className="pocket-progress-pct">{pct}%</span>
+                          </div>
+                          <div className="pocket-progress-track">
+                            <div
+                              className="pocket-progress-fill"
+                              style={{ width: `${pct}%`, backgroundColor: accentColor }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Minimalist Advice / Tip Strip */}
+            <div className="accounts-tip-card">
+              <ShieldCheck size={18} style={{ color: '#2563EB', flexShrink: 0 }} />
+              <div>
+                <strong>Tips Manajemen Dompet:</strong> Saldo dompet Anda otomatis disinkronkan ke Supabase Cloud dan langsung terpotong saat mencatat pengeluaran atau bertambah saat pemasukan.
+              </div>
+            </div>
+
+            {/* Modal Tambah Dompet Baru */}
           {isAddAccountOpen && (
             <div className="modal-overlay" onClick={() => setIsAddAccountOpen(false)}>
               <div className="modal-bottom-sheet" onClick={e => e.stopPropagation()}>
@@ -1044,6 +1265,32 @@ export const FinanceView = () => {
                     />
                   </div>
 
+                  <div className="input-group">
+                    <label className="input-label">
+                      No. Rekening / No. HP E-Wallet <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 'normal' }}>(Opsional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="cth: 1234567890 / 08123456789"
+                      className="input-field"
+                      value={newAccNumber}
+                      onChange={e => setNewAccNumber(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label">
+                      Catatan Peruntukan <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 'normal' }}>(Opsional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="cth: Rekening beasiswa, Tabungan darurat, Jajan harian"
+                      className="input-field"
+                      value={newAccNotes}
+                      onChange={e => setNewAccNotes(e.target.value)}
+                    />
+                  </div>
+
                   <button type="submit" className="btn-primary" style={{ marginTop: '14px' }}>
                     Simpan Dompet
                   </button>
@@ -1082,6 +1329,32 @@ export const FinanceView = () => {
                     />
                   </div>
 
+                  <div className="input-group">
+                    <label className="input-label">
+                      No. Rekening / No. HP E-Wallet <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 'normal' }}>(Opsional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="cth: 1234567890 / 08123456789"
+                      className="input-field"
+                      value={editAccNumber}
+                      onChange={e => setEditAccNumber(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label">
+                      Catatan Peruntukan <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 'normal' }}>(Opsional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="cth: Rekening beasiswa, Tabungan darurat, Jajan harian"
+                      className="input-field"
+                      value={editAccNotes}
+                      onChange={e => setEditAccNotes(e.target.value)}
+                    />
+                  </div>
+
                   <button type="submit" className="btn-primary" style={{ marginTop: '14px' }}>
                     Simpan Perubahan
                   </button>
@@ -1091,6 +1364,26 @@ export const FinanceView = () => {
           )}
         </div>
       )}
+
+      {/* Account Detail Modal Hub */}
+      <AccountDetailModal
+        account={selectedAccountDetail ? (data.accounts.find(a => a.id === selectedAccountDetail.id) || selectedAccountDetail) : null}
+        isOpen={Boolean(selectedAccountDetail)}
+        onClose={() => setSelectedAccountDetail(null)}
+        transactions={data.transactions}
+        totalBalance={totalBalance}
+        isBalanceVisible={isBalanceVisible}
+        onEdit={(acc) => openEditModal(acc)}
+        onDelete={(accId, accName) => {
+          handleDeleteAccount(accId, accName);
+          setSelectedAccountDetail(null);
+        }}
+        onAddTransaction={() => {
+          setSelectedAccountDetail(null);
+          setQuickAddType('expense');
+          setIsQuickAddOpen(true);
+        }}
+      />
 
       {/* Edit Transaction Modal */}
       <EditTransactionModal

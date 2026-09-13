@@ -376,6 +376,8 @@ export const AppProvider = ({ children }) => {
       isPrimary: Boolean(acc.isPrimary),
       icon: acc.icon || '💳',
       color: acc.color || '#1665D8',
+      accountNumber: acc.accountNumber || '',
+      notes: acc.notes || '',
       updated: 'Baru saja'
     };
     setData(prev => ({
