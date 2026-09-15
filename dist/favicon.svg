@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1D4ED8" />
+      <stop offset="100%" stop-color="#1E40AF" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="24" fill="url(#primaryGrad)"/>
+  <!-- Graduation Cap Cap & Tassel -->
+  <path d="M50 24L82 38L50 52L18 38L50 24Z" fill="#FFFFFF"/>
+  <path d="M30 44V60C30 67.7 39 74 50 74C61 74 70 67.7 70 60V44L50 54L30 44Z" fill="#E2E8F0" opacity="0.9"/>
+  <!-- Wallet / Shield Accent -->
+  <circle cx="78" cy="68" r="14" fill="url(#accentGrad)" stroke="#FFFFFF" stroke-width="2.5"/>
+  <text x="78" y="73" font-family="sans-serif" font-size="13" font-weight="900" fill="#FFFFFF" text-anchor="middle">Rp</text>
+</svg>

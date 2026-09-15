@@ -1,5 +1,5 @@
 -- =========================================================================
--- SUPABASE FRESH MIGRATION: MyUang & EduTrack
+-- SUPABASE FRESH MIGRATION: MyKuliahLife
 -- Student Financial & Academic Life OS
 -- =========================================================================
 -- Hapus seluruh skema dan tabel database lama, lalu inisialisasi tabel baru yang

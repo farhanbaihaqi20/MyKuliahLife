@@ -25,7 +25,7 @@ export const CycleDatePickerModal = () => {
   };
 
   return (
-    <div className="modal-overlay" onClick={() => setIsCycleModalOpen(false)}>
+    <div className="modal-overlay" onClick={() => setIsCycleModalOpen(false)} style={{ zIndex: 1200 }}>
       <div className="modal-bottom-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-handle-bar" />
 

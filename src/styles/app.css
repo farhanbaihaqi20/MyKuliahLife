@@ -2708,15 +2708,69 @@ html, body {
 }
 
 .ktm-avatar-box {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
   background: #1665D8;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
   flex-shrink: 0;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.ktm-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 18px;
+}
+
+.ktm-photo-badge-btn {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2563EB;
+  border: 2px solid #0F172A;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  z-index: 2;
+}
+
+.ktm-photo-badge-btn:hover {
+  transform: scale(1.15);
+  background: #1D4ED8;
+}
+
+.ktm-photo-remove-btn {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #EF4444;
+  border: 1.5px solid #0F172A;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  z-index: 2;
+}
+
+.ktm-photo-remove-btn:hover {
+  transform: scale(1.15);
 }
 
 .ktm-meta-info {
@@ -3040,27 +3094,46 @@ html, body {
   margin-top: 2px;
 }
 
-/* Distribution chips inside Hero */
+/* Distribution chips inside Hero - Horizontally Scrollable without truncation */
 .accounts-distribution-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  align-items: center;
   gap: 8px;
-  margin-top: 16px;
+  margin: 16px -20px 0 -20px;
+  padding: 0 20px 4px 20px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.accounts-distribution-row::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .distribution-chip {
+  flex: 1 0 auto;
+  min-width: max-content;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 12px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   gap: 8px;
   backdrop-filter: blur(8px);
+  white-space: nowrap;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.distribution-chip:active {
+  transform: scale(0.98);
 }
 
 .chip-icon {
   font-size: 16px;
+  flex-shrink: 0;
 }
 
 .chip-info {
@@ -3074,6 +3147,7 @@ html, body {
   color: rgba(255, 255, 255, 0.7);
   font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .chip-val {
@@ -3081,8 +3155,6 @@ html, body {
   font-weight: 700;
   color: #FFFFFF;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* 2. Section Header & Add CTA */
@@ -3903,4 +3975,89 @@ html, body {
   color: #059669;
 }
 
+/* ==========================================================================
+   FINANCE REPORT REVAMP STYLING
+   ========================================================================== */
+.finance-report-view {
+  animation: fadeIn 0.25s ease-out;
+}
+
+.horizontal-bar-chart .bar-chart-row {
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.horizontal-bar-chart .bar-chart-row.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.horizontal-bar-chart .bar-chart-row.clickable:active {
+  transform: translateY(0);
+}
+
+.horizontal-bar-chart .bar-chart-row.highlighted {
+  border-left: 3px solid #E11D48;
+}
+
+/* Month comparison transitions */
+.month-comparison-row {
+  transition: all 0.15s ease;
+}
+
+.month-comparison-row:hover {
+  transform: translateX(2px);
+}
+
+/* ==========================================================================
+   PROFILE EXECUTIVE METRICS STYLING
+   ========================================================================== */
+.profile-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.profile-metric-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.profile-metric-card:hover {
+  transform: translateY(-2px);
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.profile-metric-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.profile-metric-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0F172A;
+  margin-top: 4px;
+  letter-spacing: -0.2px;
+}
+
+.profile-metric-subtext {
+  font-size: 11px;
+  color: #64748B;
+  margin-top: 2px;
+  line-height: 1.3;
+}
 

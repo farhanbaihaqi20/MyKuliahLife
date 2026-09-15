@@ -1,27 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
+import { maskMoney } from '../utils/formatters';
 import {
-  User,
-  Cloud,
-  Database,
-  RefreshCw,
-  Download,
-  Upload,
-  CheckCircle2,
-  AlertCircle,
-  Shield,
-  GraduationCap,
-  Calendar,
-  Sparkles,
-  RotateCcw,
-  Sliders,
-  ArrowRight,
-  LogOut,
+  Camera,
+  Trash2,
   Edit2,
+  X,
   Check,
-  Plus,
+  GraduationCap,
+  Wallet,
+  Calendar,
+  Cloud,
+  LogOut,
+  Sparkles,
   BookOpen,
-  Archive
+  Clock,
+  Target,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+  FileCheck,
+  AlertCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -30,306 +29,400 @@ export const ProfileSyncView = () => {
     data,
     updateProfile,
     syncStatus,
-    triggerSync,
     startDayOfMonth,
     setIsCycleModalOpen,
-    resetToCleanData,
-    resetToDemoData,
     activeSemester,
-    unlockedSemesters,
     changeActiveSemester,
-    unlockNewSemester,
     user,
-    session,
     logout,
-    cumulativeGpa
+    cumulativeGpa,
+    totalBalance,
+    cycleExpenses,
+    totalBudget,
+    isBalanceVisible,
+    localAvatar,
+    saveLocalAvatar
   } = useApp();
 
+  const fileInputRef = useRef(null);
+
+  // Edit Profile Form state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [fullName, setFullName] = useState(data.profile?.fullName || '');
   const [university, setUniversity] = useState(data.profile?.university || '');
   const [major, setMajor] = useState(data.profile?.major || '');
   const [targetGpa, setTargetGpa] = useState(data.profile?.targetGpa || 3.80);
+  const [selectedSemester, setSelectedSemester] = useState(activeSemester || data.profile?.semester || 1);
 
-  // New semester modal state
-  const [isNewSemesterModalOpen, setIsNewSemesterModalOpen] = useState(false);
-
-  const nextSemesterNumber = (Math.max(activeSemester, ...(unlockedSemesters || [1])) || 1) + 1;
+  // Prepare when opening edit modal
+  const handleOpenEdit = () => {
+    setFullName(data.profile?.fullName || '');
+    setUniversity(data.profile?.university || '');
+    setMajor(data.profile?.major || '');
+    setTargetGpa(data.profile?.targetGpa || 3.80);
+    setSelectedSemester(activeSemester || data.profile?.semester || 1);
+    setIsEditingProfile(true);
+  };
 
   const handleSaveProfile = (e) => {
     e.preventDefault();
+    const semNum = Number(selectedSemester) || 1;
+
     updateProfile({
       fullName: fullName.trim() || 'Mahasiswa',
       university: university.trim() || 'Universitas',
       major: major.trim() || 'Program Studi',
-      targetGpa: Number(targetGpa) || 3.80
+      targetGpa: Number(targetGpa) || 3.80,
+      semester: semNum
     });
+
+    if (semNum !== activeSemester) {
+      changeActiveSemester(semNum);
+    }
+
     setIsEditingProfile(false);
+    confetti({ particleCount: 35, spread: 60, origin: { y: 0.6 } });
   };
 
-  const handleUnlockNextSemester = async () => {
-    await unlockNewSemester(nextSemesterNumber);
-    setIsNewSemesterModalOpen(false);
-    confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
-  };
-
-  const handleExportBackup = () => {
-    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
-      JSON.stringify(data, null, 2)
-    )}`;
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', jsonString);
-    downloadAnchor.setAttribute('download', `myuang_backup_${new Date().toISOString().split('T')[0]}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-  };
-
-  const handleImportBackup = (e) => {
-    const file = e.target.files[0];
+  // Local Avatar Upload (Stored strictly in browser localStorage)
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validate size (< 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Ukuran file maksimal 10MB.');
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      try {
-        const parsed = JSON.parse(event.target.result);
-        if (parsed.profile) {
-          localStorage.setItem('myuang_app_data', JSON.stringify(parsed));
-          alert('Backup berhasil dipulihkan! Halaman akan dimuat ulang.');
-          window.location.reload();
-        } else {
-          alert('Format file backup tidak valid.');
-        }
-      } catch (err) {
-        alert('Gagal membaca file JSON backup.');
-      }
+      const img = new Image();
+      img.onload = () => {
+        // Crop & scale to square 256x256 via canvas for ultra lightweight storage (~20KB)
+        const canvas = document.createElement('canvas');
+        const maxDim = 256;
+        canvas.width = maxDim;
+        canvas.height = maxDim;
+        const ctx = canvas.getContext('2d');
+
+        const minEdge = Math.min(img.width, img.height);
+        const startX = (img.width - minEdge) / 2;
+        const startY = (img.height - minEdge) / 2;
+
+        ctx.drawImage(img, startX, startY, minEdge, minEdge, 0, 0, maxDim, maxDim);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        saveLocalAvatar(compressedDataUrl);
+        confetti({ particleCount: 30, spread: 60, origin: { y: 0.5 } });
+      };
+      img.src = event.target.result;
     };
-    reader.readAsText(file);
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
+
+  const handleRemovePhoto = (e) => {
+    e.stopPropagation();
+    if (window.confirm('Hapus foto profil dari browser?')) {
+      saveLocalAvatar('');
+    }
+  };
+
+  // ----------------------------------------------------
+  // EXECUTIVE METRIC HIGHLIGHT CALCULATIONS
+  // ----------------------------------------------------
+  // Academic metrics for active semester
+  const activeSemesterCourses = (data.courses || []).filter(
+    c => (c.semester || 1) === activeSemester
+  );
+  const activeSemesterSks = activeSemesterCourses.reduce(
+    (sum, c) => sum + (Number(c.sks) || 0),
+    0
+  );
+  const pendingAssignments = (data.assignments || []).filter(
+    a => (a.semester || 1) === activeSemester && a.status !== 'completed'
+  );
+
+  const gpaPredicate = cumulativeGpa >= 3.51
+    ? 'Cum Laude 🏆'
+    : cumulativeGpa >= 3.0
+    ? 'Sangat Memuaskan ✨'
+    : cumulativeGpa >= 2.75
+    ? 'Memuaskan 👍'
+    : 'Cukup';
+
+  // Financial metrics
+  const unpaidBills = (data.bills || []).filter(b => !b.isPaid);
+  const unpaidBillsTotal = unpaidBills.reduce((s, b) => s + (b.amount || 0), 0);
+  const budgetUsagePercent = totalBudget > 0
+    ? Math.min(100, Math.round((cycleExpenses / totalBudget) * 100))
+    : 0;
+
+  const totalSavingsCollected = (data.savingsTargets || []).reduce(
+    (s, t) => s + (t.currentAmount || 0),
+    0
+  );
 
   return (
     <div className="main-content" style={{ paddingTop: '16px' }}>
-      {/* 1. DIGITAL STUDENT CARD (KTM DIGITAL) */}
+      {/* 1. DIGITAL STUDENT CARD (KTM DIGITAL FRESH & MINIMALIST) */}
       <div className="ktm-digital-card">
         <div className="ktm-digital-top">
           <div className="ktm-digital-badge">KARTU MAHASISWA DIGITAL</div>
           <button
             type="button"
             className="ktm-edit-btn"
-            onClick={() => setIsEditingProfile(!isEditingProfile)}
-            title="Edit Rincian Profil"
+            onClick={handleOpenEdit}
+            title="Edit Rincian Profil & Semester"
           >
             <Edit2 size={13} />
-            <span>{isEditingProfile ? 'Batal' : 'Edit Profil'}</span>
+            <span>Edit Profil</span>
           </button>
         </div>
 
-        {!isEditingProfile ? (
-          <div className="ktm-digital-content">
-            <div className="ktm-avatar-box">🎓</div>
-            <div className="ktm-meta-info">
-              <h3 className="ktm-name-text">{data.profile.fullName}</h3>
-              <p className="ktm-univ-text">{data.profile.university}</p>
-              <p className="ktm-major-text">{data.profile.major}</p>
-              <div className="ktm-tags-row">
-                <span className="ktm-sem-badge">Semester {activeSemester} Aktif ⭐</span>
-                <span className="ktm-ipk-badge">IPK: {cumulativeGpa.toFixed(2)}</span>
-              </div>
+        <div className="ktm-digital-content">
+          {/* Avatar Box with Local Photo & Camera Button */}
+          <div className="ktm-avatar-box">
+            {localAvatar ? (
+              <img
+                src={localAvatar}
+                alt="Foto Profil Mahasiswa"
+                className="ktm-avatar-img"
+              />
+            ) : (
+              <div style={{ fontSize: '26px' }}>🎓</div>
+            )}
+
+            {/* Quick Camera Upload Button */}
+            <button
+              type="button"
+              className="ktm-photo-badge-btn"
+              onClick={() => fileInputRef.current?.click()}
+              title="Pasang / Ganti Foto Profil (Tersimpan Lokal)"
+            >
+              <Camera size={12} />
+            </button>
+
+            {/* Remove Photo Button if photo exists */}
+            {localAvatar && (
+              <button
+                type="button"
+                className="ktm-photo-remove-btn"
+                onClick={handleRemovePhoto}
+                title="Hapus Foto Profil"
+              >
+                <Trash2 size={10} />
+              </button>
+            )}
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              onChange={handlePhotoSelect}
+              style={{ display: 'none' }}
+            />
+          </div>
+
+          {/* Student Meta Details */}
+          <div className="ktm-meta-info">
+            <h3 className="ktm-name-text">
+              {data.profile?.fullName || 'Mahasiswa'}
+            </h3>
+            <p className="ktm-univ-text">
+              {data.profile?.university || 'Universitas'}
+            </p>
+            <p className="ktm-major-text">
+              {data.profile?.major || 'Program Studi'}
+            </p>
+
+            <div className="ktm-tags-row">
+              <span className="ktm-sem-badge">
+                Semester {activeSemester} Aktif ⭐
+              </span>
+              <span className="ktm-ipk-badge">
+                IPK: {cumulativeGpa.toFixed(2)}
+              </span>
             </div>
           </div>
-        ) : (
-          <form onSubmit={handleSaveProfile} className="ktm-edit-form">
-            <div className="form-field">
-              <label className="form-label" style={{ color: '#E2E8F0' }}>Nama Lengkap</label>
-              <input
-                type="text"
-                className="auth-input"
-                style={{ background: 'rgba(255,255,255,0.1)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-              />
-            </div>
-            <div className="form-field">
-              <label className="form-label" style={{ color: '#E2E8F0' }}>Kampus / Universitas</label>
-              <input
-                type="text"
-                className="auth-input"
-                style={{ background: 'rgba(255,255,255,0.1)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}
-                value={university}
-                onChange={(e) => setUniversity(e.target.value)}
-              />
-            </div>
-            <div className="form-field">
-              <label className="form-label" style={{ color: '#E2E8F0' }}>Program Studi / Jurusan</label>
-              <input
-                type="text"
-                className="auth-input"
-                style={{ background: 'rgba(255,255,255,0.1)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}
-                value={major}
-                onChange={(e) => setMajor(e.target.value)}
-              />
-            </div>
-            <div className="form-field">
-              <label className="form-label" style={{ color: '#E2E8F0' }}>Target IPK Kelulusan</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="4.00"
-                className="auth-input"
-                style={{ background: 'rgba(255,255,255,0.1)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}
-                value={targetGpa}
-                onChange={(e) => setTargetGpa(e.target.value)}
-              />
-            </div>
-            <button
-              type="submit"
-              className="ktm-save-btn"
-            >
-              <Check size={16} />
-              <span>Simpan Perubahan Profil</span>
-            </button>
-          </form>
-        )}
+        </div>
       </div>
 
-      {/* 2. PUSAT MANAJEMEN SEMESTER (CENTRAL SEMESTER MANAGEMENT) */}
+      {/* 2. LAPORAN PENTING: RINGKASAN AKADEMIK */}
       <div className="card-standard" style={{ marginTop: '16px' }}>
-        <div className="section-header-row">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '10px',
+              backgroundColor: '#EFF6FF',
+              color: '#2563EB',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <GraduationCap size={18} />
+          </div>
           <div>
-            <h3 className="section-title">
-              <GraduationCap size={18} style={{ color: '#1665D8' }} />
-              Pusat Manajemen Semester
+            <h3 className="section-title" style={{ margin: 0 }}>
+              Ringkasan Akademik
             </h3>
-            <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
-              Atur semester aktif dan arsipkan perkuliahan lampau
+            <p style={{ fontSize: '11px', color: '#64748B', margin: '1px 0 0 0' }}>
+              Semester {activeSemester} & rekapan kumulatif
             </p>
           </div>
-          <button
-            type="button"
-            className="semester-action-add-btn"
-            onClick={() => setIsNewSemesterModalOpen(true)}
-            title="Buka Semester Baru"
-          >
-            <Plus size={14} />
-            <span>Semester Baru</span>
-          </button>
         </div>
 
-        {/* Current Active Semester Card */}
-        <div className="active-sem-highlight-card">
-          <div>
-            <div className="sem-status-indicator">
-              <span className="status-dot green" />
-              <span>SEMESTER AKTIF SAAT INI</span>
+        <div className="profile-metrics-grid">
+          {/* IPK Metric */}
+          <div className="profile-metric-card">
+            <div className="profile-metric-header">
+              <span>🎯 IPK Kumulatif</span>
             </div>
-            <div className="active-sem-title">Semester {activeSemester}</div>
-            <div className="active-sem-desc">
-              Semua pencatatan jadwal, tugas baru, dan presensi otomatis diarahkan ke semester ini.
+            <div className="profile-metric-value" style={{ color: '#1665D8' }}>
+              {cumulativeGpa.toFixed(2)}
+            </div>
+            <div className="profile-metric-subtext">
+              Target {data.profile?.targetGpa ? Number(data.profile.targetGpa).toFixed(2) : '3.80'} • {gpaPredicate}
             </div>
           </div>
 
-          <div className="sem-quick-switch-box">
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B' }}>Ganti Aktif:</span>
-            <select
-              value={activeSemester}
-              onChange={(e) => changeActiveSemester(Number(e.target.value))}
-              className="sem-select-input"
-            >
-              {(unlockedSemesters || [1]).map((semNum) => (
-                <option key={semNum} value={semNum}>
-                  Semester {semNum} {semNum === activeSemester ? '(Aktif)' : ''}
-                </option>
-              ))}
-            </select>
+          {/* SKS Semester Aktif */}
+          <div className="profile-metric-card">
+            <div className="profile-metric-header">
+              <span>📚 Beban Studi</span>
+            </div>
+            <div className="profile-metric-value">
+              {activeSemesterSks} SKS
+            </div>
+            <div className="profile-metric-subtext">
+              Di Semester {activeSemester} aktif
+            </div>
           </div>
-        </div>
 
-        {/* Riwayat Semester Mahasiswa */}
-        <div style={{ marginTop: '14px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
-            Daftar Semester yang Telah Dibuka:
+          {/* Matakuliah Terdaftar */}
+          <div className="profile-metric-card">
+            <div className="profile-metric-header">
+              <span>📝 Matakuliah</span>
+            </div>
+            <div className="profile-metric-value">
+              {activeSemesterCourses.length} Mata Kuliah
+            </div>
+            <div className="profile-metric-subtext">
+              Terjadwal semester ini
+            </div>
           </div>
-          <div className="sem-history-grid">
-            {(unlockedSemesters || [1]).map((s) => {
-              const isActive = s === activeSemester;
-              const courseCount = (data.courses || []).filter(c => (c.semester || 1) === s).length;
-              return (
-                <div
-                  key={s}
-                  className={`sem-history-card ${isActive ? 'active' : ''}`}
-                  onClick={() => {
-                    if (!isActive) changeActiveSemester(s);
-                  }}
-                  title={isActive ? 'Semester ini sedang aktif' : 'Klik untuk jadikan semester aktif'}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span className="sem-history-number">Semester {s}</span>
-                    <span className={`sem-history-tag ${isActive ? 'active' : 'archive'}`}>
-                      {isActive ? '⭐ Aktif' : '📁 Arsip'}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px' }}>
-                    {courseCount} Mata Kuliah Tercatat
-                  </div>
-                </div>
-              );
-            })}
+
+          {/* Tugas Kuliah Pending */}
+          <div className="profile-metric-card">
+            <div className="profile-metric-header">
+              <span>⏳ Tugas Berjalan</span>
+            </div>
+            <div className="profile-metric-value" style={{ color: pendingAssignments.length > 0 ? '#E11D48' : '#10B981' }}>
+              {pendingAssignments.length} Tugas
+            </div>
+            <div className="profile-metric-subtext">
+              {pendingAssignments.length > 0 ? 'Perlu diselesaikan' : 'Semua tugas tuntas ✨'}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* MODAL / SHEET BUKA SEMESTER BARU */}
-      {isNewSemesterModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsNewSemesterModalOpen(false)}>
-          <div className="modal-bottom-sheet" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="sheet-handle-bar" />
-            <div style={{ textAlign: 'center', padding: '10px 0 16px' }}>
-              <div style={{ fontSize: '36px', marginBottom: '8px' }}>🚀</div>
-              <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A' }}>
-                Buka Semester {nextSemesterNumber}?
-              </h3>
-              <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5', marginTop: '6px' }}>
-                Lembar kerja baru untuk <strong>Semester {nextSemesterNumber}</strong> akan dibuka dalam kondisi bersih (fresh).
-              </p>
-            </div>
+      {/* 3. LAPORAN PENTING: RINGKASAN KEUANGAN */}
+      <div className="card-standard" style={{ marginTop: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '10px',
+              backgroundColor: '#F0FDF4',
+              color: '#16A34A',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Wallet size={18} />
+          </div>
+          <div>
+            <h3 className="section-title" style={{ margin: 0 }}>
+              Ringkasan Keuangan
+            </h3>
+            <p style={{ fontSize: '11px', color: '#64748B', margin: '1px 0 0 0' }}>
+              Status total aset, belanja & tagihan
+            </p>
+          </div>
+        </div>
 
-            <div className="tip-box-clean" style={{ textAlign: 'left', marginBottom: '16px' }}>
-              <Archive size={20} style={{ color: '#1665D8', flexShrink: 0 }} />
-              <div style={{ fontSize: '12px', color: '#334155' }}>
-                Seluruh data mata kuliah, tugas, dan presensi di <strong>Semester {activeSemester}</strong> akan otomatis tersimpan aman di arsip dan rekap IPK tetap terjaga utuh.
-              </div>
+        <div className="profile-metrics-grid">
+          {/* Total Saldo Aset */}
+          <div className="profile-metric-card">
+            <div className="profile-metric-header">
+              <span>💰 Total Akumulasi</span>
             </div>
+            <div className="profile-metric-value" style={{ color: '#059669' }}>
+              {maskMoney(totalBalance, isBalanceVisible)}
+            </div>
+            <div className="profile-metric-subtext">
+              Dari {(data.accounts || []).length} dompet aktif
+            </div>
+          </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                type="button"
-                className="modal-secondary-btn"
-                onClick={() => setIsNewSemesterModalOpen(false)}
-                style={{ flex: 1 }}
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                className="modal-primary-btn"
-                onClick={handleUnlockNextSemester}
-                style={{ flex: 1.5 }}
-              >
-                Buka Semester {nextSemesterNumber}
-              </button>
+          {/* Pengeluaran Siklus Ini */}
+          <div className="profile-metric-card">
+            <div className="profile-metric-header">
+              <span>📊 Belanja Siklus</span>
+            </div>
+            <div className="profile-metric-value" style={{ color: '#EF4444' }}>
+              {maskMoney(cycleExpenses, isBalanceVisible)}
+            </div>
+            <div className="profile-metric-subtext">
+              {budgetUsagePercent}% dari batas budget
+            </div>
+          </div>
+
+          {/* Tagihan Belum Lunas */}
+          <div className="profile-metric-card">
+            <div className="profile-metric-header">
+              <span>🧾 Tagihan Aktif</span>
+            </div>
+            <div className="profile-metric-value" style={{ color: unpaidBills.length > 0 ? '#F97316' : '#10B981' }}>
+              {unpaidBills.length} Tagihan
+            </div>
+            <div className="profile-metric-subtext">
+              {unpaidBills.length > 0
+                ? `Rp ${unpaidBillsTotal.toLocaleString('id-ID')} belum bayar`
+                : 'Bebas tagihan saat ini'}
+            </div>
+          </div>
+
+          {/* Target Tabungan */}
+          <div className="profile-metric-card">
+            <div className="profile-metric-header">
+              <span>🎯 Target Tabungan</span>
+            </div>
+            <div className="profile-metric-value">
+              {(data.savingsTargets || []).length} Target
+            </div>
+            <div className="profile-metric-subtext">
+              Terkumpul Rp {totalSavingsCollected.toLocaleString('id-ID')}
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* 3. SIKLUS KEUANGAN & ANGGARAN */}
+      {/* 4. SIKLUS & ANGGARAN KEUANGAN */}
       <div className="card-standard" style={{ marginTop: '16px' }}>
         <div className="section-header-row">
-          <h3 className="section-title">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Calendar size={18} style={{ color: '#1665D8' }} />
-            Siklus & Anggaran Keuangan
-          </h3>
+            <h3 className="section-title" style={{ margin: 0 }}>
+              Siklus & Anggaran
+            </h3>
+          </div>
           <button
             type="button"
             className="section-action-link"
@@ -341,16 +434,16 @@ export const ProfileSyncView = () => {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #F1F5F9' }}>
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>Hari Gajian / Mulai Siklus</div>
-            <div style={{ fontSize: '12px', color: '#64748B' }}>Tanggal perputaran anggaran bulanan</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Hari Gajian / Awal Siklus</div>
+            <div style={{ fontSize: '11px', color: '#64748B' }}>Tanggal perputaran anggaran bulanan</div>
           </div>
           <span className="badge-cycle-day">Setiap Tanggal {startDayOfMonth}</span>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>Alokasi Budget Periode Ini</div>
-            <div style={{ fontSize: '12px', color: '#64748B' }}>Batas belanja yang direncanakan</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Alokasi Budget Periode Ini</div>
+            <div style={{ fontSize: '11px', color: '#64748B' }}>Batas belanja yang direncanakan</div>
           </div>
           <span style={{ fontSize: '14px', fontWeight: 800, color: '#1665D8' }}>
             Rp {(data.budget?.totalBudget || 1500000).toLocaleString('id-ID')}
@@ -358,75 +451,194 @@ export const ProfileSyncView = () => {
         </div>
       </div>
 
-      {/* 4. AKUN & CLOUD SYNC SUPABASE */}
+      {/* 5. STATUS AKUN & CLOUD SYNC */}
       <div className="card-standard" style={{ marginTop: '16px' }}>
-        <div className="section-header-row">
-          <h3 className="section-title">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Cloud size={18} style={{ color: '#1665D8' }} />
-            Akun & Cloud Database
-          </h3>
+            <div>
+              <h3 className="section-title" style={{ margin: 0 }}>
+                Status Akun
+              </h3>
+              <div style={{ fontSize: '12px', color: '#64748B', marginTop: '1px' }}>
+                {user?.email || 'Tamu / Akun Lokal'}
+              </div>
+            </div>
+          </div>
+
           <span className={`sync-status-pill ${syncStatus.mode}`}>
-            {syncStatus.mode === 'online' ? 'Cloud Terhubung' : 'Offline'}
+            {syncStatus.mode === 'online' ? 'Cloud Terhubung' : 'Offline Mode'}
           </span>
         </div>
 
-        <div style={{ fontSize: '13px', color: '#475569', marginBottom: '12px' }}>
-          Akun: <strong>{user?.email || 'Tamu / Akun Lokal'}</strong>
-        </div>
+        {/* LOGOUT BUTTON */}
+        <button
+          type="button"
+          className="logout-action-btn"
+          onClick={() => {
+            if (window.confirm('Yakin ingin keluar dari akun ini?')) {
+              logout();
+            }
+          }}
+        >
+          <LogOut size={16} />
+          <span>Keluar Akun (Sign Out)</span>
+        </button>
+      </div>
 
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          padding: '12px 14px',
-          background: '#F0FDF4',
-          border: '1px solid #BBF7D0',
-          borderRadius: '12px',
-          marginBottom: '14px'
-        }}>
-          <span style={{ fontSize: '20px' }}>⚡</span>
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#166534' }}>
-              Auto-Sync Cloud Database Aktif
+      {/* 6. MODAL EDIT PROFIL TERPADU (TERMASUK GANTI SEMESTER) */}
+      {isEditingProfile && (
+        <div className="modal-overlay" onClick={() => setIsEditingProfile(false)} style={{ zIndex: 1250 }}>
+          <div
+            className="modal-bottom-sheet"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '440px', paddingBottom: 'calc(var(--safe-bottom) + 24px)' }}
+          >
+            <div className="sheet-handle-bar" />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    backgroundColor: '#EFF6FF',
+                    color: '#2563EB',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Edit2 size={16} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                    Edit Profil Mahasiswa
+                  </h3>
+                  <p style={{ fontSize: '11px', color: '#64748B', margin: '2px 0 0 0' }}>
+                    Perbarui biodata dan semester aktif
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsEditingProfile(false)}
+                style={{
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: '#F1F5F9',
+                  color: '#64748B',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={16} />
+              </button>
             </div>
-            <div style={{ fontSize: '11px', color: '#15803D', lineHeight: '1.4' }}>
-              Seluruh perubahan (matakuliah, tugas, presensi, dompet, dan transaksi) otomatis tersinkronisasi ke cloud database tanpa perlu tombol sinkron manual.
-            </div>
+
+            <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Nama Lengkap */}
+              <div className="input-group">
+                <label className="input-label">Nama Lengkap</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Contoh: Farhan Baihaqi"
+                  required
+                />
+              </div>
+
+              {/* Kampus */}
+              <div className="input-group">
+                <label className="input-label">Kampus / Universitas</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={university}
+                  onChange={(e) => setUniversity(e.target.value)}
+                  placeholder="Contoh: Universitas Indonesia"
+                  required
+                />
+              </div>
+
+              {/* Jurusan */}
+              <div className="input-group">
+                <label className="input-label">Program Studi / Jurusan</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={major}
+                  onChange={(e) => setMajor(e.target.value)}
+                  placeholder="Contoh: Teknik Informatika"
+                  required
+                />
+              </div>
+
+              {/* Semester Aktif (Pilihan Semester Langsung di Edit Profil) */}
+              <div className="input-group">
+                <label className="input-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Semester Aktif Saat Ini</span>
+                  <span style={{ color: '#2563EB', fontWeight: 700 }}>Semester {selectedSemester}</span>
+                </label>
+                <select
+                  className="input-field"
+                  value={selectedSemester}
+                  onChange={(e) => setSelectedSemester(Number(e.target.value))}
+                  style={{ fontWeight: 700, color: '#1E40AF', backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }}
+                >
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((s) => (
+                    <option key={s} value={s}>
+                      Semester {s} {s === activeSemester ? '(Aktif Saat Ini)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Target IPK */}
+              <div className="input-group">
+                <label className="input-label">Target IPK Kelulusan</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="4.00"
+                  className="input-field"
+                  value={targetGpa}
+                  onChange={(e) => setTargetGpa(e.target.value)}
+                  placeholder="Contoh: 3.85"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setIsEditingProfile(false)}
+                  style={{ flex: 1, padding: '12px' }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ flex: 2, padding: '12px' }}
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            className="action-btn-clean secondary"
-            onClick={handleExportBackup}
-          >
-            <Download size={14} />
-            <span>Ekspor JSON</span>
-          </button>
-          <label className="action-btn-clean secondary" style={{ cursor: 'pointer', margin: 0 }}>
-            <Upload size={14} />
-            <span>Pulihkan JSON</span>
-            <input type="file" accept=".json" onChange={handleImportBackup} style={{ display: 'none' }} />
-          </label>
-        </div>
-
-        {/* LOGOUT BUTTON */}
-        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
-          <button
-            type="button"
-            className="logout-action-btn"
-            onClick={() => {
-              if (window.confirm('Yakin ingin keluar dari akun ini?')) {
-                logout();
-              }
-            }}
-          >
-            <LogOut size={16} />
-            <span>Keluar Akun (Sign Out)</span>
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

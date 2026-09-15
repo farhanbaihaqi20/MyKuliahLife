@@ -62,7 +62,7 @@ export const AuthView = () => {
         <div className="auth-logo-badge">
           <span style={{ fontSize: '28px' }}>🎓</span>
         </div>
-        <h1 className="auth-title">MyUang & EduTrack</h1>
+        <h1 className="auth-title">MyKuliahLife</h1>
         <p className="auth-subtitle">Sistem Pengatur Keuangan & Manajemen Akademik Mahasiswa</p>
       </div>
 
@@ -175,7 +175,7 @@ export const AuthView = () => {
               <span className="btn-spinner-text">Menghubungkan...</span>
             ) : (
               <>
-                <span>{mode === 'login' ? 'Masuk ke MyUang' : 'Mulai Setup Akun Baru'}</span>
+                <span>{mode === 'login' ? 'Masuk ke MyKuliahLife' : 'Mulai Setup Akun Baru'}</span>
                 <ArrowRight size={18} />
               </>
             )}

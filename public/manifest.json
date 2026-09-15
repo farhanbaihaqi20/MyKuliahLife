@@ -1,0 +1,33 @@
+{
+  "name": "MyKuliahLife - Student Financial & Academic OS",
+  "short_name": "MyKuliahLife",
+  "description": "Budget Manager dan Pencatatan Akademik Terpadu untuk Mahasiswa Indonesia",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#1665D8",
+  "orientation": "portrait-primary",
+  "lang": "id",
+  "categories": ["education", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192 512x512 any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192 512x512 any",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

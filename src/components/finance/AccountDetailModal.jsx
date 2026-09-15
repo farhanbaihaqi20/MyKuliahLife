@@ -203,6 +203,7 @@ export const AccountDetailModal = ({
             type="button"
             className="hub-action-btn secondary"
             onClick={() => {
+              onClose();
               onEdit(account);
             }}
             title="Edit Detail & Saldo Dompet"

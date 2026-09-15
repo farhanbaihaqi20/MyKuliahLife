@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { DonutChart } from '../components/charts/DonutChart';
+import { FinanceReportView } from '../components/finance/FinanceReportView';
 import { formatRupiahNumber, parseRupiahNumber, maskMoney } from '../utils/formatters';
 import SwipeableItem from '../components/common/SwipeableItem';
 import EditTransactionModal from '../components/finance/EditTransactionModal';
@@ -56,7 +56,6 @@ export const FinanceView = () => {
     setFinanceSubtab
   } = useApp();
 
-  const [reportFilter, setReportFilter] = useState('kategori'); // kategori | akun | merchant
 
   // Edit transaction modal state
   const [editingTransaction, setEditingTransaction] = useState(null);
@@ -102,51 +101,12 @@ export const FinanceView = () => {
     return acc;
   }, {});
 
-  // Data for Donut Chart (Strictly filtered to active financial cycle)
-  const getDonutData = () => {
-    const expenses = data.transactions.filter(t => t.type === 'expense' && financialCycle.isDateInCycle(t.date));
-    const colorPalette = ['#F97316', '#3B82F6', '#10B981', '#EC4899', '#8B5CF6', '#EAB308', '#64748B'];
 
-    if (reportFilter === 'kategori') {
-      const catMap = {};
-      expenses.forEach(t => {
-        catMap[t.category] = (catMap[t.category] || 0) + t.amount;
-      });
-      return Object.entries(catMap).map(([label, amount], i) => ({
-        label,
-        amount,
-        color: colorPalette[i % colorPalette.length]
-      }));
-    } else if (reportFilter === 'akun') {
-      const accMap = {};
-      expenses.forEach(t => {
-        const aName = t.accountName || 'Lainnya';
-        accMap[aName] = (accMap[aName] || 0) + t.amount;
-      });
-      return Object.entries(accMap).map(([label, amount], i) => ({
-        label,
-        amount,
-        color: colorPalette[i % colorPalette.length]
-      }));
-    } else {
-      const merchMap = {};
-      expenses.forEach(t => {
-        const m = t.merchant || 'Lainnya';
-        merchMap[m] = (merchMap[m] || 0) + t.amount;
-      });
-      return Object.entries(merchMap).map(([label, amount], i) => ({
-        label,
-        amount,
-        color: colorPalette[i % colorPalette.length]
-      }));
-    }
-  };
-
-  const donutItems = getDonutData();
 
   const bankTotal = useMemo(() => (data.accounts || []).filter(a => a.type === 'bank').reduce((s, a) => s + a.balance, 0), [data.accounts]);
   const ewalletTotal = useMemo(() => (data.accounts || []).filter(a => a.type === 'ewallet').reduce((s, a) => s + a.balance, 0), [data.accounts]);
   const cashTotal = useMemo(() => (data.accounts || []).filter(a => a.type === 'cash').reduce((s, a) => s + a.balance, 0), [data.accounts]);
+  const otherTotal = useMemo(() => (data.accounts || []).filter(a => !['bank', 'ewallet', 'cash'].includes(a.type)).reduce((s, a) => s + a.balance, 0), [data.accounts]);
   const unpaidBillsCount = useMemo(() => (data.bills || []).filter(b => !b.isPaid).length, [data.bills]);
 
   const handleDepositSubmit = (e) => {
@@ -220,6 +180,7 @@ export const FinanceView = () => {
   };
 
   const openEditModal = (acc) => {
+    setSelectedAccountDetail(null);
     setEditingAccount(acc);
     setEditAccName(acc.name);
     setEditAccBalance(formatRupiahNumber(acc.balance));
@@ -284,6 +245,14 @@ export const FinanceView = () => {
       {/* Subtab Bar (Modern Capsule Navigation) */}
       <div className="subtab-bar">
         <button
+          className={`subtab-btn ${financeSubtab === 'accounts' ? 'active' : ''}`}
+          onClick={() => setFinanceSubtab('accounts')}
+        >
+          <span>💳</span>
+          <span>Dompet</span>
+          <span className="subtab-btn-badge">{data.accounts.length}</span>
+        </button>
+        <button
           className={`subtab-btn ${financeSubtab === 'budget' ? 'active' : ''}`}
           onClick={() => setFinanceSubtab('budget')}
         >
@@ -328,14 +297,6 @@ export const FinanceView = () => {
           {data.savingsTargets.length > 0 && (
             <span className="subtab-btn-badge">{data.savingsTargets.length}</span>
           )}
-        </button>
-        <button
-          className={`subtab-btn ${financeSubtab === 'accounts' ? 'active' : ''}`}
-          onClick={() => setFinanceSubtab('accounts')}
-        >
-          <span>💳</span>
-          <span>Dompet</span>
-          <span className="subtab-btn-badge">{data.accounts.length}</span>
         </button>
       </div>
 
@@ -593,95 +554,9 @@ export const FinanceView = () => {
         </div>
       )}
 
-      {/* 3. LAPORAN & GRAFIK DONUT */}
+      {/* 3. LAPORAN KEUANGAN LENGKAP DENGAN DRILL-DOWN & KOMPARASI */}
       {financeSubtab === 'report' && (
-        <div>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            <button
-              className="pill-btn"
-              style={{
-                flex: 1,
-                justifyContent: 'center',
-                background: reportFilter === 'kategori' ? '#1665D8' : '#F1F5F9',
-                color: reportFilter === 'kategori' ? '#FFFFFF' : '#475569',
-                borderColor: 'transparent'
-              }}
-              onClick={() => setReportFilter('kategori')}
-            >
-              Kategori
-            </button>
-            <button
-              className="pill-btn"
-              style={{
-                flex: 1,
-                justifyContent: 'center',
-                background: reportFilter === 'akun' ? '#1665D8' : '#F1F5F9',
-                color: reportFilter === 'akun' ? '#FFFFFF' : '#475569',
-                borderColor: 'transparent'
-              }}
-              onClick={() => setReportFilter('akun')}
-            >
-              Akun
-            </button>
-            <button
-              className="pill-btn"
-              style={{
-                flex: 1,
-                justifyContent: 'center',
-                background: reportFilter === 'merchant' ? '#1665D8' : '#F1F5F9',
-                color: reportFilter === 'merchant' ? '#FFFFFF' : '#475569',
-                borderColor: 'transparent'
-              }}
-              onClick={() => setReportFilter('merchant')}
-            >
-              Merchant
-            </button>
-          </div>
-
-          {donutItems.length === 0 ? (
-            <div className="card-standard" style={{ textAlign: 'center', padding: '36px 20px', color: '#64748B' }}>
-              <div style={{ fontSize: '36px', marginBottom: '8px' }}>📊</div>
-              <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>Belum Ada Pengeluaran Periode Ini</h4>
-              <p style={{ fontSize: '12px', marginTop: '4px', lineHeight: '1.5' }}>
-                Transaksi pengeluaran pada periode <strong>{financialCycle.label}</strong> akan otomatis dirangkum dan divisualisasikan dalam grafik ini.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="card-standard">
-                <h4 style={{ fontSize: '15px', fontWeight: 800, textAlign: 'center', color: '#0F172A' }}>
-                  Breakdown Pengeluaran ({reportFilter.toUpperCase()})
-                </h4>
-
-                <DonutChart
-                  items={donutItems}
-                  totalAmount={cycleExpenses}
-                  centerLabel={`Total ${reportFilter}`}
-                />
-              </div>
-
-              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {donutItems.map((item, idx) => (
-                  <div key={idx} className="card-standard" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: item.color }}></span>
-                      <div>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{item.label}</div>
-                        <div style={{ fontSize: '11px', color: '#64748B' }}>
-                          {cycleExpenses > 0 ? Math.round((item.amount / cycleExpenses) * 100) : 0}% dari siklus ini
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#EF4444' }}>
-                      Rp {item.amount.toLocaleString('id-ID')}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        <FinanceReportView onEditTransaction={(tx) => setEditingTransaction(tx)} />
       )}
 
       {/* 4. TAGIHAN MAHASISWA DENGAN OPSI HAPUS */}
@@ -1082,6 +957,16 @@ export const FinanceView = () => {
                     <span className="chip-val">{maskMoney(cashTotal, isBalanceVisible)}</span>
                   </div>
                 </div>
+
+                {otherTotal > 0 && (
+                  <div className="distribution-chip">
+                    <span className="chip-icon">📈</span>
+                    <div className="chip-info">
+                      <span className="chip-label">Lainnya</span>
+                      <span className="chip-val">{maskMoney(otherTotal, isBalanceVisible)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1222,7 +1107,7 @@ export const FinanceView = () => {
 
             {/* Modal Tambah Dompet Baru */}
           {isAddAccountOpen && (
-            <div className="modal-overlay" onClick={() => setIsAddAccountOpen(false)}>
+            <div className="modal-overlay" onClick={() => setIsAddAccountOpen(false)} style={{ zIndex: 1300 }}>
               <div className="modal-bottom-sheet" onClick={e => e.stopPropagation()}>
                 <div className="sheet-handle-bar" />
                 <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '14px' }}>Tambah Dompet / Akun Baru</h3>
@@ -1301,7 +1186,7 @@ export const FinanceView = () => {
 
           {/* Modal Edit Dompet */}
           {editingAccount && (
-            <div className="modal-overlay" onClick={() => setEditingAccount(null)}>
+            <div className="modal-overlay" onClick={() => setEditingAccount(null)} style={{ zIndex: 1300 }}>
               <div className="modal-bottom-sheet" onClick={e => e.stopPropagation()}>
                 <div className="sheet-handle-bar" />
                 <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '14px' }}>Edit Dompet: {editingAccount.name}</h3>
@@ -1378,9 +1263,9 @@ export const FinanceView = () => {
           handleDeleteAccount(accId, accName);
           setSelectedAccountDetail(null);
         }}
-        onAddTransaction={() => {
+        onQuickAdd={(type) => {
           setSelectedAccountDetail(null);
-          setQuickAddType('expense');
+          setQuickAddType(type || 'expense');
           setIsQuickAddOpen(true);
         }}
       />

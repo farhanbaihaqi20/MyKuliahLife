@@ -2,16 +2,25 @@ import { INITIAL_DATA, CLEAN_DATA } from '../constants/initialData';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { profileService, dataSyncService } from './supabaseService';
 
-const BASE_STORAGE_KEY = 'myuang_app_data';
+const BASE_STORAGE_KEY = 'mykuliahlife_app_data';
+const LEGACY_STORAGE_KEY = 'myuang_app_data';
 
 export const getStorageKey = (userId = null) => {
   return userId ? `${BASE_STORAGE_KEY}_${userId}` : `${BASE_STORAGE_KEY}_guest`;
 };
 
+export const getLegacyStorageKey = (userId = null) => {
+  return userId ? `${LEGACY_STORAGE_KEY}_${userId}` : `${LEGACY_STORAGE_KEY}_guest`;
+};
+
 export const loadLocalData = (userId = null) => {
   try {
     const key = getStorageKey(userId);
-    const raw = localStorage.getItem(key);
+    let raw = localStorage.getItem(key);
+    if (!raw) {
+      const legacyKey = getLegacyStorageKey(userId);
+      raw = localStorage.getItem(legacyKey);
+    }
     if (raw) {
       const parsed = JSON.parse(raw);
       return { ...CLEAN_DATA, ...parsed };

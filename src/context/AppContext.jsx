@@ -17,7 +17,7 @@ export const AppProvider = ({ children }) => {
   // Clean data as safe initial state so demo data never leaks into authenticated accounts
   const [data, setData] = useState(CLEAN_DATA);
   const [activeTab, setActiveTab] = useState('home'); // 'home' | 'academic' | 'finance' | 'grades' | 'profile'
-  const [financeSubtab, setFinanceSubtab] = useState('budget'); // 'budget' | 'history' | 'report' | 'bills' | 'targets' | 'accounts'
+  const [financeSubtab, setFinanceSubtab] = useState('accounts'); // 'accounts' | 'budget' | 'history' | 'report' | 'bills' | 'targets'
   const [academicTab, setAcademicTab] = useState('schedule'); // 'schedule' | 'assignments' | 'attendance' | 'notes'
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
@@ -195,6 +195,31 @@ export const AppProvider = ({ children }) => {
       lastSynced: new Date().toLocaleTimeString('id-ID')
     });
     return res;
+  };
+
+  // Local Avatar (Stored strictly in browser localStorage, not uploaded to database)
+  const [localAvatar, setLocalAvatarState] = useState(() => {
+    try {
+      return localStorage.getItem('mykuliahlife_local_avatar') || localStorage.getItem('myuang_local_avatar') || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const saveLocalAvatar = (base64) => {
+    try {
+      if (base64) {
+        localStorage.setItem('mykuliahlife_local_avatar', base64);
+        localStorage.removeItem('myuang_local_avatar');
+        setLocalAvatarState(base64);
+      } else {
+        localStorage.removeItem('mykuliahlife_local_avatar');
+        localStorage.removeItem('myuang_local_avatar');
+        setLocalAvatarState('');
+      }
+    } catch (e) {
+      console.warn('Failed to save local avatar:', e);
+    }
   };
 
   // Profile Management
@@ -1196,6 +1221,8 @@ export const AppProvider = ({ children }) => {
         resetToCleanData,
         completeOnboarding,
         updateProfile,
+        localAvatar,
+        saveLocalAvatar,
         // Semester System (Centralized in Profile)
         activeSemester,
         unlockedSemesters,

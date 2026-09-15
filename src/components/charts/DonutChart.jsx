@@ -1,6 +1,13 @@
 import React from 'react';
 
-export const DonutChart = ({ items, totalAmount, centerLabel = "Pengeluaran", size = 200, strokeWidth = 26 }) => {
+export const DonutChart = ({
+  items,
+  totalAmount,
+  centerLabel = "Pengeluaran",
+  size = 200,
+  strokeWidth = 26,
+  onSliceClick
+}) => {
   if (!items || items.length === 0 || totalAmount <= 0) {
     return (
       <div style={{ textAlign: 'center', padding: '30px 0', color: '#94A3B8', fontSize: '13px' }}>
@@ -53,8 +60,21 @@ export const DonutChart = ({ items, totalAmount, centerLabel = "Pengeluaran", si
               strokeDasharray={slice.strokeDasharray}
               strokeDashoffset={slice.strokeDashoffset}
               strokeLinecap="round"
-              style={{ transition: 'stroke-dasharray 0.5s ease' }}
-            />
+              onClick={() => onSliceClick && onSliceClick(slice)}
+              style={{
+                cursor: onSliceClick ? 'pointer' : 'default',
+                transition: 'stroke-dasharray 0.5s ease, stroke-width 0.2s ease, opacity 0.2s ease',
+                outline: 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (onSliceClick) e.currentTarget.style.opacity = '0.82';
+              }}
+              onMouseLeave={(e) => {
+                if (onSliceClick) e.currentTarget.style.opacity = '1';
+              }}
+            >
+              <title>{`${slice.label}: Rp ${Number(slice.amount).toLocaleString('id-ID')} (${slice.percentage}%)${onSliceClick ? ' - Klik untuk rincian' : ''}`}</title>
+            </circle>
           ))}
         </svg>
 
@@ -71,7 +91,8 @@ export const DonutChart = ({ items, totalAmount, centerLabel = "Pengeluaran", si
             alignItems: 'center',
             justifyContent: 'center',
             textAlign: 'center',
-            padding: '10px'
+            padding: '10px',
+            pointerEvents: 'none'
           }}
         >
           <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>
@@ -83,28 +104,60 @@ export const DonutChart = ({ items, totalAmount, centerLabel = "Pengeluaran", si
         </div>
       </div>
 
-      {/* Legend Badges */}
+      {/* Interactive Legend Badges */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', marginTop: '16px', maxWidth: '340px' }}>
-        {slices.slice(0, 5).map((slice, idx) => (
+        {slices.slice(0, 6).map((slice, idx) => (
           <div
             key={idx}
+            onClick={() => onSliceClick && onSliceClick(slice)}
+            role={onSliceClick ? 'button' : undefined}
+            tabIndex={onSliceClick ? 0 : undefined}
+            onKeyDown={(e) => {
+              if (onSliceClick && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                onSliceClick(slice);
+              }
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               fontSize: '11px',
               background: '#F8FAFC',
-              padding: '4px 10px',
+              padding: '5px 12px',
               borderRadius: '20px',
-              border: '1px solid #E2E8F0'
+              border: '1px solid #E2E8F0',
+              cursor: onSliceClick ? 'pointer' : 'default',
+              transition: 'all 0.15s ease',
+              userSelect: 'none'
+            }}
+            onMouseEnter={(e) => {
+              if (onSliceClick) {
+                e.currentTarget.style.backgroundColor = '#EFF6FF';
+                e.currentTarget.style.borderColor = '#BFDBFE';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (onSliceClick) {
+                e.currentTarget.style.backgroundColor = '#F8FAFC';
+                e.currentTarget.style.borderColor = '#E2E8F0';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }
             }}
           >
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: slice.color || '#3B82F6' }}></span>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: slice.color || '#3B82F6', flexShrink: 0 }}></span>
             <span style={{ color: '#475569', fontWeight: 600 }}>{slice.label}</span>
             <span style={{ color: '#0F172A', fontWeight: 800 }}>{slice.percentage}%</span>
           </div>
         ))}
       </div>
+      {onSliceClick && (
+        <span style={{ fontSize: '11px', color: '#94A3B8', marginTop: '8px' }}>
+          💡 Klik bagian grafik atau kategori untuk rincian riwayat
+        </span>
+      )}
     </div>
   );
 };
+

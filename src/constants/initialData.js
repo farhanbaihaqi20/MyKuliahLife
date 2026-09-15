@@ -466,10 +466,10 @@ export const INITIAL_DATA = {
 export const CLEAN_DATA = {
   activeSemester: 1,
   profile: {
-    fullName: "Mahasiswa Baru",
+    fullName: "",
     email: "",
-    university: "Universitas",
-    major: "Program Studi",
+    university: "",
+    major: "",
     semester: 1,
     targetGpa: 3.80,
     isPremium: true

@@ -212,30 +212,6 @@ export const AcademicView = () => {
             ))}
           </select>
         </div>
-
-        <button
-          type="button"
-          onClick={() => navigateTo('profile')}
-          style={{
-            background: '#F1F5F9',
-            border: '1px solid #E2E8F0',
-            color: '#475569',
-            borderRadius: '10px',
-            padding: '6px 10px',
-            fontSize: '11px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            whiteSpace: 'nowrap',
-            flexShrink: 0
-          }}
-          title="Buka Pusat Manajemen Semester di Profil"
-        >
-          <span>⚙️ Atur di Profil</span>
-          <ChevronRight size={12} />
-        </button>
       </div>
 
       {/* Sub Tabs: Jadwal, Tugas, Presensi, Catatan */}

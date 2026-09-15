@@ -36,7 +36,8 @@ export const Header = () => {
     activeSemester,
     deleteAccount,
     setQuickAddType,
-    setIsQuickAddOpen
+    setIsQuickAddOpen,
+    localAvatar
   } = useApp();
 
   // Header Tab: 'cycle' = Arus Kas Periode (Kas Harian & Siklus), 'total' = Kotak Total Saldo Akumulatif
@@ -83,9 +84,11 @@ export const Header = () => {
     });
   }, []);
 
-  // Formatted numbers for Slide 1 (Siklus Keuangan)
+  // Formatted numbers for Total Saldo & Slide 1 (Siklus Keuangan)
   const formattedCycleBalance = isBalanceVisible
-    ? `Rp +${totalBalance.toLocaleString('id-ID')}`
+    ? (totalBalance < 0
+        ? `-Rp ${Math.abs(totalBalance).toLocaleString('id-ID')}`
+        : `Rp ${totalBalance.toLocaleString('id-ID')}`)
     : 'Rp ••••••••';
 
   const formattedCycleIncome = isBalanceVisible
@@ -134,8 +137,17 @@ export const Header = () => {
           className="user-avatar-btn"
           onClick={() => navigateTo('profile')}
           title="Buka Pengaturan & Akun"
+          style={{ overflow: 'hidden', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          <User size={20} />
+          {localAvatar ? (
+            <img
+              src={localAvatar}
+              alt="Foto Profil"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <User size={20} />
+          )}
           <span
             className={`sync-status-dot ${syncStatus.mode === 'online' ? 'online' : 'offline'}`}
             title={syncStatus.message}

@@ -23,7 +23,7 @@ const MainScreen = () => {
       case 'finance': return 'Keuangan & Dompet';
       case 'grades': return 'Rekap Nilai & IPK';
       case 'profile': return 'Profil & Pengaturan';
-      default: return 'MyUang';
+      default: return 'MyKuliahLife';
     }
   };
 
@@ -95,7 +95,7 @@ const AppContent = () => {
       <div className="mobile-device-frame" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '620px' }}>
         <div style={{ textAlign: 'center', padding: '30px' }}>
           <div style={{ fontSize: '38px', marginBottom: '12px' }}>🎓</div>
-          <div style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>MyUang & EduTrack</div>
+          <div style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>MyKuliahLife</div>
           <div style={{ fontSize: '12px', color: '#64748B', marginTop: '6px' }}>Menghubungkan ke Supabase Cloud...</div>
         </div>
       </div>

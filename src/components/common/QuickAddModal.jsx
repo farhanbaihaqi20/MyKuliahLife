@@ -148,7 +148,7 @@ export const QuickAddModal = () => {
   };
 
   return (
-    <div className="modal-overlay" onClick={() => setIsQuickAddOpen(false)}>
+    <div className="modal-overlay" onClick={() => setIsQuickAddOpen(false)} style={{ zIndex: 1300 }}>
       <div className="modal-bottom-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-handle-bar" />
 
