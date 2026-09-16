@@ -80,6 +80,27 @@ export const AppProvider = ({ children }) => {
           // Check if user has cloud data
           const cloudData = await dataSyncService.loadUserData(currUser.id);
           if (cloudData) {
+            const cached = loadLocalData(currUser.id);
+            if (cached?.courses) {
+              cloudData.courses = cloudData.courses.map(cc => {
+                if (!cc.attendance || cc.attendance.length === 0) {
+                  const cachedC = cached.courses.find(localC => localC.id === cc.id);
+                  if (cachedC?.attendance && cachedC.attendance.length > 0) {
+                    cachedC.attendance.forEach(att => {
+                      if (att.status && att.status !== 'unrecorded') {
+                        cloudService.upsertAttendance(currUser.id, {
+                          courseId: cc.id,
+                          meetingNumber: att.meeting,
+                          status: att.status
+                        });
+                      }
+                    });
+                    return { ...cc, attendance: cachedC.attendance };
+                  }
+                }
+                return cc;
+              });
+            }
             setData(cloudData);
             saveLocalData(cloudData, currUser.id);
             setIsOnboardingOpen(false);
@@ -126,6 +147,27 @@ export const AppProvider = ({ children }) => {
 
         const cloudData = await dataSyncService.loadUserData(newUser.id);
         if (cloudData) {
+          const cached = loadLocalData(newUser.id);
+          if (cached?.courses) {
+            cloudData.courses = cloudData.courses.map(cc => {
+              if (!cc.attendance || cc.attendance.length === 0) {
+                const cachedC = cached.courses.find(localC => localC.id === cc.id);
+                if (cachedC?.attendance && cachedC.attendance.length > 0) {
+                  cachedC.attendance.forEach(att => {
+                    if (att.status && att.status !== 'unrecorded') {
+                      cloudService.upsertAttendance(newUser.id, {
+                        courseId: cc.id,
+                        meetingNumber: att.meeting,
+                        status: att.status
+                      });
+                    }
+                  });
+                  return { ...cc, attendance: cachedC.attendance };
+                }
+              }
+              return cc;
+            });
+          }
           setData(cloudData);
           saveLocalData(cloudData, newUser.id);
           setIsOnboardingOpen(false);
@@ -908,13 +950,17 @@ export const AppProvider = ({ children }) => {
     setData(prev => {
       const targetCourse = prev.courses.find(c => c.id === courseId);
       const existingAtt = targetCourse?.attendance || [];
-      const idx = existingAtt.findIndex(a => a.meeting === meetingNumber);
       let newAtt;
-      if (idx >= 0) {
-        newAtt = [...existingAtt];
-        newAtt[idx] = { ...newAtt[idx], status };
+      if (status === 'unrecorded') {
+        newAtt = existingAtt.filter(a => a.meeting !== meetingNumber);
       } else {
-        newAtt = [...existingAtt, { meeting: meetingNumber, status, date: new Date().toISOString().split('T')[0] }];
+        const idx = existingAtt.findIndex(a => a.meeting === meetingNumber);
+        if (idx >= 0) {
+          newAtt = [...existingAtt];
+          newAtt[idx] = { ...newAtt[idx], status, date: new Date().toISOString().split('T')[0] };
+        } else {
+          newAtt = [...existingAtt, { meeting: meetingNumber, status, date: new Date().toISOString().split('T')[0] }];
+        }
       }
 
       return {
@@ -924,7 +970,11 @@ export const AppProvider = ({ children }) => {
     });
 
     if (user?.id) {
-      cloudService.upsertAttendance(user.id, { courseId, meetingNumber, status });
+      if (status === 'unrecorded') {
+        cloudService.deleteAttendance(user.id, courseId, meetingNumber);
+      } else {
+        cloudService.upsertAttendance(user.id, { courseId, meetingNumber, status });
+      }
     }
   };
 

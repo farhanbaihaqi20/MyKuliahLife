@@ -90,11 +90,12 @@ export const AcademicView = () => {
 
   // Attendance stats calculator
   const getAttendanceStats = (course) => {
-    const totalMeetingsRecorded = course.attendance?.length || 0;
-    const presentCount = course.attendance?.filter(a => a.status === 'present').length || 0;
-    const sickCount = course.attendance?.filter(a => a.status === 'sick').length || 0;
-    const permCount = course.attendance?.filter(a => a.status === 'permission').length || 0;
-    const absentCount = course.attendance?.filter(a => a.status === 'absent').length || 0;
+    const validAttendance = (course.attendance || []).filter(a => a.status && a.status !== 'unrecorded');
+    const totalMeetingsRecorded = validAttendance.length;
+    const presentCount = validAttendance.filter(a => a.status === 'present').length;
+    const sickCount = validAttendance.filter(a => a.status === 'sick').length;
+    const permCount = validAttendance.filter(a => a.status === 'permission').length;
+    const absentCount = validAttendance.filter(a => a.status === 'absent').length;
 
     const currentRate = totalMeetingsRecorded > 0
       ? Math.round(((presentCount + permCount) / totalMeetingsRecorded) * 100)
@@ -603,7 +604,7 @@ export const AcademicView = () => {
                                   status === 'unrecorded' ? 'present' :
                                   status === 'present' ? 'permission' :
                                   status === 'permission' ? 'sick' :
-                                  status === 'sick' ? 'absent' : 'present';
+                                  status === 'sick' ? 'absent' : 'unrecorded';
                                 updateAttendance(course.id, num, nextStatus);
                               }}
                             >

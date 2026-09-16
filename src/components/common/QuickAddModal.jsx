@@ -11,11 +11,17 @@ export const QuickAddModal = () => {
     quickAddType,
     setQuickAddType,
     data,
+    activeSemester,
     addTransaction,
     addAssignment,
     addCourseNote,
     updateAttendance
   } = useApp();
+
+  const currentSemester = Number(activeSemester || data.activeSemester || data.profile?.semester || 1);
+  const activeSemesterCourses = (data.courses || []).filter(
+    crs => Number(crs.semester || 1) === currentSemester
+  );
 
   // Transaction form state
   const [txType, setTxType] = useState('expense'); // expense | income | transfer
@@ -37,23 +43,42 @@ export const QuickAddModal = () => {
   }, [data.accounts, isQuickAddOpen]);
 
   // Assignment form state
-  const [asgCourseId, setAsgCourseId] = useState(data.courses[0]?.id || '');
+  const [asgCourseId, setAsgCourseId] = useState(activeSemesterCourses[0]?.id || '');
   const [asgTitle, setAsgTitle] = useState('');
   const [asgDesc, setAsgDesc] = useState('');
   const [asgDeadline, setAsgDeadline] = useState(new Date().toISOString().split('T')[0] + 'T23:59');
   const [asgPriority, setAsgPriority] = useState('medium');
 
   // Course Note form state
-  const [noteCourseId, setNoteCourseId] = useState(data.courses[0]?.id || '');
+  const [noteCourseId, setNoteCourseId] = useState(activeSemesterCourses[0]?.id || '');
   const [noteWeek, setNoteWeek] = useState(1);
   const [noteTopic, setNoteTopic] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [noteUrl, setNoteUrl] = useState('');
 
   // Attendance form state
-  const [attCourseId, setAttCourseId] = useState(data.courses[0]?.id || '');
+  const [attCourseId, setAttCourseId] = useState(activeSemesterCourses[0]?.id || '');
   const [attMeeting, setAttMeeting] = useState(1);
   const [attStatus, setAttStatus] = useState('present');
+
+  // Synchronize academic form course IDs with active semester courses
+  React.useEffect(() => {
+    if (activeSemesterCourses.length > 0) {
+      if (!activeSemesterCourses.some(c => c.id === asgCourseId)) {
+        setAsgCourseId(activeSemesterCourses[0].id);
+      }
+      if (!activeSemesterCourses.some(c => c.id === noteCourseId)) {
+        setNoteCourseId(activeSemesterCourses[0].id);
+      }
+      if (!activeSemesterCourses.some(c => c.id === attCourseId)) {
+        setAttCourseId(activeSemesterCourses[0].id);
+      }
+    } else {
+      setAsgCourseId('');
+      setNoteCourseId('');
+      setAttCourseId('');
+    }
+  }, [activeSemesterCourses, isQuickAddOpen, currentSemester]);
 
   if (!isQuickAddOpen) return null;
 
@@ -106,12 +131,18 @@ export const QuickAddModal = () => {
     e.preventDefault();
     if (!asgTitle.trim()) return;
 
-    const course = data.courses.find(c => c.id === asgCourseId) || data.courses[0];
+    const course = activeSemesterCourses.find(c => c.id === asgCourseId) || activeSemesterCourses[0];
+    if (!course) {
+      alert(`Belum ada mata kuliah di Semester ${currentSemester}. Tambahkan mata kuliah terlebih dahulu di menu Jadwal Kuliah.`);
+      return;
+    }
+
     addAssignment({
       courseId: course.id,
       courseName: course.name,
-      title: asgTitle,
-      description: asgDesc,
+      semester: currentSemester,
+      title: asgTitle.trim(),
+      description: asgDesc.trim(),
       deadline: asgDeadline,
       priority: asgPriority
     });
@@ -126,14 +157,20 @@ export const QuickAddModal = () => {
     e.preventDefault();
     if (!noteTopic.trim()) return;
 
-    const course = data.courses.find(c => c.id === noteCourseId) || data.courses[0];
+    const course = activeSemesterCourses.find(c => c.id === noteCourseId) || activeSemesterCourses[0];
+    if (!course) {
+      alert(`Belum ada mata kuliah di Semester ${currentSemester}. Tambahkan mata kuliah terlebih dahulu.`);
+      return;
+    }
+
     addCourseNote({
       courseId: course.id,
       courseName: course.name,
+      semester: currentSemester,
       weekNumber: Number(noteWeek),
-      topic: noteTopic,
-      content: noteContent,
-      materialUrl: noteUrl
+      topic: noteTopic.trim(),
+      content: noteContent.trim(),
+      materialUrl: noteUrl.trim()
     });
 
     setIsQuickAddOpen(false);
@@ -143,6 +180,10 @@ export const QuickAddModal = () => {
 
   const handleAttendanceSubmit = (e) => {
     e.preventDefault();
+    if (!attCourseId) {
+      alert(`Belum ada mata kuliah di Semester ${currentSemester}.`);
+      return;
+    }
     updateAttendance(attCourseId, Number(attMeeting), attStatus);
     setIsQuickAddOpen(false);
   };
@@ -357,18 +398,34 @@ export const QuickAddModal = () => {
         {quickAddType === 'assignment' && (
           <form onSubmit={handleAssignmentSubmit}>
             <div className="input-group">
-              <label className="input-label">Mata Kuliah</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label className="input-label" style={{ marginBottom: 0 }}>Mata Kuliah</label>
+                <span style={{ fontSize: '11px', color: '#1665D8', fontWeight: 700, background: '#EFF6FF', padding: '2px 8px', borderRadius: '6px' }}>
+                  Semester {currentSemester} (Aktif)
+                </span>
+              </div>
               <select
                 className="input-field"
                 value={asgCourseId}
                 onChange={(e) => setAsgCourseId(e.target.value)}
+                disabled={activeSemesterCourses.length === 0}
+                required
               >
-                {data.courses.map(crs => (
-                  <option key={crs.id} value={crs.id}>
-                    {crs.name} ({crs.code})
-                  </option>
-                ))}
+                {activeSemesterCourses.length === 0 ? (
+                  <option value="">Belum ada matkul di Semester {currentSemester}</option>
+                ) : (
+                  activeSemesterCourses.map(crs => (
+                    <option key={crs.id} value={crs.id}>
+                      {crs.name} ({crs.code || 'MK'})
+                    </option>
+                  ))
+                )}
               </select>
+              {activeSemesterCourses.length === 0 && (
+                <span style={{ fontSize: '11px', color: '#EF4444', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                  ⚠️ Tambahkan matakuliah Semester {currentSemester} terlebih dahulu di menu Jadwal Kuliah.
+                </span>
+              )}
             </div>
 
             <div className="input-group">
@@ -430,17 +487,28 @@ export const QuickAddModal = () => {
         {quickAddType === 'attendance' && (
           <form onSubmit={handleAttendanceSubmit}>
             <div className="input-group">
-              <label className="input-label">Pilih Mata Kuliah</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label className="input-label" style={{ marginBottom: 0 }}>Pilih Mata Kuliah</label>
+                <span style={{ fontSize: '11px', color: '#1665D8', fontWeight: 700, background: '#EFF6FF', padding: '2px 8px', borderRadius: '6px' }}>
+                  Semester {currentSemester} (Aktif)
+                </span>
+              </div>
               <select
                 className="input-field"
                 value={attCourseId}
                 onChange={(e) => setAttCourseId(e.target.value)}
+                disabled={activeSemesterCourses.length === 0}
+                required
               >
-                {data.courses.map(crs => (
-                  <option key={crs.id} value={crs.id}>
-                    {crs.name} ({crs.code})
-                  </option>
-                ))}
+                {activeSemesterCourses.length === 0 ? (
+                  <option value="">Belum ada matkul di Semester {currentSemester}</option>
+                ) : (
+                  activeSemesterCourses.map(crs => (
+                    <option key={crs.id} value={crs.id}>
+                      {crs.name} ({crs.code || 'MK'})
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
@@ -497,17 +565,28 @@ export const QuickAddModal = () => {
         {quickAddType === 'note' && (
           <form onSubmit={handleNoteSubmit}>
             <div className="input-group">
-              <label className="input-label">Mata Kuliah</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label className="input-label" style={{ marginBottom: 0 }}>Mata Kuliah</label>
+                <span style={{ fontSize: '11px', color: '#1665D8', fontWeight: 700, background: '#EFF6FF', padding: '2px 8px', borderRadius: '6px' }}>
+                  Semester {currentSemester} (Aktif)
+                </span>
+              </div>
               <select
                 className="input-field"
                 value={noteCourseId}
                 onChange={(e) => setNoteCourseId(e.target.value)}
+                disabled={activeSemesterCourses.length === 0}
+                required
               >
-                {data.courses.map(crs => (
-                  <option key={crs.id} value={crs.id}>
-                    {crs.name}
-                  </option>
-                ))}
+                {activeSemesterCourses.length === 0 ? (
+                  <option value="">Belum ada matkul di Semester {currentSemester}</option>
+                ) : (
+                  activeSemesterCourses.map(crs => (
+                    <option key={crs.id} value={crs.id}>
+                      {crs.name} ({crs.code || 'MK'})
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 

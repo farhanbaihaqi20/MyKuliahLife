@@ -26,7 +26,7 @@ export const authService = {
   // Masuk / Sign In
   async signIn(email, password) {
     if (!isSupabaseConfigured() || !supabase) {
-      throw new Error('Koneksi Supabase belum terkonfigurasi di .env.local');
+      throw new Error('Koneksi Supabase belum aktif. Pastikan environment variables sudah diset dan lakukan Re-Deploy di Netlify.');
     }
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
@@ -39,7 +39,7 @@ export const authService = {
   // Daftar / Sign Up
   async signUp(email, password, metadata = {}) {
     if (!isSupabaseConfigured() || !supabase) {
-      throw new Error('Koneksi Supabase belum terkonfigurasi di .env.local');
+      throw new Error('Koneksi Supabase belum aktif. Pastikan environment variables sudah diset dan lakukan Re-Deploy di Netlify.');
     }
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
@@ -234,24 +234,35 @@ export const dataSyncService = {
           date: t.date,
           icon: t.icon || '💸'
         })),
-        courses: (coursesRes.data || []).map(c => ({
-          id: c.id,
-          semester: Number(c.semester),
-          code: c.code,
-          name: c.name,
-          sks: Number(c.sks),
-          lecturer: c.lecturer,
-          room: c.room,
-          dayOfWeek: c.day_of_week,
-          startTime: c.start_time?.slice(0, 5) || '08:00',
-          endTime: c.end_time?.slice(0, 5) || '10:30',
-          color: c.color || '#1665D8',
-          grade: {
-            letter: c.grade_letter || 'E',
-            point: Number(c.grade_point) || 0.0,
-            isGraded: Boolean(c.is_graded)
-          }
-        })),
+        courses: (coursesRes.data || []).map(c => {
+          const courseAtt = (attendanceRes.data || [])
+            .filter(att => att.course_id === c.id && att.status && att.status !== 'unrecorded')
+            .map(att => ({
+              meeting: Number(att.meeting_number),
+              status: att.status,
+              date: att.created_at ? att.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+            }));
+
+          return {
+            id: c.id,
+            semester: Number(c.semester),
+            code: c.code,
+            name: c.name,
+            sks: Number(c.sks),
+            lecturer: c.lecturer,
+            room: c.room,
+            dayOfWeek: c.day_of_week,
+            startTime: c.start_time?.slice(0, 5) || '08:00',
+            endTime: c.end_time?.slice(0, 5) || '10:30',
+            color: c.color || '#1665D8',
+            grade: {
+              letter: c.grade_letter || 'E',
+              point: Number(c.grade_point) || 0.0,
+              isGraded: Boolean(c.is_graded)
+            },
+            attendance: courseAtt
+          };
+        }),
         assignments: (assignmentsRes.data || []).map(asg => ({
           id: asg.id,
           courseId: asg.course_id,
@@ -534,6 +545,10 @@ export const cloudService = {
   async upsertAttendance(userId, { courseId, meetingNumber, status }) {
     if (!isSupabaseConfigured() || !supabase || !userId) return;
     try {
+      if (status === 'unrecorded') {
+        await this.deleteAttendance(userId, courseId, meetingNumber);
+        return;
+      }
       const payload = {
         user_id: userId,
         course_id: courseId,
@@ -544,6 +559,21 @@ export const cloudService = {
       if (error) console.error('Cloud upsert attendance error:', error);
     } catch (e) {
       console.error('Catch upsertAttendance:', e);
+    }
+  },
+
+  async deleteAttendance(userId, courseId, meetingNumber) {
+    if (!isSupabaseConfigured() || !supabase || !userId) return;
+    try {
+      const { error } = await supabase
+        .from('attendance')
+        .delete()
+        .eq('user_id', userId)
+        .eq('course_id', courseId)
+        .eq('meeting_number', Number(meetingNumber));
+      if (error) console.error('Cloud delete attendance error:', error);
+    } catch (e) {
+      console.error('Catch deleteAttendance:', e);
     }
   },
 

@@ -89,7 +89,7 @@ export default function CourseDetailModal({
 
   // Attendance Statistics
   const totalMeetings = 16;
-  const recordedAttendance = currentCourse.attendance || [];
+  const recordedAttendance = (currentCourse.attendance || []).filter(a => a.status && a.status !== 'unrecorded');
   const presentCount = recordedAttendance.filter(a => a.status === 'present').length;
   const permCount = recordedAttendance.filter(a => a.status === 'permission').length;
   const sickCount = recordedAttendance.filter(a => a.status === 'sick').length;
