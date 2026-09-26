@@ -19,8 +19,10 @@ import {
   Clock,
   CheckCircle2,
   Layers,
-  ArrowRight
+  ArrowRight,
+  FileText
 } from 'lucide-react';
+import { FinancialStatementModal } from './FinancialStatementModal';
 
 const INDONESIAN_MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -49,12 +51,13 @@ const COLOR_PALETTE = [
 ];
 
 export const FinanceReportView = ({ onEditTransaction }) => {
-  const { data, isBalanceVisible } = useApp();
+  const { data, isBalanceVisible, totalBalance } = useApp();
 
   // 0 = active/current month, 1 = 1 month ago, up to 11 = 11 months ago
   const [monthOffset, setMonthOffset] = useState(0);
   const [reportSubtab, setReportSubtab] = useState('kategori'); // 'kategori' | 'akun' | 'pola_hari'
   const [drillDownTarget, setDrillDownTarget] = useState(null);
+  const [isStatementModalOpen, setIsStatementModalOpen] = useState(false);
 
   // Calculate cycle for chosen month offset
   const startDayOfMonth = data.budget?.startDayOfMonth || 1;
@@ -312,6 +315,27 @@ export const FinanceReportView = ({ onEditTransaction }) => {
 
   return (
     <div className="finance-report-view">
+      {/* 0. REPORT HEADER & EXPORT ACTION */}
+      <div className="section-header-row" style={{ alignItems: 'center', marginBottom: '14px' }}>
+        <div>
+          <h3 className="section-title">Laporan Keuangan</h3>
+          <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600 }}>
+            Ringkasan pengeluaran & mutasi rekening
+          </span>
+        </div>
+
+        <button
+          type="button"
+          className="finance-export-pill"
+          onClick={() => setIsStatementModalOpen(true)}
+          title="Export Rekening Koran & Laporan Bank Resmi (PDF / Excel)"
+        >
+          <FileText size={13} className="export-pill-icon" />
+          <span className="export-pill-text-full">Export Rekening Koran</span>
+          <span className="export-pill-text-short">Export</span>
+        </button>
+      </div>
+
       {/* 1. MONTH SELECTOR (NAVIGASI BULAN) */}
       <div
         className="card-standard"
@@ -1215,6 +1239,16 @@ export const FinanceReportView = ({ onEditTransaction }) => {
           </div>
         </div>
       )}
+
+      {/* FINANCIAL STATEMENT & OFFICIAL BANK EXPORT MODAL */}
+      <FinancialStatementModal
+        isOpen={isStatementModalOpen}
+        onClose={() => setIsStatementModalOpen(false)}
+        data={data}
+        totalBalance={totalBalance}
+        activeCycle={activeCycle}
+        currentMonthTitle={monthDisplayTitle}
+      />
     </div>
   );
 };

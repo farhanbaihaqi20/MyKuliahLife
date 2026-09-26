@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { FinanceReportView } from '../components/finance/FinanceReportView';
-import { formatRupiahNumber, parseRupiahNumber, maskMoney } from '../utils/formatters';
+import { formatRupiahNumber, parseRupiahNumber, maskMoney, getRelativeDateInfo } from '../utils/formatters';
 import SwipeableItem from '../components/common/SwipeableItem';
 import EditTransactionModal from '../components/finance/EditTransactionModal';
 import { AccountDetailModal } from '../components/finance/AccountDetailModal';
 import { CategoryDetailModal } from '../components/finance/CategoryDetailModal';
 import { BudgetSettingsModal } from '../components/finance/BudgetSettingsModal';
+import { FinancialStatementModal } from '../components/finance/FinancialStatementModal';
 import {
   Wallet,
   Receipt,
@@ -27,7 +28,9 @@ import {
   Sparkles,
   ShieldCheck,
   Sliders,
-  X
+  X,
+  Printer,
+  FileText
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -88,6 +91,7 @@ export const FinanceView = () => {
   const [selectedAccountDetail, setSelectedAccountDetail] = useState(null);
   const [selectedCategoryDetail, setSelectedCategoryDetail] = useState(null);
   const [isBudgetSettingsOpen, setIsBudgetSettingsOpen] = useState(false);
+  const [isStatementModalOpen, setIsStatementModalOpen] = useState(false);
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
   const [newAccName, setNewAccName] = useState('');
   const [newAccType, setNewAccType] = useState('bank');
@@ -102,12 +106,18 @@ export const FinanceView = () => {
   const [editAccNumber, setEditAccNumber] = useState('');
   const [editAccNotes, setEditAccNotes] = useState('');
 
-  // Group transactions by date
-  const groupedTransactions = data.transactions.reduce((acc, tx) => {
-    if (!acc[tx.date]) acc[tx.date] = [];
-    acc[tx.date].push(tx);
-    return acc;
-  }, {});
+  // Group transactions by date & sort descending (Hari Ini on top)
+  const groupedTransactions = useMemo(() => {
+    return (data.transactions || []).reduce((acc, tx) => {
+      if (!acc[tx.date]) acc[tx.date] = [];
+      acc[tx.date].push(tx);
+      return acc;
+    }, {});
+  }, [data.transactions]);
+
+  const sortedDateGroups = useMemo(() => {
+    return Object.entries(groupedTransactions).sort((a, b) => new Date(b[0]) - new Date(a[0]));
+  }, [groupedTransactions]);
 
 
 
@@ -512,11 +522,24 @@ export const FinanceView = () => {
       {/* 2. RIWAYAT TRANSAKSI DENGAN OPSI HAPUS */}
       {financeSubtab === 'history' && (
         <div>
-          <div className="section-header-row">
-            <h3 className="section-title">Semua Transaksi</h3>
-            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: 600 }}>
-              Total: {data.transactions.length} transaksi
-            </span>
+          <div className="section-header-row" style={{ alignItems: 'center' }}>
+            <div>
+              <h3 className="section-title">Semua Transaksi</h3>
+              <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600 }}>
+                {data.transactions.length} transaksi tercatat
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="finance-export-pill"
+              onClick={() => setIsStatementModalOpen(true)}
+              title="Export Rekening Koran & Laporan Bank Resmi (PDF / Excel)"
+            >
+              <FileText size={13} className="export-pill-icon" />
+              <span className="export-pill-text-full">Export Rekening Koran</span>
+              <span className="export-pill-text-short">Export</span>
+            </button>
           </div>
 
           {data.transactions.length === 0 ? (
@@ -560,22 +583,26 @@ export const FinanceView = () => {
                 </span>
               </div>
 
-              {Object.entries(groupedTransactions).map(([date, txs]) => {
+              {sortedDateGroups.map(([date, txs]) => {
                 const dayExpense = txs
                   .filter(t => t.type === 'expense')
                   .reduce((sum, t) => sum + t.amount, 0);
 
-                const formattedDate = new Date(date).toLocaleDateString('id-ID', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric'
-                });
+                const dateInfo = getRelativeDateInfo(date);
 
                 return (
                   <div key={date} className="transaction-group">
                     <div className="group-date-header">
-                      <span>{formattedDate}</span>
+                      <div className="group-date-left">
+                        {dateInfo.badgeText && (
+                          <span className={`badge-date-pill ${dateInfo.isToday ? 'today' : dateInfo.isYesterday ? 'yesterday' : 'future'}`}>
+                            {dateInfo.badgeText}
+                          </span>
+                        )}
+                        <span className={`group-date-text ${dateInfo.isToday ? 'active-today' : ''}`}>
+                          {dateInfo.badgeText ? dateInfo.dateText : dateInfo.fullLabel}
+                        </span>
+                      </div>
                       <span style={{ color: '#EF4444', fontWeight: 800 }}>
                         -{maskMoney(dayExpense, isBalanceVisible)}
                       </span>
@@ -1573,6 +1600,15 @@ export const FinanceView = () => {
         transaction={editingTransaction}
         isOpen={Boolean(editingTransaction)}
         onClose={() => setEditingTransaction(null)}
+      />
+
+      {/* Financial Statement & Official Export Modal */}
+      <FinancialStatementModal
+        isOpen={isStatementModalOpen}
+        onClose={() => setIsStatementModalOpen(false)}
+        data={data}
+        totalBalance={totalBalance}
+        activeCycle={financialCycle}
       />
     </div>
   );
