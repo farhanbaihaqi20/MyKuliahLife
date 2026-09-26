@@ -478,7 +478,7 @@ export const AppProvider = ({ children }) => {
   };
 
   // --- TRANSACTIONS CRUD ---
-  const addTransaction = (tx) => {
+  const addTransaction = async (tx) => {
     const txId = generateUUID();
     const newTx = {
       id: txId,
@@ -493,131 +493,172 @@ export const AppProvider = ({ children }) => {
       icon: tx.icon || '💸'
     };
 
-    let updatedAccountsList = [];
-    setData(prev => {
-      const updatedAccounts = prev.accounts.map(acc => {
-        if (acc.name === tx.accountName) {
-          if (tx.type === 'expense') {
-            return { ...acc, balance: Math.max(0, acc.balance - newTx.amount), updated: 'Baru saja' };
-          } else if (tx.type === 'income') {
-            return { ...acc, balance: acc.balance + newTx.amount, updated: 'Baru saja' };
-          } else if (tx.type === 'transfer') {
-            return { ...acc, balance: Math.max(0, acc.balance - newTx.amount), updated: 'Baru saja' };
-          }
+    const updatedAccounts = data.accounts.map(acc => {
+      let balance = Number(acc.balance) || 0;
+      if (acc.name === tx.accountName) {
+        if (tx.type === 'expense') {
+          balance = Math.max(0, balance - newTx.amount);
+        } else if (tx.type === 'income') {
+          balance += newTx.amount;
+        } else if (tx.type === 'transfer') {
+          balance = Math.max(0, balance - newTx.amount);
         }
-        if (tx.type === 'transfer' && acc.name === tx.toAccountName) {
-          return { ...acc, balance: acc.balance + newTx.amount, updated: 'Baru saja' };
+        return { ...acc, balance, updated: 'Baru saja' };
+      }
+      if (tx.type === 'transfer' && acc.name === tx.toAccountName) {
+        balance += newTx.amount;
+        return { ...acc, balance, updated: 'Baru saja' };
+      }
+      return acc;
+    });
+
+    const updatedTransactions = [newTx, ...data.transactions];
+
+    setData(prev => ({
+      ...prev,
+      accounts: updatedAccounts,
+      transactions: [newTx, ...prev.transactions]
+    }));
+
+    if (!isAuthLoading) {
+      saveLocalData({
+        ...data,
+        accounts: updatedAccounts,
+        transactions: updatedTransactions
+      }, user?.id);
+    }
+
+    if (user?.id) {
+      await cloudService.insertTransaction(user.id, newTx, updatedAccounts);
+      setSyncStatus({
+        mode: 'online',
+        message: 'Tersinkron Cloud Supabase',
+        lastSynced: new Date().toLocaleTimeString('id-ID')
+      });
+    }
+  };
+
+  const deleteTransaction = async (txId, rollbackBalance = true) => {
+    const targetTx = data.transactions.find(t => String(t.id) === String(txId));
+    if (!targetTx) return;
+
+    let updatedAccounts = data.accounts;
+    if (rollbackBalance) {
+      updatedAccounts = data.accounts.map(acc => {
+        let balance = Number(acc.balance) || 0;
+        if (acc.name === targetTx.accountName) {
+          if (targetTx.type === 'expense') {
+            balance += targetTx.amount;
+          } else if (targetTx.type === 'income') {
+            balance = Math.max(0, balance - targetTx.amount);
+          } else if (targetTx.type === 'transfer') {
+            balance += targetTx.amount;
+          }
+          return { ...acc, balance, updated: 'Baru saja' };
+        }
+        if (targetTx.type === 'transfer' && acc.name === targetTx.toAccountName) {
+          balance = Math.max(0, balance - targetTx.amount);
+          return { ...acc, balance, updated: 'Baru saja' };
         }
         return acc;
       });
-      updatedAccountsList = updatedAccounts;
+    }
 
-      return {
-        ...prev,
+    const updatedTransactions = data.transactions.filter(t => String(t.id) !== String(txId));
+
+    setData(prev => ({
+      ...prev,
+      accounts: updatedAccounts,
+      transactions: prev.transactions.filter(t => String(t.id) !== String(txId))
+    }));
+
+    if (!isAuthLoading) {
+      saveLocalData({
+        ...data,
         accounts: updatedAccounts,
-        transactions: [newTx, ...prev.transactions]
-      };
-    });
+        transactions: updatedTransactions
+      }, user?.id);
+    }
 
     if (user?.id) {
-      cloudService.insertTransaction(user.id, newTx, updatedAccountsList);
+      await cloudService.deleteTransaction(user.id, txId, updatedAccounts);
+      setSyncStatus({
+        mode: 'online',
+        message: 'Tersinkron Cloud Supabase',
+        lastSynced: new Date().toLocaleTimeString('id-ID')
+      });
     }
   };
 
-  const deleteTransaction = (txId, rollbackBalance = true) => {
-    let updatedAccountsList = [];
-    setData(prev => {
-      const targetTx = prev.transactions.find(t => t.id === txId);
-      if (!targetTx) return prev;
+  const editTransaction = async (txId, updatedFields) => {
+    // 1. Locate existing transaction
+    const oldTx = data.transactions.find(t => String(t.id) === String(txId));
+    if (!oldTx) {
+      console.warn('Transaction to edit not found in current state:', txId);
+      return;
+    }
 
-      let updatedAccounts = prev.accounts;
-      if (rollbackBalance) {
-        updatedAccounts = prev.accounts.map(acc => {
-          if (acc.name === targetTx.accountName) {
-            if (targetTx.type === 'expense') {
-              return { ...acc, balance: acc.balance + targetTx.amount };
-            } else if (targetTx.type === 'income') {
-              return { ...acc, balance: Math.max(0, acc.balance - targetTx.amount) };
-            } else if (targetTx.type === 'transfer') {
-              return { ...acc, balance: acc.balance + targetTx.amount };
-            }
-          }
-          if (targetTx.type === 'transfer' && acc.name === targetTx.toAccountName) {
-            return { ...acc, balance: Math.max(0, acc.balance - targetTx.amount) };
-          }
-          return acc;
-        });
+    // 2. Rollback old transaction effect on balances
+    const tempAccounts = data.accounts.map(acc => {
+      let balance = Number(acc.balance) || 0;
+      if (acc.name === oldTx.accountName) {
+        if (oldTx.type === 'expense') balance += oldTx.amount;
+        else if (oldTx.type === 'income') balance = Math.max(0, balance - oldTx.amount);
+        else if (oldTx.type === 'transfer') balance += oldTx.amount;
       }
-      updatedAccountsList = updatedAccounts;
-
-      return {
-        ...prev,
-        accounts: updatedAccounts,
-        transactions: prev.transactions.filter(t => t.id !== txId)
-      };
+      if (oldTx.type === 'transfer' && acc.name === oldTx.toAccountName) {
+        balance = Math.max(0, balance - oldTx.amount);
+      }
+      return { ...acc, balance };
     });
 
-    if (user?.id) {
-      cloudService.deleteTransaction(txId, updatedAccountsList);
-    }
-  };
+    // 3. Build updated transaction object
+    const newTx = {
+      ...oldTx,
+      ...updatedFields,
+      amount: Number(updatedFields.amount !== undefined ? updatedFields.amount : oldTx.amount)
+    };
 
-  const editTransaction = (txId, updatedFields) => {
-    let finalAccountsList = [];
-    setData(prev => {
-      const oldTx = prev.transactions.find(t => t.id === txId);
-      if (!oldTx) return prev;
+    // 4. Apply new transaction effect on balances
+    const finalAccounts = tempAccounts.map(acc => {
+      let balance = Number(acc.balance) || 0;
+      if (acc.name === newTx.accountName) {
+        if (newTx.type === 'expense') balance = Math.max(0, balance - newTx.amount);
+        else if (newTx.type === 'income') balance += newTx.amount;
+        else if (newTx.type === 'transfer') balance = Math.max(0, balance - newTx.amount);
+      }
+      if (newTx.type === 'transfer' && acc.name === newTx.toAccountName) {
+        balance += newTx.amount;
+      }
+      return { ...acc, balance, updated: 'Baru saja' };
+    });
 
-      // 1. Rollback old transaction effect on balances
-      let tempAccounts = prev.accounts.map(acc => {
-        let balance = acc.balance;
-        if (acc.name === oldTx.accountName) {
-          if (oldTx.type === 'expense') balance += oldTx.amount;
-          else if (oldTx.type === 'income') balance = Math.max(0, balance - oldTx.amount);
-          else if (oldTx.type === 'transfer') balance += oldTx.amount;
-        }
-        if (oldTx.type === 'transfer' && acc.name === oldTx.toAccountName) {
-          balance = Math.max(0, balance - oldTx.amount);
-        }
-        return { ...acc, balance };
-      });
+    const finalTransactions = data.transactions.map(t => String(t.id) === String(txId) ? newTx : t);
 
-      // 2. Build updated transaction
-      const newTx = {
-        ...oldTx,
-        ...updatedFields,
-        amount: Number(updatedFields.amount !== undefined ? updatedFields.amount : oldTx.amount)
-      };
+    // 5. Update React state immediately
+    setData(prev => ({
+      ...prev,
+      accounts: finalAccounts,
+      transactions: prev.transactions.map(t => String(t.id) === String(txId) ? newTx : t)
+    }));
 
-      // 3. Apply updated transaction effect on balances
-      const finalAccounts = tempAccounts.map(acc => {
-        let balance = acc.balance;
-        if (acc.name === newTx.accountName) {
-          if (newTx.type === 'expense') balance = Math.max(0, balance - newTx.amount);
-          else if (newTx.type === 'income') balance += newTx.amount;
-          else if (newTx.type === 'transfer') balance = Math.max(0, balance - newTx.amount);
-        }
-        if (newTx.type === 'transfer' && acc.name === newTx.toAccountName) {
-          balance += newTx.amount;
-        }
-        return { ...acc, balance, updated: 'Baru saja' };
-      });
-      finalAccountsList = finalAccounts;
-
-      return {
-        ...prev,
+    // 6. Update local storage cache immediately
+    if (!isAuthLoading) {
+      saveLocalData({
+        ...data,
         accounts: finalAccounts,
-        transactions: prev.transactions.map(t => t.id === txId ? newTx : t)
-      };
-    });
+        transactions: finalTransactions
+      }, user?.id);
+    }
 
+    // 7. Sync directly to Supabase cloud
     if (user?.id) {
-      cloudService.updateTransaction(txId, updatedFields);
-      if (finalAccountsList && finalAccountsList.length > 0) {
-        for (const acc of finalAccountsList) {
-          supabase.from('accounts').update({ balance: Number(acc.balance) }).eq('id', acc.id).catch(console.error);
-        }
-      }
+      await cloudService.updateTransaction(user.id, txId, newTx, finalAccounts);
+      setSyncStatus({
+        mode: 'online',
+        message: 'Tersinkron Cloud Supabase',
+        lastSynced: new Date().toLocaleTimeString('id-ID')
+      });
     }
   };
 

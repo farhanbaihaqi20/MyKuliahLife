@@ -650,8 +650,10 @@ export const cloudService = {
   async insertTransaction(userId, tx, updatedAccounts = []) {
     if (!isSupabaseConfigured() || !supabase || !userId) return;
     try {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tx.id);
+      const validId = isUUID ? tx.id : generateUUID();
       const payload = {
-        id: tx.id,
+        id: validId,
         user_id: userId,
         account_name: tx.accountName,
         type: tx.type,
@@ -660,7 +662,7 @@ export const cloudService = {
         merchant: tx.merchant || '',
         note: tx.note || '',
         icon: tx.icon || '💸',
-        date: tx.date
+        date: tx.date || new Date().toISOString().split('T')[0]
       };
       const { error } = await supabase.from('transactions').insert(payload);
       if (error) console.error('Cloud insert transaction error:', error);
@@ -668,7 +670,12 @@ export const cloudService = {
       // Sync account balance
       if (updatedAccounts && updatedAccounts.length > 0) {
         for (const acc of updatedAccounts) {
-          await supabase.from('accounts').update({ balance: Number(acc.balance) }).eq('id', acc.id);
+          const accIsUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(acc.id);
+          if (accIsUUID) {
+            await supabase.from('accounts').update({ balance: Number(acc.balance) }).eq('id', acc.id);
+          } else {
+            await supabase.from('accounts').update({ balance: Number(acc.balance) }).eq('user_id', userId).eq('name', acc.name);
+          }
         }
       }
     } catch (e) {
@@ -676,9 +683,32 @@ export const cloudService = {
     }
   },
 
-  async updateTransaction(txId, fields) {
-    if (!isSupabaseConfigured() || !supabase || !txId) return;
+  async updateTransaction(arg1, arg2, arg3 = [], arg4 = null) {
+    if (!isSupabaseConfigured() || !supabase) return;
     try {
+      let userId = null;
+      let txId = null;
+      let fields = {};
+      let updatedAccounts = [];
+
+      if (typeof arg2 === 'string') {
+        // Called as updateTransaction(userId, txId, fields, updatedAccounts)
+        userId = arg1;
+        txId = arg2;
+        fields = arg3 || {};
+        updatedAccounts = Array.isArray(arg4) ? arg4 : [];
+      } else {
+        // Called as updateTransaction(txId, fields, updatedAccounts, userId)
+        txId = arg1;
+        fields = arg2 || {};
+        updatedAccounts = Array.isArray(arg3) ? arg3 : [];
+        userId = arg4;
+      }
+
+      if (!txId) return;
+
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(txId);
+
       const payload = {};
       if (fields.amount !== undefined) payload.amount = Number(fields.amount);
       if (fields.type !== undefined) payload.type = fields.type;
@@ -686,23 +716,108 @@ export const cloudService = {
       if (fields.accountName !== undefined) payload.account_name = fields.accountName;
       if (fields.merchant !== undefined) payload.merchant = fields.merchant;
       if (fields.note !== undefined) payload.note = fields.note;
+      if (fields.icon !== undefined) payload.icon = fields.icon;
       if (fields.date !== undefined) payload.date = fields.date;
-      const { error } = await supabase.from('transactions').update(payload).eq('id', txId);
-      if (error) console.error('Cloud update transaction error:', error);
+
+      if (isUUID) {
+        let query = supabase.from('transactions').update(payload).eq('id', txId);
+        if (userId) {
+          query = query.eq('user_id', userId);
+        }
+        const { data: updatedRows, error } = await query.select();
+
+        if (error) {
+          console.error('Cloud update transaction error:', error);
+        } else if (!updatedRows || updatedRows.length === 0) {
+          // If transaction didn't exist in Supabase (e.g. created offline), insert it now so it is safely saved
+          if (userId) {
+            const insertPayload = {
+              id: txId,
+              user_id: userId,
+              account_name: fields.accountName || 'Tunai',
+              type: fields.type || 'expense',
+              amount: Number(fields.amount) || 0,
+              category: fields.category || 'Lainnya',
+              merchant: fields.merchant || '',
+              note: fields.note || '',
+              icon: fields.icon || '💸',
+              date: fields.date || new Date().toISOString().split('T')[0]
+            };
+            const { error: insErr } = await supabase.from('transactions').insert(insertPayload);
+            if (insErr) console.error('Cloud insert fallback transaction error:', insErr);
+          }
+        }
+      } else if (userId) {
+        // txId is not a UUID (e.g. legacy 'tx-1' from mock data).
+        // Insert as new row in Supabase so it gets persisted to cloud!
+        const newUUID = generateUUID();
+        const insertPayload = {
+          id: newUUID,
+          user_id: userId,
+          account_name: fields.accountName || 'Tunai',
+          type: fields.type || 'expense',
+          amount: Number(fields.amount) || 0,
+          category: fields.category || 'Lainnya',
+          merchant: fields.merchant || '',
+          note: fields.note || '',
+          icon: fields.icon || '💸',
+          date: fields.date || new Date().toISOString().split('T')[0]
+        };
+        const { error: insErr } = await supabase.from('transactions').insert(insertPayload);
+        if (insErr) console.error('Cloud insert fallback for non-UUID transaction error:', insErr);
+      }
+
+      // Sync account balances in Supabase
+      if (updatedAccounts && updatedAccounts.length > 0) {
+        for (const acc of updatedAccounts) {
+          const accIsUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(acc.id);
+          if (accIsUUID) {
+            await supabase.from('accounts').update({ balance: Number(acc.balance) }).eq('id', acc.id);
+          } else if (userId) {
+            await supabase.from('accounts').update({ balance: Number(acc.balance) }).eq('user_id', userId).eq('name', acc.name);
+          }
+        }
+      }
     } catch (e) {
       console.error('Catch updateTransaction:', e);
     }
   },
 
-  async deleteTransaction(txId, updatedAccounts = []) {
-    if (!isSupabaseConfigured() || !supabase || !txId) return;
+  async deleteTransaction(arg1, arg2 = [], arg3 = []) {
+    if (!isSupabaseConfigured() || !supabase) return;
     try {
-      const { error } = await supabase.from('transactions').delete().eq('id', txId);
-      if (error) console.error('Cloud delete transaction error:', error);
+      let txId = null;
+      let updatedAccounts = [];
+      let userId = null;
+
+      if (typeof arg2 === 'string') {
+        userId = arg1;
+        txId = arg2;
+        updatedAccounts = Array.isArray(arg3) ? arg3 : [];
+      } else {
+        txId = arg1;
+        updatedAccounts = Array.isArray(arg2) ? arg2 : [];
+        userId = arg3;
+      }
+
+      if (!txId) return;
+
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(txId);
+      if (isUUID) {
+        let query = supabase.from('transactions').delete().eq('id', txId);
+        if (userId) query = query.eq('user_id', userId);
+        const { error } = await query;
+        if (error) console.error('Cloud delete transaction error:', error);
+      }
 
       if (updatedAccounts && updatedAccounts.length > 0) {
         for (const acc of updatedAccounts) {
-          await supabase.from('accounts').update({ balance: Number(acc.balance) }).eq('id', acc.id);
+          const accIsUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(acc.id);
+          if (accIsUUID) {
+            await supabase.from('accounts').update({ balance: Number(acc.balance) }).eq('id', acc.id);
+          } else if (userId) {
+            await supabase.from('accounts').update({ balance: Number(acc.balance) }).eq('user_id', userId).eq('name', acc.name);
+          }
         }
       }
     } catch (e) {

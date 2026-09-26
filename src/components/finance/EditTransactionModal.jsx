@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Check, ArrowDown, ArrowUp, ArrowRightLeft } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Check, ArrowDown, ArrowUp, ArrowRightLeft, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatRupiahNumber, parseRupiahNumber } from '../../utils/formatters';
 
@@ -35,20 +35,36 @@ export default function EditTransactionModal({ transaction, isOpen, onClose }) {
   const [note, setNote] = useState('');
   const [date, setDate] = useState('');
   const [icon, setIcon] = useState('💸');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Merge custom budget categories so user-created categories are available
+  const availableExpenseCategories = useMemo(() => {
+    if (data.budget?.categories && data.budget.categories.length > 0) {
+      const budgetCats = data.budget.categories.map(c => ({
+        name: c.name,
+        icon: c.icon || '💸'
+      }));
+      const names = new Set(budgetCats.map(c => c.name));
+      const additions = EXPENSE_CATEGORIES.filter(c => !names.has(c.name));
+      return [...budgetCats, ...additions];
+    }
+    return EXPENSE_CATEGORIES;
+  }, [data.budget?.categories]);
 
   useEffect(() => {
-    if (transaction) {
+    if (isOpen && transaction) {
       setType(transaction.type || 'expense');
       setAmount(transaction.amount ? formatRupiahNumber(transaction.amount) : '');
       setCategory(transaction.category || 'Makanan & minuman');
       setAccountName(transaction.accountName || (data.accounts[0]?.name || 'Tunai'));
       setToAccountName(transaction.toAccountName || (data.accounts[1]?.name || ''));
-      setMerchant(transaction.merchant || '');
+      setMerchant(transaction.merchant === '-' ? '' : (transaction.merchant || ''));
       setNote(transaction.note || '');
       setDate(transaction.date || new Date().toISOString().split('T')[0]);
       setIcon(transaction.icon || '💸');
+      setIsSubmitting(false);
     }
-  }, [transaction, data.accounts]);
+  }, [isOpen, transaction?.id]);
 
   if (!isOpen || !transaction) return null;
 
@@ -66,24 +82,31 @@ export default function EditTransactionModal({ transaction, isOpen, onClose }) {
     setIcon(cat.icon);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const rawAmount = parseRupiahNumber(amount);
-    if (!rawAmount || rawAmount <= 0) return;
+    if (!rawAmount || rawAmount <= 0 || isSubmitting) return;
 
-    editTransaction(transaction.id, {
-      type,
-      amount: rawAmount,
-      category: type === 'transfer' ? 'Transfer Antar Akun' : category,
-      accountName,
-      toAccountName: type === 'transfer' ? toAccountName : undefined,
-      merchant: merchant.trim() || '-',
-      note: note.trim(),
-      date,
-      icon: type === 'transfer' ? '🔄' : icon
-    });
+    setIsSubmitting(true);
+    try {
+      await editTransaction(transaction.id, {
+        type,
+        amount: rawAmount,
+        category: type === 'transfer' ? 'Transfer Antar Akun' : category,
+        accountName,
+        toAccountName: type === 'transfer' ? toAccountName : undefined,
+        merchant: merchant.trim() || '-',
+        note: note.trim(),
+        date,
+        icon: type === 'transfer' ? '🔄' : icon
+      });
 
-    onClose();
+      onClose();
+    } catch (err) {
+      console.error('Error saving edited transaction:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -204,7 +227,7 @@ export default function EditTransactionModal({ transaction, isOpen, onClose }) {
             <div className="input-group" style={{ marginBottom: 0 }}>
               <label className="input-label">Kategori</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', maxHeight: '140px', overflowY: 'auto' }}>
-                {(type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map(cat => {
+                {(type === 'expense' ? availableExpenseCategories : INCOME_CATEGORIES).map(cat => {
                   const isSelected = category === cat.name;
                   return (
                     <button
@@ -307,6 +330,7 @@ export default function EditTransactionModal({ transaction, isOpen, onClose }) {
           <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
             <button
               type="button"
+              disabled={isSubmitting}
               onClick={onClose}
               className="btn-secondary"
               style={{ flex: 1 }}
@@ -315,10 +339,19 @@ export default function EditTransactionModal({ transaction, isOpen, onClose }) {
             </button>
             <button
               type="submit"
+              disabled={isSubmitting}
               className="btn-primary"
-              style={{ flex: 2 }}
+              style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
-              <Check size={16} /> Simpan Transaksi
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={16} className="spin" /> Menyimpan...
+                </>
+              ) : (
+                <>
+                  <Check size={16} /> Simpan Transaksi
+                </>
+              )}
             </button>
           </div>
         </form>

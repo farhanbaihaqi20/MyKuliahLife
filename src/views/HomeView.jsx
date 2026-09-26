@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { maskMoney } from '../utils/formatters';
+import { maskMoney, getRelativeDateInfo } from '../utils/formatters';
 import {
   PieChart,
   Calendar,
@@ -11,7 +11,8 @@ import {
   GraduationCap,
   ChevronRight,
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  Plus
 } from 'lucide-react';
 
 export const HomeView = () => {
@@ -40,8 +41,16 @@ export const HomeView = () => {
     .filter(a => (!a.semester || a.semester === currentSemesterNum) && a.status !== 'completed')
     .slice(0, 2);
 
-  // Recent transactions
-  const recentTransactions = (data.transactions || []).slice(0, 4);
+  // Transactions for today only
+  const todayTransactions = useMemo(() => {
+    return (data.transactions || []).filter(tx => {
+      if (!tx.date) return false;
+      const rel = getRelativeDateInfo(tx.date);
+      return rel.isToday;
+    });
+  }, [data.transactions]);
+
+  const displayedTransactions = todayTransactions.slice(0, 5);
 
   return (
     <div className="main-content">
@@ -283,10 +292,15 @@ export const HomeView = () => {
         </div>
       </div>
 
-      {/* 6. Transaksi Terakhir (Sesuai Home.jpg) */}
+      {/* 6. Transaksi Hari Ini */}
       <div>
         <div className="section-header-row">
-          <h3 className="section-title">Transaksi Terakhir</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 className="section-title">Transaksi Hari Ini</h3>
+            {todayTransactions.length > 0 && (
+              <span className="badge-date-pill today">Hari Ini</span>
+            )}
+          </div>
           <span
             className="section-action-link"
             onClick={() => navigateTo('finance', 'history')}
@@ -297,36 +311,85 @@ export const HomeView = () => {
         </div>
 
         <div className="transaction-group">
-          {recentTransactions.map(tx => (
-            <div
-              key={tx.id}
-              className="transaction-card"
-              onClick={() => navigateTo('finance', 'history')}
-              style={{ cursor: 'pointer' }}
-              title="Buka Riwayat Transaksi"
-            >
-              <div className="transaction-left">
-                <div className="category-icon-box" style={{ background: '#FEF3C7' }}>
-                  {tx.icon}
+          {displayedTransactions.length > 0 ? (
+            displayedTransactions.map(tx => (
+              <div
+                key={tx.id}
+                className="transaction-card"
+                onClick={() => navigateTo('finance', 'history')}
+                style={{ cursor: 'pointer' }}
+                title="Buka Riwayat Transaksi"
+              >
+                <div className="transaction-left">
+                  <div className="category-icon-box" style={{ background: '#FEF3C7' }}>
+                    {tx.icon}
+                  </div>
+                  <div className="transaction-info">
+                    <div className="transaction-title">{tx.category}</div>
+                    <div className="transaction-subtitle">
+                      <span className="account-badge-micro">{tx.accountName}</span>
+                      <span className="transaction-subtitle-text">{tx.merchant || tx.note}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="transaction-info">
-                  <div className="transaction-title">{tx.category}</div>
-                  <div className="transaction-subtitle">
-                    <span className="account-badge-micro">{tx.accountName}</span>
-                    <span className="transaction-subtitle-text">{tx.merchant || tx.note}</span>
+
+                <div className="transaction-right">
+                  <div className={`transaction-amount ${tx.type}`}>
+                    {tx.type === 'expense'
+                      ? `-${maskMoney(tx.amount, isBalanceVisible)}`
+                      : `+${maskMoney(tx.amount, isBalanceVisible)}`}
                   </div>
                 </div>
               </div>
-
-              <div className="transaction-right">
-                <div className={`transaction-amount ${tx.type}`}>
-                  {tx.type === 'expense'
-                    ? `-${maskMoney(tx.amount, isBalanceVisible)}`
-                    : `+${maskMoney(tx.amount, isBalanceVisible)}`}
+            ))
+          ) : (
+            <div
+              style={{
+                background: '#FFFFFF',
+                borderRadius: '16px',
+                padding: '24px 16px',
+                textAlign: 'center',
+                border: '1px dashed #E2E8F0',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <div style={{ fontSize: '26px' }}>☕</div>
+              <div>
+                <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#334155' }}>
+                  Belum Ada Transaksi Hari Ini
+                </div>
+                <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '2px' }}>
+                  Catat pengeluaran atau pemasukanmu hari ini
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickAddType('expense');
+                  setIsQuickAddOpen(true);
+                }}
+                style={{
+                  marginTop: '4px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: '#EFF6FF',
+                  color: '#1D4ED8',
+                  border: '1px solid #BFDBFE',
+                  borderRadius: '999px',
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={14} /> + Catat Transaksi
+              </button>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>
