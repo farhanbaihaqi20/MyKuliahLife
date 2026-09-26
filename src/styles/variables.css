@@ -65,7 +65,8 @@
   --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   
   /* Layout Dimensions */
-  --app-max-width: 440px;
-  --bottom-nav-height: 72px;
-  --safe-bottom: env(safe-area-inset-bottom, 16px);
+  --app-max-width: 480px;
+  --bottom-nav-height: 66px;
+  --safe-bottom: env(safe-area-inset-bottom, 12px);
+  --safe-top: env(safe-area-inset-top, 0px);
 }

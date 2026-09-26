@@ -118,17 +118,17 @@ export const Header = () => {
     <header className="app-header-blue">
       {/* Top Bar: User Greeting, Semester Badge & Avatar */}
       <div className="header-top-row">
-        <div className="user-greeting">
-          <span style={{ fontSize: '24px' }}>🤖</span>
-          <div>
+        <div className="user-greeting" style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+          <span style={{ fontSize: '24px', flexShrink: 0 }}>🤖</span>
+          <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
             <div className="greeting-text">
               Hai {data.profile.fullName ? data.profile.fullName.split(' ')[0] : 'Mahasiswa'}!
             </div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px' }}>
-              <GraduationCap size={12} />
-              <span>Semester {activeSemester} Aktif</span>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <GraduationCap size={12} style={{ flexShrink: 0 }} />
+              <span style={{ whiteSpace: 'nowrap' }}>Smt {activeSemester}</span>
               <span>•</span>
-              <span style={{ color: '#FDE68A', fontWeight: 700 }}>Mahasiswa ⭐</span>
+              <span style={{ color: '#FDE68A', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{data.profile.major || 'Mahasiswa'} ⭐</span>
             </div>
           </div>
         </div>
@@ -238,7 +238,7 @@ export const Header = () => {
                 <Layers size={16} />
               </div>
               <div className="summary-pill-info">
-                <span className="summary-pill-label">Rincian Cepat</span>
+                <span className="summary-pill-label">Rincian</span>
                 <span className="summary-pill-amount" style={{ fontSize: '13px' }}>{data.accounts.length} Akun 👁️</span>
               </div>
             </div>
@@ -253,108 +253,33 @@ export const Header = () => {
                 <Wallet size={16} />
               </div>
               <div className="summary-pill-info">
-                <span className="summary-pill-label">Kelola Dompet</span>
-                <span className="summary-pill-amount" style={{ fontSize: '13px', color: '#FDE68A' }}>Buka Tab ➔</span>
+                <span className="summary-pill-label">Kelola</span>
+                <span className="summary-pill-amount" style={{ fontSize: '13px', color: '#FDE68A' }}>Dompet ➔</span>
               </div>
             </div>
           </div>
         </div>
       ) : (
         /* 2. SWIPEABLE HERO FINANCIAL BALANCE & CASHFLOW CAROUSEL (DEFAULT: KAS HARI INI DULU) */
-        <div
-          className="hero-carousel-wrapper"
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-        >
+        <div className="hero-carousel-section">
           <div
-            className="hero-carousel-track"
-            style={{ transform: `translateX(-${activeSlide * 50}%)` }}
+            className="hero-carousel-wrapper"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
           >
-            {/* SLIDE 0: ARUS KAS HARI INI (DEFAULT POSISI PERTAMA) */}
-            <div className="hero-slide">
-              <div className="hero-balance-box today-card">
-                <div className="hero-balance-top">
-                  <div className="balance-status-tag today-tag">
-                    <span className="pulsing-cyan-dot"></span>
-                    <span>ARUS KAS HARI INI</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="balance-visibility-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsBalanceVisible(!isBalanceVisible);
-                    }}
-                    title={isBalanceVisible ? "Sembunyikan Saldo" : "Tampilkan Saldo"}
-                  >
-                    {isBalanceVisible ? <Eye size={14} /> : <EyeOff size={14} />}
-                    <span>{isBalanceVisible ? 'Intip' : 'Tutup'}</span>
-                  </button>
-                </div>
-
-                {/* Big Today's Net Flow */}
-                <div
-                  className="main-balance-display"
-                  onClick={() => navigateTo('finance', 'history')}
-                  style={{ cursor: 'pointer' }}
-                  title="Lihat Riwayat Transaksi Hari Ini"
-                >
-                  <div className="main-balance-text">{formattedTodayNet}</div>
-                  <ChevronRight size={22} style={{ color: 'rgba(255,255,255,0.7)', marginLeft: '6px' }} />
-                </div>
-
-                <div className="balance-sub-label">
-                  <Calendar size={12} style={{ opacity: 0.8 }} />
-                  <span>{formattedTodayDate}</span>
-                  <span>•</span>
-                  <span>{todayTxCount} Transaksi</span>
-                </div>
-
-                {/* Income & Expense Summary Pills for Today */}
-                <div className="income-expense-row">
-                  <div
-                    className="summary-pill-card"
-                    onClick={() => navigateTo('finance', 'history')}
-                    style={{ cursor: 'pointer' }}
-                    title="Lihat Pemasukan Hari Ini"
-                  >
-                    <div className="summary-pill-icon income">
-                      <ArrowDown size={16} />
+            <div
+              className="hero-carousel-track"
+              style={{ transform: `translateX(-${activeSlide * 50}%)` }}
+            >
+              {/* SLIDE 0: ARUS KAS HARI INI (DEFAULT POSISI PERTAMA) */}
+              <div className="hero-slide">
+                <div className="hero-balance-box today-card">
+                  <div className="hero-balance-top">
+                    <div className="balance-status-tag today-tag">
+                      <span className="pulsing-cyan-dot"></span>
+                      <span>ARUS KAS HARI INI</span>
                     </div>
-                    <div className="summary-pill-info">
-                      <span className="summary-pill-label">Pemasukan Hari Ini</span>
-                      <span className="summary-pill-amount">{formattedTodayIncome}</span>
-                    </div>
-                  </div>
-
-                  <div
-                    className="summary-pill-card"
-                    onClick={() => navigateTo('finance', 'history')}
-                    style={{ cursor: 'pointer' }}
-                    title="Lihat Pengeluaran Hari Ini"
-                  >
-                    <div className="summary-pill-icon expense">
-                      <ArrowUp size={16} />
-                    </div>
-                    <div className="summary-pill-info">
-                      <span className="summary-pill-label">Pengeluaran Hari Ini</span>
-                      <span className="summary-pill-amount">{formattedTodayExpense}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* SLIDE 1: SIKLUS KEUANGAN BULANAN (POSISI KEDUA KETIKA DIGESER) */}
-            <div className="hero-slide">
-              <div className="hero-balance-box">
-                <div className="hero-balance-top">
-                  <div className="balance-status-tag">
-                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#6EE7B7', display: 'inline-block' }}></span>
-                    <span>SISA KEUANGAN SIKLUS</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <button
                       type="button"
                       className="balance-visibility-btn"
@@ -368,59 +293,136 @@ export const Header = () => {
                       <span>{isBalanceVisible ? 'Intip' : 'Tutup'}</span>
                     </button>
                   </div>
-                </div>
 
-                {/* Big Balance */}
-                <div
-                  className="main-balance-display"
-                  onClick={() => setIsAccumulativeModalOpen(true)}
-                  style={{ cursor: 'pointer' }}
-                  title="Klik untuk lihat rincian akun"
-                >
-                  <div className="main-balance-text">{formattedCycleBalance}</div>
-                  <ChevronRight size={22} style={{ color: 'rgba(255,255,255,0.7)', marginLeft: '6px' }} />
-                </div>
-
-                <div
-                  className="balance-sub-label"
-                  onClick={() => setIsCycleModalOpen(true)}
-                  style={{ cursor: 'pointer' }}
-                  title="Klik untuk ubah tanggal siklus"
-                >
-                  <span>Siklus: {financialCycle.label}</span>
-                  <span>•</span>
-                  <span>{financialCycle.daysRemaining} Hari Tersisa</span>
-                </div>
-
-                {/* Income & Expense Summary Pills for Active Cycle */}
-                <div className="income-expense-row">
+                  {/* Big Today's Net Flow */}
                   <div
-                    className="summary-pill-card"
+                    className="main-balance-display"
                     onClick={() => navigateTo('finance', 'history')}
                     style={{ cursor: 'pointer' }}
-                    title="Lihat Riwayat Transaksi (Pemasukan Siklus)"
+                    title="Lihat Riwayat Transaksi Hari Ini"
                   >
-                    <div className="summary-pill-icon income">
-                      <ArrowDown size={16} />
+                    <div className="main-balance-text">{formattedTodayNet}</div>
+                    <ChevronRight size={22} style={{ color: 'rgba(255,255,255,0.7)', marginLeft: '6px', flexShrink: 0 }} />
+                  </div>
+
+                  <div className="balance-sub-label">
+                    <Calendar size={12} style={{ opacity: 0.8, flexShrink: 0 }} />
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formattedTodayDate}</span>
+                    <span>•</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>{todayTxCount} Transaksi</span>
+                  </div>
+
+                  {/* Income & Expense Summary Pills for Today */}
+                  <div className="income-expense-row">
+                    <div
+                      className="summary-pill-card"
+                      onClick={() => navigateTo('finance', 'history')}
+                      style={{ cursor: 'pointer' }}
+                      title="Lihat Pemasukan Hari Ini"
+                    >
+                      <div className="summary-pill-icon income">
+                        <ArrowDown size={15} />
+                      </div>
+                      <div className="summary-pill-info">
+                        <span className="summary-pill-label">Pemasukan</span>
+                        <span className="summary-pill-amount">{formattedTodayIncome}</span>
+                      </div>
                     </div>
-                    <div className="summary-pill-info">
-                      <span className="summary-pill-label">Pemasukan Siklus</span>
-                      <span className="summary-pill-amount">{formattedCycleIncome}</span>
+
+                    <div
+                      className="summary-pill-card"
+                      onClick={() => navigateTo('finance', 'history')}
+                      style={{ cursor: 'pointer' }}
+                      title="Lihat Pengeluaran Hari Ini"
+                    >
+                      <div className="summary-pill-icon expense">
+                        <ArrowUp size={15} />
+                      </div>
+                      <div className="summary-pill-info">
+                        <span className="summary-pill-label">Pengeluaran</span>
+                        <span className="summary-pill-amount">{formattedTodayExpense}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SLIDE 1: SIKLUS KEUANGAN BULANAN (POSISI KEDUA KETIKA DIGESER) */}
+              <div className="hero-slide">
+                <div className="hero-balance-box">
+                  <div className="hero-balance-top">
+                    <div className="balance-status-tag">
+                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#6EE7B7', display: 'inline-block', flexShrink: 0 }}></span>
+                      <span>SISA KEUANGAN SIKLUS</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        type="button"
+                        className="balance-visibility-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsBalanceVisible(!isBalanceVisible);
+                        }}
+                        title={isBalanceVisible ? "Sembunyikan Saldo" : "Tampilkan Saldo"}
+                      >
+                        {isBalanceVisible ? <Eye size={14} /> : <EyeOff size={14} />}
+                        <span>{isBalanceVisible ? 'Intip' : 'Tutup'}</span>
+                      </button>
                     </div>
                   </div>
 
+                  {/* Big Balance */}
                   <div
-                    className="summary-pill-card"
-                    onClick={() => navigateTo('finance', 'history')}
+                    className="main-balance-display"
+                    onClick={() => setIsAccumulativeModalOpen(true)}
                     style={{ cursor: 'pointer' }}
-                    title="Lihat Riwayat Transaksi (Pengeluaran Siklus)"
+                    title="Klik untuk lihat rincian akun"
                   >
-                    <div className="summary-pill-icon expense">
-                      <ArrowUp size={16} />
+                    <div className="main-balance-text">{formattedCycleBalance}</div>
+                    <ChevronRight size={22} style={{ color: 'rgba(255,255,255,0.7)', marginLeft: '6px', flexShrink: 0 }} />
+                  </div>
+
+                  <div
+                    className="balance-sub-label"
+                    onClick={() => setIsCycleModalOpen(true)}
+                    style={{ cursor: 'pointer' }}
+                    title="Klik untuk ubah tanggal siklus"
+                  >
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Siklus: {financialCycle.label}</span>
+                    <span>•</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>{financialCycle.daysRemaining} Hari Sisa</span>
+                  </div>
+
+                  {/* Income & Expense Summary Pills for Active Cycle */}
+                  <div className="income-expense-row">
+                    <div
+                      className="summary-pill-card"
+                      onClick={() => navigateTo('finance', 'history')}
+                      style={{ cursor: 'pointer' }}
+                      title="Lihat Riwayat Transaksi (Pemasukan Siklus)"
+                    >
+                      <div className="summary-pill-icon income">
+                        <ArrowDown size={15} />
+                      </div>
+                      <div className="summary-pill-info">
+                        <span className="summary-pill-label">Pemasukan</span>
+                        <span className="summary-pill-amount">{formattedCycleIncome}</span>
+                      </div>
                     </div>
-                    <div className="summary-pill-info">
-                      <span className="summary-pill-label">Pengeluaran Siklus</span>
-                      <span className="summary-pill-amount">{formattedCycleExpense}</span>
+
+                    <div
+                      className="summary-pill-card"
+                      onClick={() => navigateTo('finance', 'history')}
+                      style={{ cursor: 'pointer' }}
+                      title="Lihat Riwayat Transaksi (Pengeluaran Siklus)"
+                    >
+                      <div className="summary-pill-icon expense">
+                        <ArrowUp size={15} />
+                      </div>
+                      <div className="summary-pill-info">
+                        <span className="summary-pill-label">Pengeluaran</span>
+                        <span className="summary-pill-amount">{formattedCycleExpense}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -428,7 +430,7 @@ export const Header = () => {
             </div>
           </div>
 
-          {/* Carousel Slide Indicators & Hint Bar */}
+          {/* Carousel Slide Indicators & Hint Bar (Outside wrapper to prevent clipping) */}
           <div className="carousel-controls-bar">
             <div className="carousel-dots">
               <button
@@ -453,13 +455,13 @@ export const Header = () => {
             >
               {activeSlide === 0 ? (
                 <>
-                  <span>Geser info Siklus Bulanan</span>
-                  <span style={{ fontSize: '12px' }}>👉</span>
+                  <span>Siklus Bulanan</span>
+                  <span style={{ fontSize: '11px' }}>👉</span>
                 </>
               ) : (
                 <>
-                  <span style={{ fontSize: '12px' }}>👈</span>
-                  <span>Geser info Kas Hari Ini</span>
+                  <span style={{ fontSize: '11px' }}>👈</span>
+                  <span>Kas Hari Ini</span>
                 </>
               )}
             </button>

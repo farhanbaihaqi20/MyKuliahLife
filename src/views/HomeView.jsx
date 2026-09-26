@@ -309,19 +309,21 @@ export const HomeView = () => {
                 <div className="category-icon-box" style={{ background: '#FEF3C7' }}>
                   {tx.icon}
                 </div>
-                <div>
+                <div className="transaction-info">
                   <div className="transaction-title">{tx.category}</div>
                   <div className="transaction-subtitle">
                     <span className="account-badge-micro">{tx.accountName}</span>
-                    <span>{tx.merchant || tx.note}</span>
+                    <span className="transaction-subtitle-text">{tx.merchant || tx.note}</span>
                   </div>
                 </div>
               </div>
 
-              <div className={`transaction-amount ${tx.type}`}>
-                {tx.type === 'expense'
-                  ? `-${maskMoney(tx.amount, isBalanceVisible)}`
-                  : `+${maskMoney(tx.amount, isBalanceVisible)}`}
+              <div className="transaction-right">
+                <div className={`transaction-amount ${tx.type}`}>
+                  {tx.type === 'expense'
+                    ? `-${maskMoney(tx.amount, isBalanceVisible)}`
+                    : `+${maskMoney(tx.amount, isBalanceVisible)}`}
+                </div>
               </div>
             </div>
           ))}

@@ -34,14 +34,17 @@ const MainScreen = () => {
         <Header />
       ) : (
         <div
+          className="app-subpage-header"
           style={{
             background: '#1665D8',
             color: 'white',
-            padding: '16px 20px',
+            padding: 'calc(env(safe-area-inset-top, 0px) + 14px) 18px 14px',
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            boxShadow: 'var(--shadow-sm)'
+            boxShadow: 'var(--shadow-sm)',
+            width: '100%',
+            boxSizing: 'border-box'
           }}
         >
           <button
@@ -56,12 +59,14 @@ const MainScreen = () => {
               alignItems: 'center',
               justifyContent: 'center',
               color: 'white',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              flexShrink: 0
             }}
+            title="Kembali ke Beranda"
           >
             <ArrowLeft size={18} />
           </button>
-          <h2 style={{ fontSize: '17px', fontWeight: 800 }}>{getPageTitle()}</h2>
+          <h2 style={{ fontSize: '16.5px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, flex: 1 }}>{getPageTitle()}</h2>
         </div>
       )}
 
