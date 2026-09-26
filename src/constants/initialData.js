@@ -24,17 +24,29 @@ export const INITIAL_DATA = {
     periodLabel: "5 Sep - 4 Oct 2026",
     startDate: "2026-09-05",
     endDate: "2026-10-04",
-    totalBudget: 850000,
+    totalBudget: 1000000,
     categories: [
-      { id: "cat-1", name: "Makanan & minuman", budget: 320000, icon: "🍜", color: "#F97316" },
-      { id: "cat-2", name: "Tagihan & utilitas", budget: 480000, icon: "🧾", color: "#3B82F6" },
-      { id: "cat-3", name: "Kebutuhan Kuliah & Print", budget: 100000, icon: "📚", color: "#8B5CF6" },
-      { id: "cat-4", name: "Transport & Bensin", budget: 150000, icon: "🛵", color: "#10B981" },
-      { id: "cat-5", name: "Hiburan & Jajan", budget: 50000, icon: "☕", color: "#EC4899" }
+      { id: "cat-1", name: "Makanan & minuman", budget: 350000, icon: "🍜", color: "#F97316" },
+      { id: "cat-2", name: "Tagihan & utilitas", budget: 250000, icon: "🧾", color: "#3B82F6" },
+      { id: "cat-3", name: "Kebutuhan Pribadi & Skincare", budget: 150000, icon: "🧴", color: "#EC4899" },
+      { id: "cat-4", name: "Transport & Bensin", budget: 120000, icon: "🛵", color: "#10B981" },
+      { id: "cat-5", name: "Kebutuhan Kuliah & Print", budget: 80000, icon: "📚", color: "#8B5CF6" },
+      { id: "cat-6", name: "Hiburan & Jajan", budget: 50000, icon: "☕", color: "#F43F5E" }
     ]
   },
 
   transactions: [
+    {
+      id: "tx-skincare-1",
+      date: "2026-09-12",
+      type: "expense",
+      category: "Kebutuhan Pribadi & Skincare",
+      amount: 45000,
+      accountName: "Sea Bank",
+      merchant: "Indomaret Kampus",
+      note: "Sabun cair, sampo & facial wash",
+      icon: "🧴"
+    },
     {
       id: "tx-1",
       date: "2026-09-12",
@@ -484,11 +496,12 @@ export const CLEAN_DATA = {
     endDate: "2026-09-30",
     totalBudget: 1000000,
     categories: [
-      { id: "cat-1", name: "Makanan & minuman", budget: 400000, icon: "🍜", color: "#F97316" },
-      { id: "cat-2", name: "Tagihan & utilitas", budget: 300000, icon: "🧾", color: "#3B82F6" },
-      { id: "cat-3", name: "Kebutuhan Kuliah & Print", budget: 150000, icon: "📚", color: "#8B5CF6" },
-      { id: "cat-4", name: "Transport & Bensin", budget: 100000, icon: "🛵", color: "#10B981" },
-      { id: "cat-5", name: "Hiburan & Jajan", budget: 50000, icon: "☕", color: "#EC4899" }
+      { id: "cat-1", name: "Makanan & minuman", budget: 350000, icon: "🍜", color: "#F97316" },
+      { id: "cat-2", name: "Tagihan & utilitas", budget: 250000, icon: "🧾", color: "#3B82F6" },
+      { id: "cat-3", name: "Kebutuhan Pribadi & Skincare", budget: 150000, icon: "🧴", color: "#EC4899" },
+      { id: "cat-4", name: "Transport & Bensin", budget: 120000, icon: "🛵", color: "#10B981" },
+      { id: "cat-5", name: "Kebutuhan Kuliah & Print", budget: 80000, icon: "📚", color: "#8B5CF6" },
+      { id: "cat-6", name: "Hiburan & Jajan", budget: 50000, icon: "☕", color: "#F43F5E" }
     ]
   },
   transactions: [],

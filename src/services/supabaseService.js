@@ -108,6 +108,7 @@ export const profileService = {
         target_gpa: Number(profileData.targetGpa || profileData.target_gpa || 3.80),
         start_day_of_month: Number(profileData.startDayOfMonth || profileData.start_day_of_month || 1),
         monthly_budget: Number(profileData.monthlyBudget || profileData.monthly_budget || 1500000),
+        ...(profileData.budgetCategories || profileData.budget_categories ? { budget_categories: profileData.budgetCategories || profileData.budget_categories } : {}),
         updated_at: new Date().toISOString()
       };
 
@@ -205,12 +206,28 @@ export const dataSyncService = {
         budget: {
           startDayOfMonth: prof.start_day_of_month || 1,
           totalBudget: Number(prof.monthly_budget) || 1500000,
-          categories: [
-            { id: 'cat-1', name: 'Makanan & minuman', icon: '🍜', budget: 800000 },
-            { id: 'cat-2', name: 'Transportasi', icon: '🛵', budget: 200000 },
-            { id: 'cat-3', name: 'Tagihan & utilitas', icon: '⚡', budget: 300000 },
-            { id: 'cat-4', name: 'Hiburan & nongkrong', icon: '☕', budget: 200000 }
-          ]
+          categories: (() => {
+            const fallbackCategories = [
+              { id: 'cat-1', name: 'Makanan & minuman', icon: '🍜', budget: 750000, color: '#F97316' },
+              { id: 'cat-2', name: 'Transportasi', icon: '🛵', budget: 200000, color: '#10B981' },
+              { id: 'cat-3', name: 'Tagihan & utilitas', icon: '⚡', budget: 250000, color: '#3B82F6' },
+              { id: 'cat-4', name: 'Kebutuhan Pribadi & Skincare', icon: '🧴', budget: 150000, color: '#EC4899' },
+              { id: 'cat-5', name: 'Hiburan & nongkrong', icon: '☕', budget: 150000, color: '#8B5CF6' }
+            ];
+            if (Array.isArray(prof.budget_categories) && prof.budget_categories.length > 0) {
+              const hasPersonalCare = prof.budget_categories.some(c =>
+                c.name?.toLowerCase().includes('skincare') || c.name?.toLowerCase().includes('pribadi')
+              );
+              if (!hasPersonalCare) {
+                return [
+                  ...prof.budget_categories,
+                  { id: 'cat-personal', name: 'Kebutuhan Pribadi & Skincare', icon: '🧴', budget: 150000, color: '#EC4899' }
+                ];
+              }
+              return prof.budget_categories;
+            }
+            return fallbackCategories;
+          })()
         },
         accounts: (accountsRes.data || []).map(a => ({
           id: a.id,

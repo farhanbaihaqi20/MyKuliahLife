@@ -23,6 +23,20 @@ export const loadLocalData = (userId = null) => {
     }
     if (raw) {
       const parsed = JSON.parse(raw);
+      if (parsed?.budget && Array.isArray(parsed.budget.categories)) {
+        const hasPersonalCare = parsed.budget.categories.some(c =>
+          c.name?.toLowerCase().includes('skincare') || c.name?.toLowerCase().includes('pribadi')
+        );
+        if (!hasPersonalCare) {
+          parsed.budget.categories.push({
+            id: 'cat-personal',
+            name: 'Kebutuhan Pribadi & Skincare',
+            budget: 150000,
+            icon: '🧴',
+            color: '#EC4899'
+          });
+        }
+      }
       return { ...CLEAN_DATA, ...parsed };
     }
   } catch (e) {

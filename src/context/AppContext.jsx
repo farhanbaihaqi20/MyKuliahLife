@@ -22,6 +22,7 @@ export const AppProvider = ({ children }) => {
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [quickAddType, setQuickAddType] = useState('transaction');
+  const [quickAddCategory, setQuickAddCategory] = useState(null);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isCycleModalOpen, setIsCycleModalOpen] = useState(false);
 
@@ -633,7 +634,8 @@ export const AppProvider = ({ children }) => {
     if (user?.id) {
       profileService.upsertProfile(user.id, {
         monthlyBudget: newTotal !== undefined ? newTotal : data.budget.totalBudget,
-        startDayOfMonth: data.budget.startDayOfMonth || 1
+        startDayOfMonth: data.budget.startDayOfMonth || 1,
+        budgetCategories: updatedCategories || data.budget.categories
       });
     }
   };
@@ -1251,6 +1253,8 @@ export const AppProvider = ({ children }) => {
         setIsQuickAddOpen,
         quickAddType,
         setQuickAddType,
+        quickAddCategory,
+        setQuickAddCategory,
         isOnboardingOpen,
         setIsOnboardingOpen,
         isCycleModalOpen,

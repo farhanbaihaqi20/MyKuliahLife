@@ -5,12 +5,13 @@ import { formatRupiahNumber, parseRupiahNumber } from '../../utils/formatters';
 
 const EXPENSE_CATEGORIES = [
   { name: 'Makanan & minuman', icon: '🍜' },
+  { name: 'Kebutuhan Pribadi & Skincare', icon: '🧴' },
   { name: 'Belanja harian', icon: '🛒' },
   { name: 'Transportasi', icon: '🛵' },
   { name: 'Pendidikan & Kuliah', icon: '📚' },
   { name: 'Kost & Tagihan', icon: '🏠' },
   { name: 'Hiburan & Ngopi', icon: '☕' },
-  { name: 'Kesehatan & Skincare', icon: '💊' },
+  { name: 'Kesehatan', icon: '💊' },
   { name: 'Lainnya', icon: '💸' }
 ];
 

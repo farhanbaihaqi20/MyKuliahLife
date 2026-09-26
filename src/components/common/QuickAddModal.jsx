@@ -10,6 +10,8 @@ export const QuickAddModal = () => {
     setIsQuickAddOpen,
     quickAddType,
     setQuickAddType,
+    quickAddCategory,
+    setQuickAddCategory,
     data,
     activeSemester,
     addTransaction,
@@ -31,6 +33,14 @@ export const QuickAddModal = () => {
   const [txMerchant, setTxMerchant] = useState('');
   const [txNote, setTxNote] = useState('');
   const [txError, setTxError] = useState('');
+
+  // Synchronize txCategory when opened with pre-filled category
+  React.useEffect(() => {
+    if (isQuickAddOpen && quickAddCategory) {
+      setTxCategory(quickAddCategory);
+      setTxType('expense');
+    }
+  }, [isQuickAddOpen, quickAddCategory]);
 
   // Synchronize txAccount with available accounts dynamically
   React.useEffect(() => {

@@ -5,6 +5,8 @@ import { formatRupiahNumber, parseRupiahNumber, maskMoney } from '../utils/forma
 import SwipeableItem from '../components/common/SwipeableItem';
 import EditTransactionModal from '../components/finance/EditTransactionModal';
 import { AccountDetailModal } from '../components/finance/AccountDetailModal';
+import { CategoryDetailModal } from '../components/finance/CategoryDetailModal';
+import { BudgetSettingsModal } from '../components/finance/BudgetSettingsModal';
 import {
   Wallet,
   Receipt,
@@ -24,6 +26,7 @@ import {
   MoreVertical,
   Sparkles,
   ShieldCheck,
+  Sliders,
   X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -51,10 +54,12 @@ export const FinanceView = () => {
     deleteAccount,
     setIsQuickAddOpen,
     setQuickAddType,
+    setQuickAddCategory,
     setIsCycleModalOpen,
     isBalanceVisible,
     financeSubtab,
-    setFinanceSubtab
+    setFinanceSubtab,
+    updateBudget
   } = useApp();
 
 
@@ -81,6 +86,8 @@ export const FinanceView = () => {
 
   // Account Form modals & Interactive Detail Modal
   const [selectedAccountDetail, setSelectedAccountDetail] = useState(null);
+  const [selectedCategoryDetail, setSelectedCategoryDetail] = useState(null);
+  const [isBudgetSettingsOpen, setIsBudgetSettingsOpen] = useState(false);
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
   const [newAccName, setNewAccName] = useState('');
   const [newAccType, setNewAccType] = useState('bank');
@@ -346,35 +353,28 @@ export const FinanceView = () => {
       {financeSubtab === 'budget' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Card Sisa Budget */}
-          <div className="card-standard" style={{ background: 'linear-gradient(135deg, #1665D8 0%, #0F4FA8 100%)', color: 'white' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>
+          <div className="budget-hero-card">
+            <div className="budget-hero-header">
+              <span className="budget-hero-subtitle">
                 Sisa Budget Periode Ini
               </span>
               <button
                 onClick={() => setIsCycleModalOpen(true)}
-                style={{
-                  fontSize: '11px',
-                  background: 'rgba(255,255,255,0.2)',
-                  color: 'white',
-                  border: 'none',
-                  padding: '3px 8px',
-                  borderRadius: '10px',
-                  cursor: 'pointer'
-                }}
-                title="Ubah tanggal gajian/siklus"
+                className="budget-hero-date-pill"
+                title="Ubah tanggal siklus anggaran"
               >
-                {financialCycle.label} ⚙️
+                <Calendar size={12} />
+                <span>{financialCycle.periodLabel || financialCycle.label}</span>
               </button>
             </div>
 
-            <div style={{ fontSize: '28px', fontWeight: 800, margin: '8px 0' }}>
+            <div className="budget-hero-amount">
               {maskMoney(remainingBudget, isBalanceVisible)}
             </div>
 
-            <div className="progress-bar-container" style={{ background: 'rgba(255,255,255,0.2)' }}>
+            <div className="budget-hero-track">
               <div
-                className="progress-bar-fill"
+                className="budget-hero-fill"
                 style={{
                   width: `${percentUsed}%`,
                   background: percentUsed > 90 ? '#EF4444' : '#10B981'
@@ -382,7 +382,7 @@ export const FinanceView = () => {
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'rgba(255,255,255,0.85)' }}>
+            <div className="budget-hero-footer">
               <span>Terpakai {maskMoney(cycleExpenses, isBalanceVisible)}</span>
               <span>Total {maskMoney(totalBudget, isBalanceVisible)} ({isBalanceVisible ? `${percentUsed}%` : '••%'})</span>
             </div>
@@ -401,65 +401,105 @@ export const FinanceView = () => {
 
           {/* Kategori Budget */}
           <div>
-            <div className="section-header-row">
+            <div className="section-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 className="section-title">Kategori Budget</h3>
               <button
-                className="section-action-link"
-                style={{ background: 'none', border: 'none' }}
-                onClick={() => {
-                  setQuickAddType('transaction');
-                  setIsQuickAddOpen(true);
-                }}
+                type="button"
+                className="budget-manage-btn"
+                onClick={() => setIsBudgetSettingsOpen(true)}
+                title="Atur persentase & alokasi budget"
               >
-                + Tambah Transaksi
+                <Sliders size={12} style={{ marginRight: '5px' }} />
+                Atur Alokasi (%)
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {data.budget.categories.map(cat => {
                 const spentInCat = data.transactions
-                  .filter(t => t.type === 'expense' && t.category === cat.name && financialCycle.isDateInCycle(t.date))
-                  .reduce((sum, t) => sum + t.amount, 0);
+                  .filter(t => t.type === 'expense' && t.category?.toLowerCase() === cat.name?.toLowerCase() && financialCycle.isDateInCycle(t.date))
+                  .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
-                const catPercent = Math.min(100, Math.round((spentInCat / cat.budget) * 100));
-                const catRemaining = Math.max(0, cat.budget - spentInCat);
-                const isOver = spentInCat > cat.budget;
+                const catBudget = Number(cat.budget) || 0;
+                const catPercent = catBudget > 0 ? Math.round((spentInCat / catBudget) * 100) : 0;
+                const catRemaining = Math.max(0, catBudget - spentInCat);
+                const isOver = spentInCat > catBudget;
 
                 return (
-                  <div key={cat.id} className="card-standard">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '20px' }}>{cat.icon}</span>
-                        <span style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>{cat.name}</span>
+                  <div
+                    key={cat.id}
+                    className="budget-category-card"
+                    onClick={() => setSelectedCategoryDetail(cat)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelectedCategoryDetail(cat);
+                      }
+                    }}
+                  >
+                    <div className="budget-cat-top-row">
+                      <div className="budget-cat-identity">
+                        <div
+                          className="budget-cat-icon-box"
+                          style={{
+                            backgroundColor: `${cat.color || '#1665D8'}18`,
+                            color: cat.color || '#1665D8'
+                          }}
+                        >
+                          <span>{cat.icon || '🏷️'}</span>
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="budget-cat-name-wrap">
+                            <span className="budget-cat-name">{cat.name}</span>
+                          </div>
+                          <div className="budget-cat-subtext">
+                            {isOver ? (
+                              <span style={{ color: '#EF4444', fontWeight: 600 }}>
+                                Over budget {maskMoney(spentInCat - catBudget, isBalanceVisible)}
+                              </span>
+                            ) : (
+                              <span>
+                                Sisa <strong style={{ color: '#0F172A' }}>{maskMoney(catRemaining, isBalanceVisible)}</strong>
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: isOver ? '#EF4444' : '#10B981' }}>
-                        {catPercent}% terpakai
-                      </span>
+
+                      <div className="budget-cat-right-stats">
+                        <div className="budget-cat-amounts">
+                          <span className="budget-cat-spent">{maskMoney(spentInCat, isBalanceVisible)}</span>
+                          <span className="budget-cat-divider">/</span>
+                          <span className="budget-cat-total">{maskMoney(catBudget, isBalanceVisible)}</span>
+                        </div>
+                        <div className="budget-cat-meta-row">
+                          <span
+                            className={`budget-cat-percent-badge ${
+                              isOver ? 'over' : catPercent > 80 ? 'warning' : 'safe'
+                            }`}
+                          >
+                            {isBalanceVisible ? `${catPercent}%` : '••%'}
+                          </span>
+                          <ChevronRight size={14} className="budget-cat-chevron" />
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="progress-bar-container">
+                    {/* Minimalist Progress Track */}
+                    <div className="budget-cat-progress-track">
                       <div
-                        className="progress-bar-fill"
+                        className="budget-cat-progress-bar"
                         style={{
-                          width: `${catPercent}%`,
-                          background: isOver ? '#EF4444' : '#10B981'
+                          width: `${Math.min(100, catPercent)}%`,
+                          background: isOver
+                            ? '#EF4444'
+                            : catPercent > 80
+                            ? '#F59E0B'
+                            : '#10B981'
                         }}
                       />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', fontSize: '11px', color: '#64748B', marginTop: '4px' }}>
-                      <div>
-                        <div>Sisa:</div>
-                        <strong style={{ color: '#0F172A' }}>Rp {catRemaining.toLocaleString('id-ID')}</strong>
-                      </div>
-                      <div>
-                        <div>Terpakai:</div>
-                        <strong style={{ color: '#EF4444' }}>Rp {spentInCat.toLocaleString('id-ID')}</strong>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div>Budget:</div>
-                        <strong style={{ color: '#0F172A' }}>Rp {cat.budget.toLocaleString('id-ID')}</strong>
-                      </div>
                     </div>
                   </div>
                 );
@@ -1487,6 +1527,44 @@ export const FinanceView = () => {
           setSelectedAccountDetail(null);
           setQuickAddType(type || 'expense');
           setIsQuickAddOpen(true);
+        }}
+      />
+
+      {/* Category Detail Modal */}
+      <CategoryDetailModal
+        category={selectedCategoryDetail ? (data.budget.categories.find(c => c.id === selectedCategoryDetail.id) || selectedCategoryDetail) : null}
+        isOpen={Boolean(selectedCategoryDetail)}
+        onClose={() => setSelectedCategoryDetail(null)}
+        transactions={data.transactions}
+        financialCycle={financialCycle}
+        isBalanceVisible={isBalanceVisible}
+        onEditTransaction={(tx) => {
+          setSelectedCategoryDetail(null);
+          setEditingTransaction(tx);
+        }}
+        onDeleteTransaction={(txId) => {
+          deleteTransaction(txId);
+        }}
+        onAddTransactionForCategory={(catName) => {
+          setSelectedCategoryDetail(null);
+          if (setQuickAddCategory) setQuickAddCategory(catName);
+          setQuickAddType('transaction');
+          setIsQuickAddOpen(true);
+        }}
+        onOpenBudgetSettings={() => {
+          setSelectedCategoryDetail(null);
+          setIsBudgetSettingsOpen(true);
+        }}
+      />
+
+      {/* Budget Settings & Allocation Modal */}
+      <BudgetSettingsModal
+        isOpen={isBudgetSettingsOpen}
+        onClose={() => setIsBudgetSettingsOpen(false)}
+        totalBudget={totalBudget}
+        categories={data.budget.categories}
+        onSave={(newTotal, updatedCategories) => {
+          updateBudget(newTotal, updatedCategories);
         }}
       />
 
