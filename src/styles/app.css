@@ -6758,6 +6758,2088 @@ html, body, #root, .app-viewport, .mobile-device-frame {
   }
 }
 
+/* ==========================================================================
+   EXTRAS VIEW (MENU LAINNYA) & FUEL TRACKER DESIGN SYSTEM
+   ========================================================================== */
 
+/* 1. Extras View Hub */
+.extras-view-container {
+  padding: 16px;
+  max-width: 480px;
+  margin: 0 auto;
+}
 
+.extras-hero-card {
+  background: linear-gradient(135deg, #1665D8 0%, #0284C7 60%, #0EA5E9 100%);
+  border-radius: 20px;
+  padding: 22px 20px;
+  color: white;
+  box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.35);
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.extras-hero-card::after {
+  content: '';
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.extras-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dark .extras-section-title {
+  color: #94A3B8;
+}
+
+.extras-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.extras-feature-card {
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 155px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.05);
+}
+
+.dark .extras-feature-card {
+  background: #1E293B;
+  border-color: #334155;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.3);
+}
+
+.extras-feature-card.ready-card {
+  cursor: pointer;
+  border-color: #BAE6FD;
+}
+
+.extras-feature-card.ready-card:hover {
+  transform: translateY(-3px);
+  border-color: #0284C7;
+  box-shadow: 0 10px 20px -5px rgba(2, 132, 199, 0.2);
+}
+
+.extras-feature-card.disabled-card {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.extras-feature-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.extras-feature-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 99px;
+  letter-spacing: 0.3px;
+}
+
+.extras-feature-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 4px;
+}
+
+.dark .extras-feature-title {
+  color: #F8FAFC;
+}
+
+.extras-feature-desc {
+  font-size: 11px;
+  color: #64748B;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dark .extras-feature-desc {
+  color: #94A3B8;
+}
+
+.extras-feature-footer {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0284C7;
+}
+
+/* 2. Fuel Dashboard Container */
+.fuel-dashboard-container {
+  padding: 16px;
+  max-width: 480px;
+  margin: 0 auto;
+  padding-bottom: 90px;
+}
+
+.fuel-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.btn-fuel-back,
+.btn-fuel-icon-action {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dark .btn-fuel-back,
+.dark .btn-fuel-icon-action {
+  background: #1E293B;
+  border-color: #334155;
+  color: #E2E8F0;
+}
+
+.btn-fuel-back:hover,
+.btn-fuel-icon-action:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.dark .btn-fuel-back:hover,
+.dark .btn-fuel-icon-action:hover {
+  background: #334155;
+  color: #FFFFFF;
+}
+
+.fuel-topbar-title {
+  text-align: center;
+}
+
+.fuel-topbar-title h2 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+}
+
+.dark .fuel-topbar-title h2 {
+  color: #F8FAFC;
+}
+
+/* 3. Motor & Liquid Tank Visual Card */
+.motor-visual-card {
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 24px;
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.06);
+  margin-bottom: 16px;
+}
+
+.dark .motor-visual-card {
+  background: #0F172A;
+  border-color: #1E293B;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.4);
+}
+
+.motor-visual-glow {
+  position: absolute;
+  top: 10%;
+  left: 20%;
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.6;
+  filter: blur(35px);
+  transition: background 0.8s ease;
+}
+
+.motor-visual-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 2;
+}
+
+.motor-type-pill {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748B;
+  background: #F1F5F9;
+  padding: 2px 7px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 2px;
+}
+
+.dark .motor-type-pill {
+  background: #1E293B;
+  color: #94A3B8;
+}
+
+.motor-name-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+}
+
+.dark .motor-name-title {
+  color: #F8FAFC;
+}
+
+.fuel-level-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13.5px;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 99px;
+  transition: all 0.3s ease;
+}
+
+.fuel-icon-pulse {
+  animation: pulse 2s infinite ease-in-out;
+}
+
+/* Stage: SVG Motor + Vertical Liquid Capsule */
+.motor-stage-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 2;
+  margin-bottom: 14px;
+}
+
+.scooter-svg-wrap {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.scooter-svg {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.08));
+}
+
+/* Vertical Capsule Tank Gauge */
+.fuel-gauge-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 38px;
+}
+
+.fuel-capsule-glass {
+  width: 32px;
+  height: 120px;
+  background: rgba(226, 232, 240, 0.4);
+  border: 2px solid #CBD5E1;
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dark .fuel-capsule-glass {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: #475569;
+}
+
+/* Liquid inside capsule */
+.fuel-capsule-liquid {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0 0 18px 18px;
+  overflow: hidden;
+}
+
+.fuel-liquid-safe {
+  background: linear-gradient(180deg, #34D399 0%, #10B981 40%, #059669 100%);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+}
+
+.fuel-liquid-warning {
+  background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 40%, #D97706 100%);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+}
+
+.fuel-liquid-danger {
+  background: linear-gradient(180deg, #F87171 0%, #EF4444 40%, #DC2626 100%);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+}
+
+/* Gelombang CSS Ringan (Pure CSS Wave Animation) */
+@keyframes fuelWave {
+  0% { transform: translateX(0) translateZ(0) scaleY(1); }
+  50% { transform: translateX(-35%) translateZ(0) scaleY(1.15); }
+  100% { transform: translateX(0) translateZ(0) scaleY(1); }
+}
+
+@keyframes bubbleFloat {
+  0% { transform: translateY(0); opacity: 0; }
+  50% { opacity: 0.6; }
+  100% { transform: translateY(-40px); opacity: 0; }
+}
+
+.liquid-wave-layer {
+  position: absolute;
+  top: -4px;
+  left: 0;
+  width: 250%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 40%;
+  animation: fuelWave 2.8s ease-in-out infinite;
+}
+
+/* Tick marks inside gauge */
+.gauge-marker {
+  position: absolute;
+  left: 3px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 8px;
+  font-weight: 800;
+  color: #64748B;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.gauge-marker.marker-full { top: 6px; }
+.gauge-marker.marker-half { top: 50%; transform: translateY(-50%); }
+.gauge-marker.marker-empty { bottom: 6px; }
+
+.gauge-tick-line {
+  width: 5px;
+  height: 1.5px;
+  background: currentColor;
+  border-radius: 1px;
+}
+
+.gauge-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+}
+
+/* Stats Row */
+.motor-stats-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.motor-stat-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dark .motor-stat-box {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.stat-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dark .stat-icon-wrap {
+  background: #0F172A;
+}
+
+.stat-title {
+  font-size: 10px;
+  color: #64748B;
+  display: block;
+}
+
+.dark .stat-title {
+  color: #94A3B8;
+}
+
+.stat-val-group {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.stat-val {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.dark .stat-val {
+  color: #F8FAFC;
+}
+
+.stat-unit {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+/* Status Strip */
+.motor-status-strip {
+  border-radius: 12px;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+}
+
+.status-strip-safe {
+  background: rgba(16, 185, 129, 0.1);
+  color: #065F46;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.dark .status-strip-safe {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6EE7B7;
+}
+
+.status-strip-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #92400E;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.dark .status-strip-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #FCD34D;
+}
+
+.status-strip-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #991B1B;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.dark .status-strip-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #FCA5A5;
+}
+
+/* 4. Action CTA Bar */
+.fuel-cta-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.btn-cta-log-fuel {
+  flex: 1;
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-cta-log-fuel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.4);
+}
+
+.btn-cta-settings-fuel {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #F1F5F9;
+  border: 1.5px solid #E2E8F0;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dark .btn-cta-settings-fuel {
+  background: #1E293B;
+  border-color: #334155;
+  color: #E2E8F0;
+}
+
+.btn-cta-settings-fuel:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+/* 5. Subtab Nav */
+.fuel-subtab-nav {
+  display: flex;
+  background: #F1F5F9;
+  padding: 4px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+}
+
+.dark .fuel-subtab-nav {
+  background: #1E293B;
+}
+
+.fuel-subtab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fuel-subtab-btn.active {
+  background: #FFFFFF;
+  color: #0F172A;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.dark .fuel-subtab-btn.active {
+  background: #0F172A;
+  color: #F8FAFC;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* 6. Fuel Efficiency Card & Chart */
+.fuel-card-wrapper {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.dark .fuel-card-wrapper {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.efficiency-empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 16px;
+  text-align: center;
+}
+
+.efficiency-header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.dark .efficiency-header-card {
+  border-bottom-color: #334155;
+}
+
+.stat-label-muted {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.trend-chart-card,
+.type-comparison-card,
+.smart-drain-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.dark .trend-chart-card,
+.dark .type-comparison-card,
+.dark .smart-drain-card {
+  background: #0F172A;
+  border-color: #334155;
+}
+
+.svg-chart-container {
+  margin-top: 6px;
+  width: 100%;
+}
+
+.type-comp-row {
+  margin-top: 6px;
+}
+
+/* 7. Fuel History List */
+.fuel-history-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.dark .fuel-history-summary {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.summary-label {
+  font-size: 11px;
+  color: #64748B;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.summary-val {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+}
+
+.dark .summary-val {
+  color: #F8FAFC;
+}
+
+.fuel-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fuel-history-item {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 12px 14px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.dark .fuel-history-item {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.fuel-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.fuel-item-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fuel-type-tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2.5px 8px;
+  border-radius: 6px;
+}
+
+.fuel-date {
+  font-size: 11px;
+  color: #64748B;
+}
+
+.fuel-item-amount {
+  text-align: right;
+}
+
+.fuel-rp {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0F172A;
+  display: block;
+}
+
+.dark .fuel-rp {
+  color: #F8FAFC;
+}
+
+.fuel-liters-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0284C7;
+}
+
+.fuel-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: #64748B;
+  flex-wrap: wrap;
+}
+
+.fuel-item-note {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #E2E8F0;
+  font-size: 11px;
+  color: #475569;
+}
+
+.dark .fuel-item-note {
+  border-top-color: #334155;
+  color: #94A3B8;
+}
+
+.btn-delete-fuel-item {
+  position: absolute;
+  top: 10px;
+  right: -6px;
+  transform: translateX(100%);
+  opacity: 0;
+  background: #FEE2E2;
+  color: #DC2626;
+  border: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fuel-history-item:hover .btn-delete-fuel-item {
+  opacity: 1;
+  right: 10px;
+  transform: translateX(0);
+}
+
+.fuel-history-empty {
+  text-align: center;
+  padding: 40px 20px;
+  background: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  border-radius: 20px;
+}
+
+.dark .fuel-history-empty {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.empty-icon-fuel {
+  width: 60px;
+  height: 60px;
+  border-radius: 20px;
+  background: rgba(2, 132, 199, 0.1);
+  color: #0284C7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+
+/* 8. Modals (Bottom Sheets) */
+.modal-backdrop-fuel {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal-content-fuel.sheet-modal {
+  background: #FFFFFF;
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 16px 20px 28px;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.dark .modal-content-fuel.sheet-modal {
+  background: #0F172A;
+  color: #F8FAFC;
+}
+
+.sheet-handle-bar {
+  width: 40px;
+  height: 4.5px;
+  background: #CBD5E1;
+  border-radius: 99px;
+  margin: 0 auto 12px;
+}
+
+.dark .sheet-handle-bar {
+  background: #475569;
+}
+
+.modal-header-fuel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #F1F5F9;
+  margin-bottom: 14px;
+}
+
+.dark .modal-header-fuel {
+  border-bottom-color: #1E293B;
+}
+
+.header-title-flex {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-icon-fuel {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(2, 132, 199, 0.12);
+  color: #0284C7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-title-fuel {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0;
+  color: #0F172A;
+}
+
+.dark .modal-title-fuel {
+  color: #F8FAFC;
+}
+
+.modal-subtitle-fuel {
+  font-size: 11px;
+  color: #64748B;
+  margin: 0;
+}
+
+.btn-close-fuel {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.btn-close-fuel:hover {
+  color: #0F172A;
+}
+
+/* Fuel Form Elements */
+.fuel-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-group-fuel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-label-fuel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.dark .form-label-fuel {
+  color: #CBD5E1;
+}
+
+.fuel-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.fuel-type-btn {
+  background: #F8FAFC;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.dark .fuel-type-btn {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.fuel-type-btn.selected {
+  background: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.dark .fuel-type-btn.selected {
+  background: #0F172A;
+}
+
+.fuel-btn-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.fuel-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.dark .fuel-name {
+  color: #F8FAFC;
+}
+
+.fuel-ron {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.fuel-price {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.fuel-checked-pill {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Nominal Input */
+.nominal-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.rp-prefix {
+  position: absolute;
+  left: 14px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #64748B;
+}
+
+.input-nominal-fuel {
+  width: 100%;
+  padding: 12px 14px 12px 48px;
+  font-size: 20px;
+  font-weight: 800;
+  border: 2px solid #E2E8F0;
+  border-radius: 14px;
+  background: #F8FAFC;
+  color: #0F172A;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.dark .input-nominal-fuel {
+  background: #1E293B;
+  border-color: #334155;
+  color: #FFFFFF;
+}
+
+.input-nominal-fuel:focus {
+  border-color: #0284C7;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.15);
+}
+
+.dark .input-nominal-fuel:focus {
+  background: #0F172A;
+}
+
+.quick-chips-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.btn-quick-chip {
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+  background: #F1F5F9;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dark .btn-quick-chip {
+  background: #1E293B;
+  border-color: #334155;
+  color: #CBD5E1;
+}
+
+.btn-quick-chip:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.btn-quick-chip.chip-highlight {
+  background: rgba(2, 132, 199, 0.12);
+  border-color: #BAE6FD;
+  color: #0284C7;
+}
+
+/* Liters banner */
+.liters-calc-banner {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%);
+  border: 1px solid rgba(2, 132, 199, 0.2);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.liters-banner-label {
+  font-size: 11px;
+  color: #64748B;
+  display: block;
+}
+
+.liters-banner-val {
+  font-size: 16px;
+  color: #0284C7;
+}
+
+.liters-calc-rate {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+/* Standard Inputs */
+.select-fuel-account,
+.input-text-fuel {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  font-size: 12.5px;
+  color: #0F172A;
+  outline: none;
+}
+
+.dark .select-fuel-account,
+.dark .input-text-fuel {
+  background: #1E293B;
+  border-color: #334155;
+  color: #F8FAFC;
+}
+
+.select-fuel-account:focus,
+.input-text-fuel:focus {
+  border-color: #0284C7;
+}
+
+.form-grid-two {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.last-odo-badge {
+  font-size: 10px;
+  font-weight: normal;
+  color: #64748B;
+  margin-left: 6px;
+}
+
+.auto-tx-info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 10px;
+  padding: 9px 12px;
+}
+
+/* Form Actions */
+.fuel-form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.btn-cancel-fuel {
+  flex: 1;
+  padding: 11px;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+  background: #F1F5F9;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dark .btn-cancel-fuel {
+  background: #1E293B;
+  border-color: #334155;
+  color: #CBD5E1;
+}
+
+.btn-submit-fuel {
+  flex: 2;
+  padding: 11px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+
+.btn-submit-fuel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Settings Modal Tabs */
+.fuel-modal-nav {
+  display: flex;
+  background: #F1F5F9;
+  padding: 3px;
+  border-radius: 12px;
+  margin-bottom: 14px;
+}
+
+.dark .fuel-modal-nav {
+  background: #1E293B;
+}
+
+.fuel-modal-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748B;
+  cursor: pointer;
+}
+
+.fuel-modal-tab.active {
+  background: #FFFFFF;
+  color: #0F172A;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.dark .fuel-modal-tab.active {
+  background: #0F172A;
+  color: #F8FAFC;
+}
+
+.btn-refresh-price {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #0284C7;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.price-input-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.dark .price-input-box {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.price-tag-name {
+  font-size: 10.5px;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.price-input-val {
+  width: 100%;
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0F172A;
+  outline: none;
+}
+
+.dark .price-input-val {
+  color: #F8FAFC;
+}
+
+/* ==========================================================================
+   ENHANCEMENTS: LIVE PRICE GRID, DYNAMIC MOTOR, PRESETS & EFFICIENCY
+   ========================================================================== */
+
+/* 1. Clickable Capacity in Visual Card */
+.motor-stat-box.clickable-stat-box {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.motor-stat-box.clickable-stat-box:hover {
+  border-color: #0284C7;
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.12);
+}
+
+/* 2. Live BBM Price Card & 2x2 Grid */
+.live-price-strip-card {
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.04);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.dark .live-price-strip-card {
+  background: #0F172A;
+  border-color: #1E293B;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.35);
+}
+
+.live-price-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.live-price-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+  animation: pulseLive 2s infinite ease-in-out;
+}
+
+@keyframes pulseLive {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.live-price-heading {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+.dark .live-price-heading {
+  color: #F8FAFC;
+}
+
+.live-price-sub-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  background: #F1F5F9;
+  padding: 3px 9px;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dark .live-price-sub-badge {
+  background: #1E293B;
+  color: #94A3B8;
+}
+
+.live-price-subtitle {
+  font-size: 11.5px;
+  color: #64748B;
+  margin: 0 0 12px 0;
+  font-weight: 500;
+}
+
+.dark .live-price-subtitle {
+  color: #94A3B8;
+}
+
+/* 2x2 Grid (4 on tablet/desktop) */
+.live-price-grid-2x2 {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 10px !important;
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+@media (min-width: 580px) {
+  .live-price-grid-2x2 {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+.live-price-card-item {
+  background: #F8FAFC;
+  border: 1.5px solid #E2E8F0;
+  border-left-width: 4px;
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 68px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.dark .live-price-card-item {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.live-price-card-item:hover {
+  transform: translateY(-2px);
+  background: #FFFFFF;
+  box-shadow: 0 6px 14px -3px rgba(15, 23, 42, 0.08);
+}
+
+.dark .live-price-card-item:hover {
+  background: #0F172A;
+  box-shadow: 0 6px 14px -3px rgba(0, 0, 0, 0.4);
+}
+
+.live-price-card-item:active {
+  transform: scale(0.97);
+}
+
+.price-card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.price-card-fuel-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dark .price-card-fuel-name {
+  color: #F8FAFC;
+}
+
+.price-card-ron-pill {
+  font-size: 8.5px;
+  font-weight: 800;
+  padding: 1.5px 5px;
+  border-radius: 5px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.price-card-bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.price-card-amount {
+  font-size: 12.5px;
+  font-weight: 900;
+  color: #0F172A;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+
+.dark .price-card-amount {
+  color: #FFFFFF;
+}
+
+.price-card-amount small {
+  font-size: 9px;
+  font-weight: 700;
+  color: #64748B;
+  margin-right: 1px;
+}
+
+.price-card-per-liter {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #64748B;
+  margin-left: 1px;
+}
+
+.price-card-action-chip {
+  font-size: 9.5px;
+  font-weight: 800;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.live-price-card-item:hover .price-card-action-chip {
+  opacity: 1;
+}
+
+/* 3. Full-width Single CTA */
+.fuel-cta-bar.single-cta {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.btn-cta-log-fuel.full-width {
+  width: 100%;
+  padding: 13px 20px;
+  font-size: 14.5px;
+  border-radius: 16px;
+}
+
+/* 4. Settings Modal: Vehicle Type & Presets */
+.motor-type-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.motor-type-card-btn {
+  background: #F8FAFC;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 10px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.dark .motor-type-card-btn {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.motor-type-card-btn.active {
+  background: #FFFFFF;
+  border-color: #0284C7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.dark .motor-type-card-btn.active {
+  background: #0F172A;
+  border-color: #38BDF8;
+}
+
+.motor-card-emoji {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.motor-card-name {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.dark .motor-card-name {
+  color: #F8FAFC;
+}
+
+.motor-card-desc {
+  font-size: 9.5px;
+  color: #64748B;
+  font-weight: 600;
+}
+
+.motor-card-tag-sport {
+  font-size: 9px;
+  font-weight: 800;
+  color: #0284C7;
+  background: rgba(2, 132, 199, 0.1);
+  padding: 1px 6px;
+  border-radius: 99px;
+}
+
+.capacity-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.capacity-value-display {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0284C7;
+  background: rgba(2, 132, 199, 0.1);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.preset-section-wrap {
+  margin-top: 10px;
+}
+
+.preset-label-heading {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.dark .preset-label-heading {
+  color: #94A3B8;
+}
+
+.motor-preset-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preset-chip-btn {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  background: #F1F5F9;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dark .preset-chip-btn {
+  background: #1E293B;
+  border-color: #334155;
+  color: #CBD5E1;
+}
+
+.preset-chip-btn:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.preset-chip-btn.active {
+  background: #0284C7;
+  border-color: #0284C7;
+  color: #FFFFFF;
+}
+
+.tank-level-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.tank-slider-level-text {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0284C7;
+}
+
+.slider-ticks-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 600;
+  color: #94A3B8;
+  margin-top: 4px;
+}
+
+/* ==========================================================================
+   5. REDESIGNED MINIMALIST FUEL EFFICIENCY CARD
+   ========================================================================== */
+.eff-card-minimal {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 22px;
+  padding: 18px 20px;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05);
+}
+
+.dark .eff-card-minimal {
+  background: #0F172A;
+  border-color: #1E293B;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.35);
+}
+
+.eff-empty-state {
+  text-align: center;
+  padding: 36px 16px;
+}
+
+.eff-empty-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(2, 132, 199, 0.1);
+  color: #0284C7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+
+.eff-empty-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 6px;
+}
+
+.dark .eff-empty-title {
+  color: #F8FAFC;
+}
+
+.eff-empty-desc {
+  font-size: 11.5px;
+  color: #64748B;
+  max-width: 320px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+.dark .eff-empty-desc {
+  color: #94A3B8;
+}
+
+/* Hero Block */
+.eff-hero-block {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.eff-hero-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748B;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.dark .eff-hero-eyebrow {
+  color: #94A3B8;
+}
+
+.eff-hero-num-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.eff-hero-number {
+  font-size: 32px;
+  font-weight: 900;
+  color: #0F172A;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.dark .eff-hero-number {
+  color: #FFFFFF;
+}
+
+.eff-hero-unit {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748B;
+}
+
+.eff-rating-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.eff-hero-right {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 100px;
+}
+
+.eff-quick-stat-pill {
+  background: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  border-radius: 12px;
+  padding: 7px 10px;
+}
+
+.dark .eff-quick-stat-pill {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.eff-stat-pill-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748B;
+  display: block;
+  margin-bottom: 1px;
+}
+
+.eff-stat-pill-value {
+  font-size: 13.5px;
+  font-weight: 800;
+  display: block;
+}
+
+.eff-stat-pill-value small {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.eff-clean-divider {
+  height: 1px;
+  background: #F1F5F9;
+  margin: 16px 0;
+}
+
+.dark .eff-clean-divider {
+  background: #1E293B;
+}
+
+/* Chart Section */
+.eff-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.eff-section-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.dark .eff-section-title {
+  color: #F8FAFC;
+}
+
+.eff-count-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #64748B;
+  background: #F1F5F9;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.dark .eff-count-badge {
+  background: #1E293B;
+  color: #94A3B8;
+}
+
+.eff-chart-viewport {
+  width: 100%;
+  overflow: visible;
+  padding: 4px 0;
+}
+
+.eff-svg-chart {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.eff-dot-text {
+  font-size: 10.5px;
+  font-weight: 800;
+  fill: #0F172A;
+  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.9));
+}
+
+.dark .eff-dot-text {
+  fill: #F8FAFC;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9));
+}
+
+/* Fuel Type Comparison Section */
+.eff-fuel-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.eff-fuel-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.eff-fuel-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.dark .eff-fuel-name {
+  color: #F8FAFC;
+}
+
+.eff-fuel-ron-pill {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1.5px 6px;
+  border-radius: 5px;
+}
+
+.eff-best-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #059669;
+  background: #D1FAE5;
+  padding: 1.5px 7px;
+  border-radius: 99px;
+}
+
+.dark .eff-best-pill {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6EE7B7;
+}
+
+.eff-fuel-val {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.dark .eff-fuel-val {
+  color: #FFFFFF;
+}
+
+.eff-fuel-val small {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.eff-track-bg {
+  width: 100%;
+  height: 6px;
+  background: #F1F5F9;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.dark .eff-track-bg {
+  background: #1E293B;
+}
+
+.eff-track-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smart Daily Estimator */
+.eff-mini-stat-card {
+  background: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.dark .eff-mini-stat-card {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.eff-mini-val {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.dark .eff-mini-val {
+  color: #F8FAFC;
+}
+
+.eff-mini-val small {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #64748B;
+}
 

@@ -308,7 +308,9 @@ export const dataSyncService = {
         notesRes,
         attendanceRes,
         billsRes,
-        targetsRes
+        targetsRes,
+        fuelLogsRes,
+        fuelSettingsRes
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
         supabase.from('accounts').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
@@ -318,7 +320,9 @@ export const dataSyncService = {
         supabase.from('course_notes').select('*').eq('user_id', userId).order('week_number', { ascending: true }),
         supabase.from('attendance').select('*').eq('user_id', userId),
         supabase.from('bills').select('*').eq('user_id', userId),
-        supabase.from('savings_targets').select('*').eq('user_id', userId)
+        supabase.from('savings_targets').select('*').eq('user_id', userId),
+        supabase.from('fuel_logs').select('*').eq('user_id', userId).order('date', { ascending: false }).then(r => r, () => ({ data: [] })),
+        supabase.from('fuel_settings').select('*').eq('user_id', userId).maybeSingle().then(r => r, () => ({ data: null }))
       ]);
 
       if (!profileRes.data) {
@@ -468,7 +472,35 @@ export const dataSyncService = {
           deadline: st.deadline,
           category: st.category,
           icon: st.icon || '🎯'
-        }))
+        })),
+        fuelLogs: (fuelLogsRes?.data || []).map(fl => ({
+          id: fl.id,
+          date: fl.date,
+          fuelType: fl.fuel_type,
+          amount: Number(fl.amount),
+          liters: Number(fl.liters),
+          pricePerLiter: Number(fl.price_per_liter),
+          station: fl.station || '',
+          odometer: fl.odometer !== null && fl.odometer !== undefined ? Number(fl.odometer) : null,
+          tankLevel: fl.tank_level !== null && fl.tank_level !== undefined ? Number(fl.tank_level) : 100,
+          note: fl.note || ''
+        })),
+        fuelSettings: fuelSettingsRes?.data ? {
+          motorName: fuelSettingsRes.data.motor_name || 'Motor Saya',
+          motorType: fuelSettingsRes.data.motor_type || 'Matic',
+          tankCapacity: Number(fuelSettingsRes.data.tank_capacity) || 4.2,
+          currentTankLevel: Number(fuelSettingsRes.data.current_tank_level) ?? 50,
+          currentOdometer: Number(fuelSettingsRes.data.current_odometer) || 0,
+          provinceSlug: fuelSettingsRes.data.province_slug || 'jawa-timur',
+          provinceName: fuelSettingsRes.data.province_name || 'Jawa Timur',
+          lastPriceSync: fuelSettingsRes.data.last_price_sync || null,
+          fuelPrices: fuelSettingsRes.data.fuel_prices || {
+            pertalite: 10000,
+            pertamax_90: 15950,
+            pertamax_green: 19150,
+            pertamax_turbo: 19600
+          }
+        } : null
       };
     } catch (err) {
       console.error('Failed to load user data from Supabase:', err);
@@ -1048,6 +1080,63 @@ export const cloudService = {
       if (error) console.error('Cloud delete target error:', error);
     } catch (e) {
       console.error('Catch deleteTarget:', e);
+    }
+  },
+
+  // FUEL TRACKER
+  async insertFuelLog(userId, log) {
+    if (!isSupabaseConfigured() || !supabase || !userId) return;
+    try {
+      const payload = {
+        id: log.id,
+        user_id: userId,
+        date: log.date || new Date().toISOString().split('T')[0],
+        fuel_type: log.fuelType,
+        amount: Number(log.amount),
+        liters: Number(log.liters),
+        price_per_liter: Number(log.pricePerLiter),
+        station: log.station || '',
+        odometer: log.odometer !== null && log.odometer !== undefined ? Number(log.odometer) : null,
+        tank_level: log.tankLevel !== null && log.tankLevel !== undefined ? Number(log.tankLevel) : 100,
+        note: log.note || ''
+      };
+      const { error } = await supabase.from('fuel_logs').insert(payload);
+      if (error) console.error('Cloud insert fuel log error:', error);
+    } catch (e) {
+      console.error('Catch insertFuelLog:', e);
+    }
+  },
+
+  async deleteFuelLog(logId) {
+    if (!isSupabaseConfigured() || !supabase || !logId) return;
+    try {
+      const { error } = await supabase.from('fuel_logs').delete().eq('id', logId);
+      if (error) console.error('Cloud delete fuel log error:', error);
+    } catch (e) {
+      console.error('Catch deleteFuelLog:', e);
+    }
+  },
+
+  async upsertFuelSettings(userId, settings) {
+    if (!isSupabaseConfigured() || !supabase || !userId) return;
+    try {
+      const payload = {
+        user_id: userId,
+        motor_name: settings.motorName || 'Motor Saya',
+        motor_type: settings.motorType || 'Matic',
+        tank_capacity: Number(settings.tankCapacity) || 4.2,
+        current_tank_level: Number(settings.currentTankLevel) ?? 50,
+        current_odometer: Number(settings.currentOdometer) || 0,
+        province_slug: settings.provinceSlug || 'jawa-timur',
+        province_name: settings.provinceName || 'Jawa Timur',
+        last_price_sync: settings.lastPriceSync || null,
+        fuel_prices: settings.fuelPrices,
+        updated_at: new Date().toISOString()
+      };
+      const { error } = await supabase.from('fuel_settings').upsert(payload, { onConflict: 'user_id' });
+      if (error) console.error('Cloud upsert fuel settings error:', error);
+    } catch (e) {
+      console.error('Catch upsertFuelSettings:', e);
     }
   }
 };

@@ -5,6 +5,20 @@ import { authService, profileService, dataSyncService, cloudService, generateUUI
 import { INITIAL_DATA, CLEAN_DATA } from '../constants/initialData';
 import { getFinancialCycle } from '../utils/dateCycle';
 
+const FUEL_API_BASE = 'https://nasgunawann.github.io/bensin-api/v1/provinsi';
+const FUEL_PRODUCT_MAP = {
+  'PERTALITE': 'pertalite',
+  'PERTAMAX': 'pertamax_90',
+  'PERTAMAX GREEN 95': 'pertamax_green',
+  'PERTAMAX TURBO': 'pertamax_turbo'
+};
+const DEFAULT_FUEL_PRICES = {
+  pertalite: 10000,
+  pertamax_90: 15950,
+  pertamax_green: 19150,
+  pertamax_turbo: 19600
+};
+
 const AppContext = createContext();
 
 // Helper to intelligently merge cloud data with local cached data
@@ -100,6 +114,14 @@ const reconcileUserData = (cloudData, cached, userId) => {
     }
   }
 
+  // 5. Reconcile Fuel Data (keep cached if cloud is empty)
+  if ((!cloudData.fuelLogs || cloudData.fuelLogs.length === 0) && cached.fuelLogs && cached.fuelLogs.length > 0) {
+    cloudData.fuelLogs = cached.fuelLogs;
+  }
+  if (!cloudData.fuelSettings && cached.fuelSettings) {
+    cloudData.fuelSettings = cached.fuelSettings;
+  }
+
   // Background auto-heal Supabase
   if (needsCloudHealing && userId) {
     profileService.updateProfile(userId, healingPayload).catch(err => {
@@ -125,9 +147,10 @@ export const AppProvider = ({ children }) => {
       return CLEAN_DATA;
     }
   });
-  const [activeTab, setActiveTab] = useState('home'); // 'home' | 'academic' | 'finance' | 'grades' | 'profile'
+  const [activeTab, setActiveTab] = useState('home'); // 'home' | 'academic' | 'finance' | 'grades' | 'profile' | 'extras'
   const [financeSubtab, setFinanceSubtab] = useState('accounts'); // 'accounts' | 'budget' | 'history' | 'report' | 'bills' | 'targets'
   const [academicTab, setAcademicTab] = useState('schedule'); // 'schedule' | 'assignments' | 'attendance' | 'notes'
+  const [extrasSubtab, setExtrasSubtab] = useState('menu'); // 'menu' | 'fuel'
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [quickAddType, setQuickAddType] = useState('transaction');
@@ -142,6 +165,8 @@ export const AppProvider = ({ children }) => {
       setFinanceSubtab(subTab);
     } else if (mainTab === 'academic' && subTab) {
       setAcademicTab(subTab);
+    } else if (mainTab === 'extras' && subTab) {
+      setExtrasSubtab(subTab);
     }
   };
 
@@ -965,6 +990,177 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // --- FUEL TRACKER CRUD & SYNC ---
+  const addFuelLog = async (logData, autoRecordTransaction = true) => {
+    const logId = generateUUID();
+    const fuelPrice = Number(logData.pricePerLiter) || 10000;
+    const amount = Number(logData.amount) || 0;
+    const calculatedLiters = logData.liters ? Number(logData.liters) : Number((amount / fuelPrice).toFixed(3));
+    
+    const currSettings = data.fuelSettings || {
+      motorName: 'Motor Saya',
+      motorType: 'Matic',
+      tankCapacity: 4.2,
+      currentTankLevel: 50,
+      currentOdometer: 0,
+      provinceSlug: 'jawa-timur',
+      provinceName: 'Jawa Timur',
+      lastPriceSync: null,
+      fuelPrices: DEFAULT_FUEL_PRICES
+    };
+
+    const tankCap = Number(currSettings.tankCapacity) || 4.2;
+    const addedPercent = (calculatedLiters / tankCap) * 100;
+    const newTankLevel = Math.min(100, Math.round((Number(currSettings.currentTankLevel) || 50) + addedPercent));
+    const newOdo = logData.odometer !== undefined && logData.odometer !== null && logData.odometer !== '' 
+      ? Number(logData.odometer) 
+      : (currSettings.currentOdometer || 0);
+
+    const updatedFuelSettings = {
+      ...currSettings,
+      currentTankLevel: newTankLevel,
+      currentOdometer: newOdo
+    };
+
+    const newLog = {
+      id: logId,
+      date: logData.date || new Date().toISOString().split('T')[0],
+      fuelType: logData.fuelType || 'pertalite',
+      amount,
+      liters: calculatedLiters,
+      pricePerLiter: fuelPrice,
+      station: logData.station || '',
+      odometer: logData.odometer !== undefined && logData.odometer !== null && logData.odometer !== '' ? Number(logData.odometer) : null,
+      tankLevel: newTankLevel,
+      note: logData.note || ''
+    };
+
+    setData(prev => {
+      const nextData = {
+        ...prev,
+        fuelLogs: [newLog, ...(prev.fuelLogs || [])],
+        fuelSettings: updatedFuelSettings
+      };
+      if (!isAuthLoading) {
+        saveLocalData(nextData, user?.id);
+      }
+      return nextData;
+    });
+
+    if (user?.id) {
+      cloudService.insertFuelLog(user.id, newLog);
+      cloudService.upsertFuelSettings(user.id, updatedFuelSettings);
+    }
+
+    // Auto-record to Financial Transactions (Category: "Transport & Bensin")
+    if (autoRecordTransaction && amount > 0) {
+      const fuelNames = {
+        pertalite: 'Pertalite',
+        pertamax_90: 'Pertamax',
+        pertamax_green: 'Pertamax Green 95',
+        pertamax_turbo: 'Pertamax Turbo'
+      };
+      const fuelLabel = fuelNames[logData.fuelType] || 'BBM';
+      const odoText = logData.odometer ? ` | Odo: ${Number(logData.odometer).toLocaleString('id-ID')} km` : '';
+      
+      await addTransaction({
+        type: 'expense',
+        category: 'Transport & Bensin',
+        amount,
+        accountName: logData.accountName || data.accounts?.[0]?.name || 'Tunai',
+        merchant: logData.station || 'SPBU Pertamina',
+        note: `⛽ ${fuelLabel} ${calculatedLiters.toFixed(2)}L @ Rp${fuelPrice.toLocaleString('id-ID')}${odoText}`,
+        icon: '⛽',
+        date: logData.date || new Date().toISOString().split('T')[0]
+      });
+    }
+
+    return newLog;
+  };
+
+  const deleteFuelLog = (logId) => {
+    setData(prev => {
+      const nextData = {
+        ...prev,
+        fuelLogs: (prev.fuelLogs || []).filter(fl => fl.id !== logId)
+      };
+      if (!isAuthLoading) {
+        saveLocalData(nextData, user?.id);
+      }
+      return nextData;
+    });
+    if (user?.id) {
+      cloudService.deleteFuelLog(logId);
+    }
+  };
+
+  const updateFuelSettings = (newFields) => {
+    let merged = null;
+    setData(prev => {
+      const curr = prev.fuelSettings || {
+        motorName: 'Motor Saya',
+        motorType: 'Matic',
+        tankCapacity: 4.2,
+        currentTankLevel: 50,
+        currentOdometer: 0,
+        provinceSlug: 'jawa-timur',
+        provinceName: 'Jawa Timur',
+        lastPriceSync: null,
+        fuelPrices: DEFAULT_FUEL_PRICES
+      };
+      merged = {
+        ...curr,
+        ...newFields,
+        fuelPrices: newFields.fuelPrices ? { ...curr.fuelPrices, ...newFields.fuelPrices } : curr.fuelPrices
+      };
+      const nextData = {
+        ...prev,
+        fuelSettings: merged
+      };
+      if (!isAuthLoading) {
+        saveLocalData(nextData, user?.id);
+      }
+      return nextData;
+    });
+    if (user?.id && merged) {
+      cloudService.upsertFuelSettings(user.id, merged);
+    }
+    return merged;
+  };
+
+  const fetchFuelPrices = async (targetSlug = null) => {
+    const slug = targetSlug || data.fuelSettings?.provinceSlug || 'jawa-timur';
+    try {
+      const res = await fetch(`${FUEL_API_BASE}/${slug}.json`);
+      if (!res.ok) throw new Error('Gagal mengambil data dari server bensin-api');
+      const json = await res.json();
+      
+      const newPrices = {};
+      if (Array.isArray(json.products)) {
+        json.products.forEach(p => {
+          const mappedKey = FUEL_PRODUCT_MAP[p.product];
+          if (mappedKey && p.price_rupiah) {
+            newPrices[mappedKey] = Number(p.price_rupiah);
+          }
+        });
+      }
+
+      if (Object.keys(newPrices).length > 0) {
+        const updated = updateFuelSettings({
+          fuelPrices: newPrices,
+          provinceSlug: slug,
+          provinceName: json.provinsi || data.fuelSettings?.provinceName || 'Jawa Timur',
+          lastPriceSync: new Date().toISOString()
+        });
+        return { success: true, prices: newPrices, updatedAt: json.pertamina_updated_at };
+      }
+      return { success: false, error: 'Format data produk tidak sesuai' };
+    } catch (err) {
+      console.warn('Fuel price fetch error:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
   // --- SEMESTER & ACADEMIC TRANSITION ---
   const promoteToNextSemester = () => {
     const nextSem = (activeSemester || 1) + 1;
@@ -1599,7 +1795,26 @@ export const AppProvider = ({ children }) => {
         editCourseNote,
         deleteCourseNote,
         addSemesterCourse,
-        deleteSemesterCourse
+        deleteSemesterCourse,
+        // Extras & Fuel Tracker
+        extrasSubtab,
+        setExtrasSubtab,
+        fuelLogs: data.fuelLogs || [],
+        fuelSettings: data.fuelSettings || {
+          motorName: 'Motor Saya',
+          motorType: 'Matic',
+          tankCapacity: 4.2,
+          currentTankLevel: 50,
+          currentOdometer: 0,
+          provinceSlug: 'jawa-timur',
+          provinceName: 'Jawa Timur',
+          lastPriceSync: null,
+          fuelPrices: DEFAULT_FUEL_PRICES
+        },
+        addFuelLog,
+        deleteFuelLog,
+        updateFuelSettings,
+        fetchFuelPrices
       }}
     >
       {children}

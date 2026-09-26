@@ -9,6 +9,7 @@ import {
   Clock,
   BookOpen,
   GraduationCap,
+  Grid,
   ChevronRight,
   Sparkles,
   AlertCircle,
@@ -151,13 +152,13 @@ export const HomeView = () => {
 
         <button
           className="quick-action-item"
-          onClick={() => navigateTo('grades')}
-          title="Buka Rekap Nilai & IPK"
+          onClick={() => navigateTo('extras')}
+          title="Buka Menu Fitur Lainnya"
         >
-          <div className="action-icon-circle" style={{ background: '#FEF9C3', color: '#CA8A04' }}>
-            <GraduationCap size={22} />
+          <div className="action-icon-circle" style={{ background: '#F1F5F9', color: '#475569' }}>
+            <Grid size={22} />
           </div>
-          <span className="action-icon-label">Rekap IPK</span>
+          <span className="action-icon-label">Lainnya</span>
         </button>
       </div>
 

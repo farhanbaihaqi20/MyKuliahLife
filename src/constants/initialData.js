@@ -472,7 +472,61 @@ export const INITIAL_DATA = {
         { name: "Riset Teknologi Informasi", sks: 3, letter: "A", point: 4.0 }
       ]
     }
-  ]
+  ],
+  fuelLogs: [
+    {
+      id: "fl-1",
+      date: "2026-09-05",
+      fuelType: "pertalite",
+      amount: 42000,
+      liters: 4.2,
+      pricePerLiter: 10000,
+      station: "SPBU Pertamina Ketintang",
+      odometer: 14250,
+      tankLevel: 100,
+      note: "Isi penuh setelah kuliah"
+    },
+    {
+      id: "fl-2",
+      date: "2026-09-12",
+      fuelType: "pertalite",
+      amount: 40000,
+      liters: 4.0,
+      pricePerLiter: 10000,
+      station: "SPBU Pertamina Ngagel",
+      odometer: 14420,
+      tankLevel: 100,
+      note: "Isi bensin mingguan"
+    },
+    {
+      id: "fl-3",
+      date: "2026-09-19",
+      fuelType: "pertamax_90",
+      amount: 50000,
+      liters: 3.135,
+      pricePerLiter: 15950,
+      station: "SPBU Pertamina Manyar",
+      odometer: 14595,
+      tankLevel: 85,
+      note: "Coba Pertamax biar lebih enteng"
+    }
+  ],
+  fuelSettings: {
+    motorName: "Honda Beat Deluxe",
+    motorType: "Matic",
+    tankCapacity: 4.2,
+    currentTankLevel: 65,
+    currentOdometer: 14640,
+    provinceSlug: "jawa-timur",
+    provinceName: "Jawa Timur",
+    lastPriceSync: null,
+    fuelPrices: {
+      pertalite: 10000,
+      pertamax_90: 15950,
+      pertamax_green: 19150,
+      pertamax_turbo: 19600
+    }
+  }
 };
 
 export const CLEAN_DATA = {
@@ -510,5 +564,22 @@ export const CLEAN_DATA = {
   courses: [],
   assignments: [],
   courseNotes: [],
-  semesters: []
+  semesters: [],
+  fuelLogs: [],
+  fuelSettings: {
+    motorName: "Motor Saya",
+    motorType: "Matic",
+    tankCapacity: 4.2,
+    currentTankLevel: 50,
+    currentOdometer: 0,
+    provinceSlug: "jawa-timur",
+    provinceName: "Jawa Timur",
+    lastPriceSync: null,
+    fuelPrices: {
+      pertalite: 10000,
+      pertamax_90: 15950,
+      pertamax_green: 19150,
+      pertamax_turbo: 19600
+    }
+  }
 };

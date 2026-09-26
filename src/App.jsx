@@ -11,11 +11,12 @@ import { FinanceView } from './views/FinanceView';
 import { GradesView } from './views/GradesView';
 import { ProfileSyncView } from './views/ProfileSyncView';
 import { AuthView } from './views/AuthView';
+import { ExtrasView } from './views/ExtrasView';
 import { ArrowLeft } from 'lucide-react';
 import './styles/app.css';
 
 const MainScreen = () => {
-  const { activeTab, setActiveTab } = useApp();
+  const { activeTab, setActiveTab, extrasSubtab } = useApp();
 
   const getPageTitle = () => {
     switch (activeTab) {
@@ -23,16 +24,19 @@ const MainScreen = () => {
       case 'finance': return 'Keuangan & Dompet';
       case 'grades': return 'Rekap Nilai & IPK';
       case 'profile': return 'Profil & Pengaturan';
+      case 'extras': return 'Menu Lainnya';
       default: return 'MyKuliahLife';
     }
   };
+
+  const showGenericHeader = activeTab !== 'home' && !(activeTab === 'extras' && extrasSubtab === 'fuel');
 
   return (
     <div className="mobile-device-frame">
       {/* If Home, show rich fintech Header. If other tabs, show clean subpage header */}
       {activeTab === 'home' ? (
         <Header />
-      ) : (
+      ) : showGenericHeader ? (
         <div
           className="app-subpage-header"
           style={{
@@ -68,7 +72,7 @@ const MainScreen = () => {
           </button>
           <h2 style={{ fontSize: '16.5px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, flex: 1 }}>{getPageTitle()}</h2>
         </div>
-      )}
+      ) : null}
 
       {/* View router */}
       {activeTab === 'home' && <HomeView />}
@@ -76,6 +80,7 @@ const MainScreen = () => {
       {activeTab === 'finance' && <FinanceView />}
       {activeTab === 'grades' && <GradesView />}
       {activeTab === 'profile' && <ProfileSyncView />}
+      {activeTab === 'extras' && <ExtrasView />}
 
       {/* Floating Bottom Navigation */}
       <BottomNav />
