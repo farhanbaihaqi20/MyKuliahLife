@@ -269,7 +269,7 @@ export const GradesView = () => {
                           color: hasIps ? '#1665D8' : '#94A3B8'
                         }}
                       >
-                        {hasIps ? `IPS: ${sem.ips.toFixed(2)}` : 'Belum Dihitung'}
+                        {hasIps ? `IPS: ${sem.ips.toFixed(2)}` : 'Belum Ada Nilai'}
                       </span>
                     </div>
                     {isExpanded ? <ChevronUp size={18} color="#64748B" /> : <ChevronDown size={18} color="#64748B" />}
@@ -345,18 +345,19 @@ export const GradesView = () => {
                                   background: '#FEF3C7',
                                   border: '1px solid #FDE68A',
                                   color: '#B45309',
-                                  padding: '3px 8px',
+                                  padding: '4px 10px',
                                   borderRadius: '8px',
-                                  fontSize: '10px',
+                                  fontSize: '11px',
                                   fontWeight: 700,
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
-                                  gap: '3px'
+                                  gap: '4px'
                                 }}
-                                title="Mata kuliah belum diinput nilai. Nilai default E (tidak dihitung di IPS sebelum diinput)"
+                                title="Mata kuliah belum dinilai. Klik untuk input nilai akhir."
                               >
-                                <span>E • Belum Diinput</span>
+                                <Plus size={11} />
+                                <span>Input Nilai</span>
                               </button>
                             )}
 

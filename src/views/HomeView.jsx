@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Sparkles,
   AlertCircle,
-  Plus
+  Plus,
+  MapPin
 } from 'lucide-react';
 
 export const HomeView = () => {
@@ -34,7 +35,22 @@ export const HomeView = () => {
   // Current active semester courses
   const currentSemesterNum = activeSemester || data.activeSemester || data.profile?.semester || 1;
   const currentCourses = (data.courses || []).filter(c => !c.semester || c.semester === currentSemesterNum);
-  const todayClasses = currentCourses.slice(0, 2);
+
+  // Today's day name in Indonesian (Minggu, Senin, Selasa, Rabu, Kamis, Jumat, Sabtu)
+  const indonesianDays = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const now = new Date();
+  const todayDayName = indonesianDays[now.getDay()];
+  const formattedTodayDate = now.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short'
+  });
+
+  const todayClasses = useMemo(() => {
+    return currentCourses
+      .filter(c => c.dayOfWeek?.trim().toLowerCase() === todayDayName.toLowerCase())
+      .sort((a, b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'));
+  }, [currentCourses, todayDayName]);
 
   // Urgent pending assignments
   const pendingAssignments = (data.assignments || [])
@@ -156,13 +172,18 @@ export const HomeView = () => {
         </div>
       </div>
 
-      {/* 3. Kelas & Jadwal Kuliah Mendatang */}
+      {/* 3. Jadwal Kuliah Hari Ini */}
       <div className="card-standard">
-        <div className="section-header-row">
-          <h3 className="section-title">
-            <Calendar size={18} style={{ color: '#1665D8' }} />
-            Jadwal Kuliah Terdekat
-          </h3>
+        <div className="section-header-row" style={{ marginBottom: '14px' }}>
+          <div>
+            <h3 className="section-title">
+              <Calendar size={18} style={{ color: '#1665D8' }} />
+              Jadwal Kuliah Hari Ini
+            </h3>
+            <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600, display: 'block', marginTop: '2px' }}>
+              {formattedTodayDate}
+            </span>
+          </div>
           <span
             className="section-action-link"
             onClick={() => navigateTo('academic', 'schedule')}
@@ -172,35 +193,165 @@ export const HomeView = () => {
           </span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {todayClasses.map(crs => (
-            <div
-              key={crs.id}
+        {todayClasses.length === 0 ? (
+          <div
+            style={{
+              background: '#F8FAFC',
+              border: '1px dashed #CBD5E1',
+              borderRadius: '16px',
+              padding: '20px 16px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <div style={{ fontSize: '26px' }}>
+              {todayDayName === 'Minggu' ? '🌴' : '☕'}
+            </div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+              Tidak ada jadwal kuliah hari ini
+            </div>
+            <div style={{ fontSize: '12px', color: '#64748B', maxWidth: '300px', lineHeight: 1.45 }}>
+              {todayDayName === 'Minggu'
+                ? 'Selamat berlibur! Siapkan energimu untuk kuliah besok.'
+                : 'Hari ini kosong. Waktunya belajar mandiri atau santai sejenak!'}
+            </div>
+            <button
+              type="button"
               onClick={() => navigateTo('academic', 'schedule')}
               style={{
-                background: '#F8FAFC',
-                borderRadius: '14px',
-                padding: '12px 14px',
-                borderLeft: `4px solid ${crs.color || '#1665D8'}`,
-                display: 'flex',
-                justifyContent: 'space-between',
+                marginTop: '6px',
+                background: '#FFFFFF',
+                color: '#1665D8',
+                border: '1px solid #BFDBFE',
+                borderRadius: '10px',
+                padding: '6px 14px',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
                 alignItems: 'center',
-                cursor: 'pointer'
+                gap: '5px'
               }}
-              title="Buka Jadwal Kuliah"
             >
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#0F172A' }}>
-                  {crs.name}
+              <Calendar size={13} /> Lihat Semua Jadwal
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {todayClasses.map(crs => {
+              // Status determination
+              const currentMinutes = now.getHours() * 60 + now.getMinutes();
+              const [startH, startM] = (crs.startTime || '00:00').split(':').map(Number);
+              const [endH, endM] = (crs.endTime || '00:00').split(':').map(Number);
+              const startMinutes = (startH || 0) * 60 + (startM || 0);
+              const endMinutes = (endH || 0) * 60 + (endM || 0);
+
+              let statusBadge = null;
+              if (currentMinutes >= startMinutes && currentMinutes <= endMinutes) {
+                statusBadge = { text: 'Sedang Berlangsung', bg: '#DCFCE7', color: '#166534', dot: true };
+              } else if (currentMinutes > endMinutes) {
+                statusBadge = { text: 'Selesai', bg: '#F1F5F9', color: '#64748B', dot: false };
+              } else {
+                statusBadge = { text: 'Akan Datang', bg: '#EFF6FF', color: '#1665D8', dot: false };
+              }
+
+              return (
+                <div
+                  key={crs.id}
+                  onClick={() => navigateTo('academic', 'schedule')}
+                  style={{
+                    background: '#FFFFFF',
+                    borderRadius: '14px',
+                    padding: '12px 14px',
+                    border: '1px solid #E2E8F0',
+                    borderLeft: `4px solid ${crs.color || '#1665D8'}`,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  title="Ketuk untuk buka jadwal kuliah lengkap"
+                >
+                  <div style={{ flex: 1, minWidth: 0, paddingRight: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          padding: '1px 6px',
+                          borderRadius: '6px',
+                          background: statusBadge.bg,
+                          color: statusBadge.color,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {statusBadge.dot && (
+                          <span
+                            style={{
+                              width: '5px',
+                              height: '5px',
+                              borderRadius: '50%',
+                              background: statusBadge.color,
+                              display: 'inline-block'
+                            }}
+                          />
+                        )}
+                        {statusBadge.text}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        color: '#0F172A',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {crs.name}
+                    </div>
+
+                    <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <Clock size={11} /> {crs.startTime} - {crs.endTime}
+                      </span>
+                      {crs.room && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                          <MapPin size={11} /> {crs.room}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <span
+                    className="course-badge"
+                    style={{
+                      background: '#EFF6FF',
+                      color: '#1665D8',
+                      border: '1px solid #BFDBFE',
+                      fontSize: '11px',
+                      padding: '3px 8px',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      flexShrink: 0
+                    }}
+                  >
+                    {crs.sks} SKS
+                  </span>
                 </div>
-                <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
-                  {crs.dayOfWeek} • {crs.startTime} - {crs.endTime} • {crs.room}
-                </div>
-              </div>
-              <span className="course-badge">{crs.sks} SKS</span>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* 4. Tugas Kuliah Mendesak */}

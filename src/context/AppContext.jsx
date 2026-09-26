@@ -816,7 +816,7 @@ export const AppProvider = ({ children }) => {
       endTime: course.endTime || '10:30',
       color: course.color || '#1665D8',
       grade: {
-        letter: 'E',
+        letter: null,
         point: 0.0,
         isGraded: false
       },
@@ -915,33 +915,34 @@ export const AppProvider = ({ children }) => {
   const setCourseGrade = (courseId, letter, point) => {
     setData(prev => {
       const targetCourse = prev.courses.find(c => c.id === courseId);
-      if (!targetCourse) return prev;
+      const numPoint = Number(point);
+      const gradeObj = { letter, point: numPoint, isGraded: true };
 
-      const gradeObj = { letter, point: Number(point) };
       const updatedCourses = prev.courses.map(c => 
         c.id === courseId ? { ...c, grade: gradeObj } : c
       );
 
-      const targetSemesterNum = targetCourse.semester || activeSemester;
+      const targetSemesterNum = targetCourse?.semester || activeSemester;
       const semExists = prev.semesters.some(s => s.semesterNumber === targetSemesterNum);
 
       let updatedSemesters;
       if (semExists) {
         updatedSemesters = prev.semesters.map(s => {
           if (s.semesterNumber === targetSemesterNum) {
-            const courseIdx = s.courses.findIndex(c => c.courseId === courseId || c.name === targetCourse.name);
+            const courseIdx = s.courses.findIndex(c => (courseId && c.courseId === courseId) || (targetCourse && c.name?.toLowerCase() === targetCourse.name?.toLowerCase()));
             let newSemCourses;
             if (courseIdx >= 0) {
               newSemCourses = [...s.courses];
               newSemCourses[courseIdx] = {
                 ...newSemCourses[courseIdx],
-                courseId: targetCourse.id,
-                name: targetCourse.name,
-                sks: Number(targetCourse.sks) || 3,
+                courseId: targetCourse?.id || courseId,
+                name: targetCourse?.name || newSemCourses[courseIdx].name,
+                sks: Number(targetCourse?.sks) || Number(newSemCourses[courseIdx].sks) || 3,
                 letter,
-                point: Number(point)
+                point: numPoint,
+                isGraded: true
               };
-            } else {
+            } else if (targetCourse) {
               newSemCourses = [
                 ...s.courses,
                 {
@@ -949,24 +950,30 @@ export const AppProvider = ({ children }) => {
                   name: targetCourse.name,
                   sks: Number(targetCourse.sks) || 3,
                   letter,
-                  point: Number(point)
+                  point: numPoint,
+                  isGraded: true
                 }
               ];
+            } else {
+              newSemCourses = s.courses;
             }
-            const totalSks = newSemCourses.reduce((sum, c) => sum + c.sks, 0);
-            const totalPoints = newSemCourses.reduce((sum, c) => sum + (c.sks * c.point), 0);
-            const ips = totalSks > 0 ? Number((totalPoints / totalSks).toFixed(2)) : 0;
+            const gradedSemCourses = newSemCourses.filter(c => c.isGraded !== false && c.letter && c.letter !== '-');
+            const totalSks = newSemCourses.reduce((sum, c) => sum + (Number(c.sks) || 0), 0);
+            const gradedSks = gradedSemCourses.reduce((sum, c) => sum + (Number(c.sks) || 0), 0);
+            const totalPoints = gradedSemCourses.reduce((sum, c) => sum + ((Number(c.sks) || 0) * (Number(c.point) || 0)), 0);
+            const ips = gradedSks > 0 ? Number((totalPoints / gradedSks).toFixed(2)) : null;
             return { ...s, totalSks, ips, courses: newSemCourses };
           }
           return s;
         });
-      } else {
+      } else if (targetCourse) {
         const initialCourse = {
           courseId: targetCourse.id,
           name: targetCourse.name,
           sks: Number(targetCourse.sks) || 3,
           letter,
-          point: Number(point)
+          point: numPoint,
+          isGraded: true
         };
         const newSem = {
           semesterNumber: targetSemesterNum,
@@ -975,6 +982,8 @@ export const AppProvider = ({ children }) => {
           courses: [initialCourse]
         };
         updatedSemesters = [...prev.semesters, newSem].sort((a, b) => a.semesterNumber - b.semesterNumber);
+      } else {
+        updatedSemesters = prev.semesters;
       }
 
       return {
@@ -1203,13 +1212,51 @@ export const AppProvider = ({ children }) => {
       const seen = new Set();
 
       regCourses.forEach(rc => {
-        seen.add(rc.name.toLowerCase());
+        seen.add(rc.name?.toLowerCase());
         const match = recCourses.find(
-          ec => (ec.courseId && ec.courseId === rc.id) || ec.name.toLowerCase() === rc.name.toLowerCase()
+          ec => (ec.courseId && ec.courseId === rc.id) || ec.name?.toLowerCase() === rc.name?.toLowerCase()
         );
-        const hasGrade = Boolean(rc.grade?.letter || match?.letter);
-        const letter = rc.grade?.letter || match?.letter || 'E';
-        const point = rc.grade?.point !== undefined ? Number(rc.grade.point) : (match?.point !== undefined ? Number(match.point) : 0);
+
+        // Grade determination:
+        // A course is only graded if explicitly marked as isGraded: true or has recorded grade in match
+        const hasExplicitGraded = rc.grade?.isGraded === true || rc.is_graded === true;
+        const isExplicitlyUngraded = rc.grade?.isGraded === false || rc.is_graded === false;
+
+        let hasGrade = false;
+        let letter = '-';
+        let point = 0;
+
+        if (hasExplicitGraded) {
+          hasGrade = true;
+          letter = rc.grade?.letter || match?.letter || 'A';
+          point = rc.grade?.point !== undefined ? Number(rc.grade.point) : (match?.point !== undefined ? Number(match.point) : 4.0);
+        } else if (isExplicitlyUngraded) {
+          if (match && match.letter && match.letter !== '-' && match.isGraded !== false) {
+            hasGrade = true;
+            letter = match.letter;
+            point = match.point !== undefined ? Number(match.point) : 0;
+          } else {
+            hasGrade = false;
+            letter = '-';
+            point = 0;
+          }
+        } else {
+          // Fallback / legacy without explicit isGraded flag
+          if (match && match.letter && match.letter !== '-') {
+            hasGrade = true;
+            letter = match.letter;
+            point = match.point !== undefined ? Number(match.point) : 0;
+          } else if (rc.grade?.letter && rc.grade.letter !== '-' && rc.grade.letter !== 'E') {
+            hasGrade = true;
+            letter = rc.grade.letter;
+            point = rc.grade.point !== undefined ? Number(rc.grade.point) : 0;
+          } else {
+            // Default placeholder (e.g. unassigned grade 'E' with point 0) is treated as not graded yet
+            hasGrade = false;
+            letter = '-';
+            point = 0;
+          }
+        }
 
         merged.push({
           id: rc.id,
@@ -1220,19 +1267,22 @@ export const AppProvider = ({ children }) => {
           lecturer: rc.lecturer,
           room: rc.room,
           dayOfWeek: rc.dayOfWeek,
+          startTime: rc.startTime,
+          endTime: rc.endTime,
           time: `${rc.startTime || ''} - ${rc.endTime || ''}`,
           color: rc.color,
           semester: semNum,
           isFromCourses: true,
           isGraded: hasGrade,
-          letter,
-          point
+          letter: hasGrade ? letter : '-',
+          point: hasGrade ? point : 0
         });
       });
 
       recCourses.forEach(ec => {
-        if (!seen.has(ec.name.toLowerCase())) {
-          seen.add(ec.name.toLowerCase());
+        if (!seen.has(ec.name?.toLowerCase())) {
+          seen.add(ec.name?.toLowerCase());
+          const hasGrade = ec.isGraded !== false && Boolean(ec.letter && ec.letter !== '-');
           merged.push({
             id: ec.courseId || `ec-${ec.name}`,
             courseId: ec.courseId,
@@ -1241,9 +1291,9 @@ export const AppProvider = ({ children }) => {
             sks: Number(ec.sks) || 3,
             semester: semNum,
             isFromCourses: false,
-            isGraded: true,
-            letter: ec.letter || 'E',
-            point: Number(ec.point) || 0
+            isGraded: hasGrade,
+            letter: hasGrade ? (ec.letter || 'A') : '-',
+            point: hasGrade ? (Number(ec.point) || 0) : 0
           });
         }
       });
@@ -1252,15 +1302,21 @@ export const AppProvider = ({ children }) => {
       const graded = merged.filter(c => c.isGraded);
       const gradedSks = graded.reduce((sum, c) => sum + c.sks, 0);
       const gradedPoints = graded.reduce((sum, c) => sum + (c.sks * c.point), 0);
-      const ips = gradedSks > 0 ? Number((gradedPoints / gradedSks).toFixed(2)) : null;
+
+      let ips = null;
+      if (gradedSks > 0) {
+        ips = Number((gradedPoints / gradedSks).toFixed(2));
+      } else if (semRec && typeof semRec.ips === 'number' && semRec.ips > 0 && semRec.totalSks > 0 && merged.length === 0) {
+        ips = semRec.ips;
+      }
 
       return {
         semesterNumber: semNum,
         courses: merged,
         totalSks,
         gradedCourses: graded,
-        gradedSks,
-        gradedPoints,
+        gradedSks: gradedSks > 0 ? gradedSks : (ips !== null && semRec?.totalSks ? semRec.totalSks : 0),
+        gradedPoints: gradedSks > 0 ? gradedPoints : (ips !== null && semRec?.totalSks ? ips * semRec.totalSks : 0),
         ips
       };
     });

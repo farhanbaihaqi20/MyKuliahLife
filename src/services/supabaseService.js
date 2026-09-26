@@ -273,8 +273,8 @@ export const dataSyncService = {
             endTime: c.end_time?.slice(0, 5) || '10:30',
             color: c.color || '#1665D8',
             grade: {
-              letter: c.grade_letter || 'E',
-              point: Number(c.grade_point) || 0.0,
+              letter: c.is_graded ? (c.grade_letter || 'A') : null,
+              point: c.is_graded ? (Number(c.grade_point) ?? 0.0) : 0.0,
               isGraded: Boolean(c.is_graded)
             },
             attendance: courseAtt

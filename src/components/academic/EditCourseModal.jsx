@@ -13,7 +13,7 @@ const COLOR_OPTIONS = [
   '#CA8A04'  // Yellow
 ];
 
-const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 export default function EditCourseModal({ course, isOpen, onClose }) {
   const { updateCourse } = useApp();

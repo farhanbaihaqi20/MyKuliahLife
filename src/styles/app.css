@@ -1527,6 +1527,21 @@ html, body {
   transition: all 0.2s ease;
 }
 
+/* Academic Semester Switcher Card */
+.academic-semester-card {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.academic-semester-card:hover {
+  border-color: #BFDBFE !important;
+  box-shadow: 0 6px 20px -4px rgba(22, 101, 216, 0.12) !important;
+  transform: translateY(-1px);
+}
+
+.academic-semester-card:active {
+  transform: translateY(0px) scale(0.995);
+}
+
 /* Sub-Tab Navigation inside views (Modern Capsule Navigation) */
 .subtab-bar,
 .subtab-pills {
