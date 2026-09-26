@@ -64,7 +64,7 @@ export const authService = {
 
   // Listener perubahan status otentikasi
   onAuthStateChange(callback) {
-    if (!isSupabaseConfigured() || !supabase) return { data: { subscription: { unsubscribe: () => {} } } };
+    if (!isSupabaseConfigured() || !supabase) return { data: { subscription: { unsubscribe: () => { } } } };
     return supabase.auth.onAuthStateChange(callback);
   }
 };
@@ -94,23 +94,46 @@ export const profileService = {
     }
   },
 
-  // Simpan / update profil mahasiswa
+  // Simpan / update profil mahasiswa (Safe Partial Upsert)
   async upsertProfile(userId, profileData) {
     if (!isSupabaseConfigured() || !supabase || !userId) return null;
     try {
       const payload = {
         id: userId,
-        full_name: profileData.fullName || profileData.full_name || 'Mahasiswa',
-        university: profileData.university || 'Universitas',
-        major: profileData.major || 'Program Studi',
-        active_semester: Number(profileData.activeSemester || profileData.active_semester || profileData.semester || 1),
-        unlocked_semesters: profileData.unlockedSemesters || profileData.unlocked_semesters || [1],
-        target_gpa: Number(profileData.targetGpa || profileData.target_gpa || 3.80),
-        start_day_of_month: Number(profileData.startDayOfMonth || profileData.start_day_of_month || 1),
-        monthly_budget: Number(profileData.monthlyBudget || profileData.monthly_budget || 1500000),
-        ...(profileData.budgetCategories || profileData.budget_categories ? { budget_categories: profileData.budgetCategories || profileData.budget_categories } : {}),
         updated_at: new Date().toISOString()
       };
+
+      if (profileData.fullName !== undefined || profileData.full_name !== undefined) {
+        const val = (profileData.fullName || profileData.full_name || '').trim();
+        if (val) payload.full_name = val;
+      }
+      if (profileData.university !== undefined) {
+        const val = (profileData.university || '').trim();
+        if (val) payload.university = val;
+      }
+      if (profileData.major !== undefined) {
+        const val = (profileData.major || '').trim();
+        if (val) payload.major = val;
+      }
+      const semNum = Number(profileData.activeSemester || profileData.active_semester || profileData.semester);
+      if (semNum) {
+        payload.active_semester = semNum;
+      }
+      if (profileData.unlockedSemesters || profileData.unlocked_semesters) {
+        payload.unlocked_semesters = profileData.unlockedSemesters || profileData.unlocked_semesters;
+      }
+      if (profileData.targetGpa !== undefined || profileData.target_gpa !== undefined) {
+        payload.target_gpa = Number(profileData.targetGpa || profileData.target_gpa || 3.80);
+      }
+      if (profileData.startDayOfMonth !== undefined || profileData.start_day_of_month !== undefined) {
+        payload.start_day_of_month = Number(profileData.startDayOfMonth || profileData.start_day_of_month || 1);
+      }
+      if (profileData.monthlyBudget !== undefined || profileData.monthly_budget !== undefined) {
+        payload.monthly_budget = Number(profileData.monthlyBudget || profileData.monthly_budget);
+      }
+      if (profileData.budgetCategories || profileData.budget_categories) {
+        payload.budget_categories = profileData.budgetCategories || profileData.budget_categories;
+      }
 
       const { data, error } = await supabase
         .from('profiles')
@@ -126,20 +149,137 @@ export const profileService = {
     }
   },
 
+  // Update Alokasi Budget & Siklus Keuangan Mahasiswa (Safe Partial Update)
+  async updateBudget(userId, { monthlyBudget, startDayOfMonth, budgetCategories }) {
+    if (!isSupabaseConfigured() || !supabase || !userId) return null;
+    try {
+      const updatePayload = {
+        updated_at: new Date().toISOString()
+      };
+      if (monthlyBudget !== undefined && monthlyBudget !== null) {
+        updatePayload.monthly_budget = Number(monthlyBudget);
+      }
+      if (startDayOfMonth !== undefined && startDayOfMonth !== null) {
+        updatePayload.start_day_of_month = Number(startDayOfMonth);
+      }
+      if (budgetCategories && Array.isArray(budgetCategories)) {
+        updatePayload.budget_categories = budgetCategories;
+      }
+
+      // 1. Coba update penuh dengan budget_categories
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updatePayload)
+        .eq('id', userId)
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        console.warn('Gagal update budget_categories di profiles, fallback ke monthly_budget saja:', error);
+        delete updatePayload.budget_categories;
+        const fallbackRes = await supabase
+          .from('profiles')
+          .update(updatePayload)
+          .eq('id', userId)
+          .select()
+          .maybeSingle();
+        if (fallbackRes.error) {
+          console.error('Fallback budget update failed:', fallbackRes.error);
+          throw fallbackRes.error;
+        }
+        return fallbackRes.data || null;
+      }
+
+      return data || null;
+    } catch (err) {
+      console.error('Failed to update budget in Supabase profiles:', err);
+      throw err;
+    }
+  },
+
+  // Update profil mahasiswa secara aman (Partial Update)
+  async updateProfile(userId, profileFields) {
+    if (!isSupabaseConfigured() || !supabase || !userId) return null;
+    try {
+      const updatePayload = {
+        updated_at: new Date().toISOString()
+      };
+
+      if (profileFields.fullName !== undefined || profileFields.full_name !== undefined) {
+        const name = (profileFields.fullName || profileFields.full_name || '').trim();
+        if (name) updatePayload.full_name = name;
+      }
+      if (profileFields.university !== undefined) {
+        const uni = (profileFields.university || '').trim();
+        if (uni) updatePayload.university = uni;
+      }
+      if (profileFields.major !== undefined) {
+        const maj = (profileFields.major || '').trim();
+        if (maj) updatePayload.major = maj;
+      }
+      const semNum = Number(profileFields.activeSemester || profileFields.semester);
+      if (semNum) {
+        updatePayload.active_semester = semNum;
+      }
+      if (profileFields.unlockedSemesters && Array.isArray(profileFields.unlockedSemesters) && profileFields.unlockedSemesters.length > 0) {
+        updatePayload.unlocked_semesters = profileFields.unlockedSemesters;
+      }
+      if (profileFields.targetGpa !== undefined || profileFields.target_gpa !== undefined) {
+        updatePayload.target_gpa = Number(profileFields.targetGpa || profileFields.target_gpa || 3.80);
+      }
+      if (profileFields.monthlyBudget !== undefined || profileFields.monthly_budget !== undefined) {
+        updatePayload.monthly_budget = Number(profileFields.monthlyBudget || profileFields.monthly_budget);
+      }
+      if (profileFields.startDayOfMonth !== undefined || profileFields.start_day_of_month !== undefined) {
+        updatePayload.start_day_of_month = Number(profileFields.startDayOfMonth || profileFields.start_day_of_month);
+      }
+      if (profileFields.budgetCategories || profileFields.budget_categories) {
+        updatePayload.budget_categories = profileFields.budgetCategories || profileFields.budget_categories;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updatePayload)
+        .eq('id', userId)
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        console.error('Failed to update profile in Supabase:', error);
+        throw error;
+      }
+
+      // Jika baris profil belum pernah ada, buat baru via upsert
+      if (!data) {
+        return await profileService.upsertProfile(userId, profileFields);
+      }
+
+      return data || null;
+    } catch (err) {
+      console.error('Catch updateProfile error:', err);
+      throw err;
+    }
+  },
+
   // Update semester aktif & daftar semester terbuka
   async updateSemesters(userId, activeSemester, unlockedSemesters) {
     if (!isSupabaseConfigured() || !supabase || !userId) return null;
     try {
+      const semNum = Number(activeSemester || 1);
+      const safeUnlocked = Array.isArray(unlockedSemesters) && unlockedSemesters.length > 0
+        ? Array.from(new Set([...unlockedSemesters, semNum])).sort((a, b) => a - b)
+        : [semNum];
+
       const { data, error } = await supabase
         .from('profiles')
         .update({
-          active_semester: Number(activeSemester),
-          unlocked_semesters: unlockedSemesters,
+          active_semester: semNum,
+          unlocked_semesters: safeUnlocked,
           updated_at: new Date().toISOString()
         })
         .eq('id', userId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -207,24 +347,29 @@ export const dataSyncService = {
           startDayOfMonth: prof.start_day_of_month || 1,
           totalBudget: Number(prof.monthly_budget) || 1500000,
           categories: (() => {
+            const tot = Number(prof.monthly_budget) || 1500000;
             const fallbackCategories = [
-              { id: 'cat-1', name: 'Makanan & minuman', icon: '🍜', budget: 750000, color: '#F97316' },
-              { id: 'cat-2', name: 'Transportasi', icon: '🛵', budget: 200000, color: '#10B981' },
-              { id: 'cat-3', name: 'Tagihan & utilitas', icon: '⚡', budget: 250000, color: '#3B82F6' },
-              { id: 'cat-4', name: 'Kebutuhan Pribadi & Skincare', icon: '🧴', budget: 150000, color: '#EC4899' },
-              { id: 'cat-5', name: 'Hiburan & nongkrong', icon: '☕', budget: 150000, color: '#8B5CF6' }
+              { id: 'cat-1', name: 'Makanan & minuman', icon: '🍜', percentage: 40, budget: Math.round(tot * 0.4), color: '#F97316' },
+              { id: 'cat-2', name: 'Transportasi', icon: '🛵', percentage: 15, budget: Math.round(tot * 0.15), color: '#10B981' },
+              { id: 'cat-3', name: 'Tagihan & utilitas', icon: '⚡', percentage: 20, budget: Math.round(tot * 0.2), color: '#3B82F6' },
+              { id: 'cat-4', name: 'Kebutuhan Pribadi & Skincare', icon: '🧴', percentage: 15, budget: Math.round(tot * 0.15), color: '#EC4899' },
+              { id: 'cat-5', name: 'Hiburan & nongkrong', icon: '☕', percentage: 10, budget: Math.round(tot * 0.1), color: '#8B5CF6' }
             ];
             if (Array.isArray(prof.budget_categories) && prof.budget_categories.length > 0) {
-              const hasPersonalCare = prof.budget_categories.some(c =>
+              const mappedCats = prof.budget_categories.map(c => ({
+                ...c,
+                budget: Number(c.budget) || Math.round((tot * (Number(c.percentage) || 20)) / 100)
+              }));
+              const hasPersonalCare = mappedCats.some(c =>
                 c.name?.toLowerCase().includes('skincare') || c.name?.toLowerCase().includes('pribadi')
               );
               if (!hasPersonalCare) {
                 return [
-                  ...prof.budget_categories,
-                  { id: 'cat-personal', name: 'Kebutuhan Pribadi & Skincare', icon: '🧴', budget: 150000, color: '#EC4899' }
+                  ...mappedCats,
+                  { id: 'cat-personal', name: 'Kebutuhan Pribadi & Skincare', icon: '🧴', percentage: 10, budget: Math.round(tot * 0.1), color: '#EC4899' }
                 ];
               }
-              return prof.budget_categories;
+              return mappedCats;
             }
             return fallbackCategories;
           })()
@@ -373,7 +518,7 @@ export const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);

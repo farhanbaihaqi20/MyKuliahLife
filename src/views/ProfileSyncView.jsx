@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { maskMoney } from '../utils/formatters';
 import {
@@ -54,6 +54,25 @@ export const ProfileSyncView = () => {
   const [targetGpa, setTargetGpa] = useState(data.profile?.targetGpa || 3.80);
   const [selectedSemester, setSelectedSemester] = useState(activeSemester || data.profile?.semester || 1);
 
+  // Keep form fields synchronized with latest data when edit modal is closed
+  useEffect(() => {
+    if (!isEditingProfile) {
+      setFullName(data.profile?.fullName || '');
+      setUniversity(data.profile?.university || '');
+      setMajor(data.profile?.major || '');
+      setTargetGpa(data.profile?.targetGpa || 3.80);
+      setSelectedSemester(activeSemester || data.profile?.semester || 1);
+    }
+  }, [
+    data.profile?.fullName,
+    data.profile?.university,
+    data.profile?.major,
+    data.profile?.targetGpa,
+    data.profile?.semester,
+    activeSemester,
+    isEditingProfile
+  ]);
+
   // Prepare when opening edit modal
   const handleOpenEdit = () => {
     setFullName(data.profile?.fullName || '');
@@ -68,17 +87,20 @@ export const ProfileSyncView = () => {
     e.preventDefault();
     const semNum = Number(selectedSemester) || 1;
 
-    updateProfile({
-      fullName: fullName.trim() || 'Mahasiswa',
-      university: university.trim() || 'Universitas',
-      major: major.trim() || 'Program Studi',
-      targetGpa: Number(targetGpa) || 3.80,
-      semester: semNum
-    });
+    // Use existing profile data as fallback so user data is never wiped with placeholder defaults
+    const newFullName = fullName.trim() || data.profile?.fullName || 'Mahasiswa';
+    const newUniversity = university.trim() || data.profile?.university || '';
+    const newMajor = major.trim() || data.profile?.major || '';
+    const newTargetGpa = Number(targetGpa) || data.profile?.targetGpa || 3.80;
 
-    if (semNum !== activeSemester) {
-      changeActiveSemester(semNum);
-    }
+    updateProfile({
+      fullName: newFullName,
+      university: newUniversity,
+      major: newMajor,
+      targetGpa: newTargetGpa,
+      semester: semNum,
+      activeSemester: semNum
+    });
 
     setIsEditingProfile(false);
     confetti({ particleCount: 35, spread: 60, origin: { y: 0.6 } });

@@ -37,7 +37,26 @@ export const loadLocalData = (userId = null) => {
           });
         }
       }
-      return { ...CLEAN_DATA, ...parsed };
+      // Ensure consistency for activeSemester and unlockedSemesters
+      const safeActiveSemester = Number(parsed.activeSemester || parsed.profile?.semester || 1);
+      parsed.activeSemester = safeActiveSemester;
+      if (parsed.profile) {
+        parsed.profile.semester = safeActiveSemester;
+      }
+      if (!Array.isArray(parsed.unlockedSemesters) || parsed.unlockedSemesters.length === 0) {
+        parsed.unlockedSemesters = [safeActiveSemester];
+      } else if (!parsed.unlockedSemesters.includes(safeActiveSemester)) {
+        parsed.unlockedSemesters = Array.from(new Set([...parsed.unlockedSemesters, safeActiveSemester])).sort((a, b) => a - b);
+      }
+
+      return {
+        ...CLEAN_DATA,
+        ...parsed,
+        profile: {
+          ...CLEAN_DATA.profile,
+          ...(parsed.profile || {})
+        }
+      };
     }
   } catch (e) {
     console.error('Error loading local storage data:', e);
@@ -49,6 +68,8 @@ export const saveLocalData = (data, userId = null) => {
   try {
     const key = getStorageKey(userId);
     localStorage.setItem(key, JSON.stringify(data));
+    const legacyKey = getLegacyStorageKey(userId);
+    localStorage.setItem(legacyKey, JSON.stringify(data));
   } catch (e) {
     console.error('Error saving local storage data:', e);
   }
@@ -72,16 +93,18 @@ export const syncWithCloud = async (localData, userId = null) => {
       targetUserId = session.user.id;
     }
 
-    // 1. Sync Profile & Semester
-    await profileService.upsertProfile(targetUserId, {
+    // 1. Sync Profile & Semester (Safe Partial Update, never overwrite with default placeholders)
+    const semNum = Number(localData.activeSemester || localData.profile?.semester || 1);
+    await profileService.updateProfile(targetUserId, {
       fullName: localData.profile?.fullName,
       university: localData.profile?.university,
       major: localData.profile?.major,
-      activeSemester: localData.activeSemester || localData.profile?.semester || 1,
-      unlockedSemesters: localData.unlockedSemesters || [localData.activeSemester || 1],
-      targetGpa: localData.profile?.targetGpa || 3.80,
-      startDayOfMonth: localData.budget?.startDayOfMonth || 1,
-      monthlyBudget: localData.budget?.totalBudget || 1500000
+      activeSemester: semNum,
+      unlockedSemesters: localData.unlockedSemesters || [semNum],
+      targetGpa: localData.profile?.targetGpa,
+      startDayOfMonth: localData.budget?.startDayOfMonth,
+      monthlyBudget: localData.budget?.totalBudget,
+      budgetCategories: localData.budget?.categories || []
     });
 
     return { success: true, mode: 'cloud', message: 'Data berhasil disinkronkan ke Supabase Cloud!' };

@@ -7,6 +7,109 @@ import { getFinancialCycle } from '../utils/dateCycle';
 
 const AppContext = createContext();
 
+// Helper to intelligently merge cloud data with local cached data
+// If cloud profile has default placeholders ('Mahasiswa', 'Universitas', 'Program Studi', semester 1, etc.)
+// but cached has customized values, PRESERVE cached and sync back to cloud so data is never wiped!
+const reconcileUserData = (cloudData, cached, userId) => {
+  if (!cloudData) return cached || CLEAN_DATA;
+  if (!cached) return cloudData;
+
+  let needsCloudHealing = false;
+  const healingPayload = {};
+
+  // 1. Reconcile Attendance
+  if (cached.courses && Array.isArray(cloudData.courses)) {
+    cloudData.courses = cloudData.courses.map(cc => {
+      if (!cc.attendance || cc.attendance.length === 0) {
+        const cachedC = cached.courses.find(localC => localC.id === cc.id);
+        if (cachedC?.attendance && cachedC.attendance.length > 0) {
+          cachedC.attendance.forEach(att => {
+            if (att.status && att.status !== 'unrecorded') {
+              cloudService.upsertAttendance(userId, {
+                courseId: cc.id,
+                meetingNumber: att.meeting,
+                status: att.status
+              });
+            }
+          });
+          return { ...cc, attendance: cachedC.attendance };
+        }
+      }
+      return cc;
+    });
+  }
+
+  // 2. Reconcile Profile (Full Name, University, Major)
+  const isPlaceholderName = (name) => !name || name.trim() === '' || name.trim().toLowerCase() === 'mahasiswa';
+  const isPlaceholderUniv = (u) => !u || u.trim() === '' || u.trim().toLowerCase() === 'universitas';
+  const isPlaceholderMajor = (m) => !m || m.trim() === '' || m.trim().toLowerCase() === 'program studi';
+
+  if (!cloudData.profile) {
+    cloudData.profile = { ...(cached.profile || CLEAN_DATA.profile) };
+  }
+
+  if (isPlaceholderName(cloudData.profile.fullName) && cached.profile?.fullName && !isPlaceholderName(cached.profile.fullName)) {
+    cloudData.profile.fullName = cached.profile.fullName;
+    healingPayload.fullName = cached.profile.fullName;
+    needsCloudHealing = true;
+  }
+
+  if (isPlaceholderUniv(cloudData.profile.university) && cached.profile?.university && !isPlaceholderUniv(cached.profile.university)) {
+    cloudData.profile.university = cached.profile.university;
+    healingPayload.university = cached.profile.university;
+    needsCloudHealing = true;
+  }
+
+  if (isPlaceholderMajor(cloudData.profile.major) && cached.profile?.major && !isPlaceholderMajor(cached.profile.major)) {
+    cloudData.profile.major = cached.profile.major;
+    healingPayload.major = cached.profile.major;
+    needsCloudHealing = true;
+  }
+
+  // 3. Reconcile Semester (Active Semester & Unlocked Semesters)
+  const cachedSem = Number(cached.activeSemester || cached.profile?.semester || 1);
+  const cloudSem = Number(cloudData.activeSemester || cloudData.profile?.semester || 1);
+
+  if (cloudSem === 1 && cachedSem > 1) {
+    cloudData.activeSemester = cachedSem;
+    cloudData.profile.semester = cachedSem;
+    healingPayload.activeSemester = cachedSem;
+    needsCloudHealing = true;
+  } else {
+    const finalSem = cloudSem || cachedSem || 1;
+    cloudData.activeSemester = finalSem;
+    cloudData.profile.semester = finalSem;
+  }
+
+  const cachedUnlocked = Array.isArray(cached.unlockedSemesters) ? cached.unlockedSemesters : [cachedSem];
+  const cloudUnlocked = Array.isArray(cloudData.unlockedSemesters) ? cloudData.unlockedSemesters : [cloudSem];
+  const mergedUnlocked = Array.from(new Set([...cloudUnlocked, ...cachedUnlocked, cloudData.activeSemester])).sort((a, b) => a - b);
+  cloudData.unlockedSemesters = mergedUnlocked;
+
+  if (mergedUnlocked.length > cloudUnlocked.length) {
+    healingPayload.unlockedSemesters = mergedUnlocked;
+    needsCloudHealing = true;
+  }
+
+  // 4. Reconcile Budget (if cloud total is default 1500000 but local has custom total)
+  if (cloudData.budget && cached.budget) {
+    if (Number(cloudData.budget.totalBudget) === 1500000 && Number(cached.budget.totalBudget) && Number(cached.budget.totalBudget) !== 1500000) {
+      cloudData.budget.totalBudget = Number(cached.budget.totalBudget);
+      healingPayload.monthlyBudget = Number(cached.budget.totalBudget);
+      needsCloudHealing = true;
+    }
+  }
+
+  // Background auto-heal Supabase
+  if (needsCloudHealing && userId) {
+    profileService.updateProfile(userId, healingPayload).catch(err => {
+      console.warn('Background profile healing error:', err);
+    });
+  }
+
+  return cloudData;
+};
+
 export const AppProvider = ({ children }) => {
   // Auth states
   const [session, setSession] = useState(null);
@@ -14,8 +117,14 @@ export const AppProvider = ({ children }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isGuestMode, setIsGuestMode] = useState(false);
 
-  // Clean data as safe initial state so demo data never leaks into authenticated accounts
-  const [data, setData] = useState(CLEAN_DATA);
+  // Initialize data with cached local data if available
+  const [data, setData] = useState(() => {
+    try {
+      return loadLocalData(null) || CLEAN_DATA;
+    } catch {
+      return CLEAN_DATA;
+    }
+  });
   const [activeTab, setActiveTab] = useState('home'); // 'home' | 'academic' | 'finance' | 'grades' | 'profile'
   const [financeSubtab, setFinanceSubtab] = useState('accounts'); // 'accounts' | 'budget' | 'history' | 'report' | 'bills' | 'targets'
   const [academicTab, setAcademicTab] = useState('schedule'); // 'schedule' | 'assignments' | 'attendance' | 'notes'
@@ -79,31 +188,12 @@ export const AppProvider = ({ children }) => {
           });
 
           // Check if user has cloud data
-          const cloudData = await dataSyncService.loadUserData(currUser.id);
-          if (cloudData) {
+          const rawCloudData = await dataSyncService.loadUserData(currUser.id);
+          if (rawCloudData) {
             const cached = loadLocalData(currUser.id);
-            if (cached?.courses) {
-              cloudData.courses = cloudData.courses.map(cc => {
-                if (!cc.attendance || cc.attendance.length === 0) {
-                  const cachedC = cached.courses.find(localC => localC.id === cc.id);
-                  if (cachedC?.attendance && cachedC.attendance.length > 0) {
-                    cachedC.attendance.forEach(att => {
-                      if (att.status && att.status !== 'unrecorded') {
-                        cloudService.upsertAttendance(currUser.id, {
-                          courseId: cc.id,
-                          meetingNumber: att.meeting,
-                          status: att.status
-                        });
-                      }
-                    });
-                    return { ...cc, attendance: cachedC.attendance };
-                  }
-                }
-                return cc;
-              });
-            }
-            setData(cloudData);
-            saveLocalData(cloudData, currUser.id);
+            const resolvedData = reconcileUserData(rawCloudData, cached, currUser.id);
+            setData(resolvedData);
+            saveLocalData(resolvedData, currUser.id);
             setIsOnboardingOpen(false);
           } else {
             // New user without cloud profile
@@ -122,6 +212,10 @@ export const AppProvider = ({ children }) => {
             message: 'Belum Masuk Akun',
             lastSynced: null
           });
+          const localGuestData = loadLocalData(null);
+          if (localGuestData) {
+            setData(localGuestData);
+          }
         }
       } catch (err) {
         console.warn('Auth bootstrapping error:', err);
@@ -146,31 +240,12 @@ export const AppProvider = ({ children }) => {
           lastSynced: new Date().toLocaleTimeString('id-ID')
         });
 
-        const cloudData = await dataSyncService.loadUserData(newUser.id);
-        if (cloudData) {
+        const rawCloudData = await dataSyncService.loadUserData(newUser.id);
+        if (rawCloudData) {
           const cached = loadLocalData(newUser.id);
-          if (cached?.courses) {
-            cloudData.courses = cloudData.courses.map(cc => {
-              if (!cc.attendance || cc.attendance.length === 0) {
-                const cachedC = cached.courses.find(localC => localC.id === cc.id);
-                if (cachedC?.attendance && cachedC.attendance.length > 0) {
-                  cachedC.attendance.forEach(att => {
-                    if (att.status && att.status !== 'unrecorded') {
-                      cloudService.upsertAttendance(newUser.id, {
-                        courseId: cc.id,
-                        meetingNumber: att.meeting,
-                        status: att.status
-                      });
-                    }
-                  });
-                  return { ...cc, attendance: cachedC.attendance };
-                }
-              }
-              return cc;
-            });
-          }
-          setData(cloudData);
-          saveLocalData(cloudData, newUser.id);
+          const resolvedData = reconcileUserData(rawCloudData, cached, newUser.id);
+          setData(resolvedData);
+          saveLocalData(resolvedData, newUser.id);
           setIsOnboardingOpen(false);
         } else {
           setData(CLEAN_DATA);
@@ -267,33 +342,84 @@ export const AppProvider = ({ children }) => {
 
   // Profile Management
   const updateProfile = (fields) => {
+    const semNum = Number(fields.semester || fields.activeSemester) || undefined;
+
     setData(prev => {
+      const currentActiveSem = semNum || prev.activeSemester || prev.profile?.semester || 1;
+      const currentUnlocked = Array.isArray(prev.unlockedSemesters) && prev.unlockedSemesters.length > 0
+        ? prev.unlockedSemesters
+        : [currentActiveSem];
+      const nextUnlocked = semNum && !currentUnlocked.includes(semNum)
+        ? Array.from(new Set([...currentUnlocked, semNum])).sort((a, b) => a - b)
+        : currentUnlocked;
+
       const updated = {
         ...prev,
-        profile: { ...prev.profile, ...fields }
+        activeSemester: currentActiveSem,
+        unlockedSemesters: nextUnlocked,
+        profile: {
+          ...prev.profile,
+          ...fields,
+          semester: currentActiveSem
+        }
       };
+
+      // Always save to localStorage immediately
+      saveLocalData(updated, user?.id);
+
+      // Safe partial update to Supabase
       if (user?.id) {
-        profileService.upsertProfile(user.id, updated.profile).catch(err => console.warn(err));
+        profileService.updateProfile(user.id, {
+          fullName: updated.profile?.fullName,
+          university: updated.profile?.university,
+          major: updated.profile?.major,
+          activeSemester: currentActiveSem,
+          unlockedSemesters: nextUnlocked,
+          targetGpa: updated.profile?.targetGpa,
+          startDayOfMonth: updated.budget?.startDayOfMonth,
+          monthlyBudget: updated.budget?.totalBudget,
+          budgetCategories: updated.budget?.categories
+        }).catch(err => console.warn('Supabase updateProfile error:', err));
       }
+
       return updated;
     });
+
+    if (semNum) {
+      setViewSemester(semNum);
+    }
   };
 
   // Semester Management (Centrally in Profile)
   const changeActiveSemester = async (targetSem) => {
     const semNum = Number(targetSem);
-    setData(prev => ({
-      ...prev,
-      activeSemester: semNum,
-      profile: {
-        ...prev.profile,
-        semester: semNum
-      }
-    }));
+    if (!semNum) return;
+
+    let nextUnlocked = [];
+    setData(prev => {
+      const currentUnlocked = Array.isArray(prev.unlockedSemesters) && prev.unlockedSemesters.length > 0
+        ? prev.unlockedSemesters
+        : [prev.activeSemester || 1];
+      nextUnlocked = Array.from(new Set([...currentUnlocked, semNum])).sort((a, b) => a - b);
+
+      const updated = {
+        ...prev,
+        activeSemester: semNum,
+        unlockedSemesters: nextUnlocked,
+        profile: {
+          ...prev.profile,
+          semester: semNum
+        }
+      };
+      saveLocalData(updated, user?.id);
+      return updated;
+    });
+
     setViewSemester(semNum);
+
     if (user?.id) {
       try {
-        await profileService.updateSemesters(user.id, semNum, data.unlockedSemesters || [semNum]);
+        await profileService.updateSemesters(user.id, semNum, nextUnlocked);
       } catch (e) {
         console.warn('Sync semester error:', e);
       }
@@ -302,22 +428,33 @@ export const AppProvider = ({ children }) => {
 
   const unlockNewSemester = async (targetSem) => {
     const semNum = Number(targetSem);
-    const currentUnlocked = data.unlockedSemesters || [activeSemester];
-    const newUnlocked = Array.from(new Set([...currentUnlocked, semNum])).sort((a, b) => a - b);
+    if (!semNum) return;
 
-    setData(prev => ({
-      ...prev,
-      activeSemester: semNum,
-      unlockedSemesters: newUnlocked,
-      profile: {
-        ...prev.profile,
-        semester: semNum
-      }
-    }));
+    let nextUnlocked = [];
+    setData(prev => {
+      const currentUnlocked = Array.isArray(prev.unlockedSemesters) && prev.unlockedSemesters.length > 0
+        ? prev.unlockedSemesters
+        : [prev.activeSemester || 1];
+      nextUnlocked = Array.from(new Set([...currentUnlocked, semNum])).sort((a, b) => a - b);
+
+      const updated = {
+        ...prev,
+        activeSemester: semNum,
+        unlockedSemesters: nextUnlocked,
+        profile: {
+          ...prev.profile,
+          semester: semNum
+        }
+      };
+      saveLocalData(updated, user?.id);
+      return updated;
+    });
+
     setViewSemester(semNum);
+
     if (user?.id) {
       try {
-        await profileService.updateSemesters(user.id, semNum, newUnlocked);
+        await profileService.updateSemesters(user.id, semNum, nextUnlocked);
       } catch (e) {
         console.warn('Sync unlock semester error:', e);
       }
@@ -379,14 +516,25 @@ export const AppProvider = ({ children }) => {
 
   const setStartDayOfMonth = (newDay) => {
     const day = Number(newDay);
-    setData(prev => ({
-      ...prev,
-      budget: {
-        ...prev.budget,
-        startDayOfMonth: day,
-        periodLabel: getFinancialCycle(day, new Date()).label
+    setData(prev => {
+      const nextData = {
+        ...prev,
+        budget: {
+          ...prev.budget,
+          startDayOfMonth: day,
+          periodLabel: getFinancialCycle(day, new Date()).label
+        }
+      };
+      if (!isAuthLoading) {
+        saveLocalData(nextData, user?.id);
       }
-    }));
+      return nextData;
+    });
+    if (user?.id) {
+      profileService.updateBudget(user.id, {
+        startDayOfMonth: day
+      }).catch(err => console.warn(err));
+    }
   };
 
   // Filter transactions within active financial cycle
@@ -493,43 +641,45 @@ export const AppProvider = ({ children }) => {
       icon: tx.icon || '💸'
     };
 
-    const updatedAccounts = data.accounts.map(acc => {
-      let balance = Number(acc.balance) || 0;
-      if (acc.name === tx.accountName) {
-        if (tx.type === 'expense') {
-          balance = Math.max(0, balance - newTx.amount);
-        } else if (tx.type === 'income') {
-          balance += newTx.amount;
-        } else if (tx.type === 'transfer') {
-          balance = Math.max(0, balance - newTx.amount);
+    let finalAccounts = [];
+
+    setData(prev => {
+      const updatedAccounts = (prev.accounts || []).map(acc => {
+        let balance = Number(acc.balance) || 0;
+        if (acc.name === tx.accountName) {
+          if (tx.type === 'expense') {
+            balance = Math.max(0, balance - newTx.amount);
+          } else if (tx.type === 'income') {
+            balance += newTx.amount;
+          } else if (tx.type === 'transfer') {
+            balance = Math.max(0, balance - newTx.amount);
+          }
+          return { ...acc, balance, updated: 'Baru saja' };
         }
-        return { ...acc, balance, updated: 'Baru saja' };
+        if (tx.type === 'transfer' && acc.name === tx.toAccountName) {
+          balance += newTx.amount;
+          return { ...acc, balance, updated: 'Baru saja' };
+        }
+        return acc;
+      });
+
+      finalAccounts = updatedAccounts;
+
+      const nextData = {
+        ...prev,
+        accounts: updatedAccounts,
+        transactions: [newTx, ...(prev.transactions || [])]
+      };
+
+      if (!isAuthLoading) {
+        saveLocalData(nextData, user?.id);
       }
-      if (tx.type === 'transfer' && acc.name === tx.toAccountName) {
-        balance += newTx.amount;
-        return { ...acc, balance, updated: 'Baru saja' };
-      }
-      return acc;
+
+      return nextData;
     });
 
-    const updatedTransactions = [newTx, ...data.transactions];
-
-    setData(prev => ({
-      ...prev,
-      accounts: updatedAccounts,
-      transactions: [newTx, ...prev.transactions]
-    }));
-
-    if (!isAuthLoading) {
-      saveLocalData({
-        ...data,
-        accounts: updatedAccounts,
-        transactions: updatedTransactions
-      }, user?.id);
-    }
-
     if (user?.id) {
-      await cloudService.insertTransaction(user.id, newTx, updatedAccounts);
+      await cloudService.insertTransaction(user.id, newTx, finalAccounts);
       setSyncStatus({
         mode: 'online',
         message: 'Tersinkron Cloud Supabase',
@@ -539,49 +689,51 @@ export const AppProvider = ({ children }) => {
   };
 
   const deleteTransaction = async (txId, rollbackBalance = true) => {
-    const targetTx = data.transactions.find(t => String(t.id) === String(txId));
-    if (!targetTx) return;
+    let finalAccounts = [];
 
-    let updatedAccounts = data.accounts;
-    if (rollbackBalance) {
-      updatedAccounts = data.accounts.map(acc => {
-        let balance = Number(acc.balance) || 0;
-        if (acc.name === targetTx.accountName) {
-          if (targetTx.type === 'expense') {
-            balance += targetTx.amount;
-          } else if (targetTx.type === 'income') {
-            balance = Math.max(0, balance - targetTx.amount);
-          } else if (targetTx.type === 'transfer') {
-            balance += targetTx.amount;
+    setData(prev => {
+      const targetTx = (prev.transactions || []).find(t => String(t.id) === String(txId));
+      if (!targetTx) return prev;
+
+      let updatedAccounts = prev.accounts || [];
+      if (rollbackBalance) {
+        updatedAccounts = (prev.accounts || []).map(acc => {
+          let balance = Number(acc.balance) || 0;
+          if (acc.name === targetTx.accountName) {
+            if (targetTx.type === 'expense') {
+              balance += targetTx.amount;
+            } else if (targetTx.type === 'income') {
+              balance = Math.max(0, balance - targetTx.amount);
+            } else if (targetTx.type === 'transfer') {
+              balance += targetTx.amount;
+            }
+            return { ...acc, balance, updated: 'Baru saja' };
           }
-          return { ...acc, balance, updated: 'Baru saja' };
-        }
-        if (targetTx.type === 'transfer' && acc.name === targetTx.toAccountName) {
-          balance = Math.max(0, balance - targetTx.amount);
-          return { ...acc, balance, updated: 'Baru saja' };
-        }
-        return acc;
-      });
-    }
+          if (targetTx.type === 'transfer' && acc.name === targetTx.toAccountName) {
+            balance = Math.max(0, balance - targetTx.amount);
+            return { ...acc, balance, updated: 'Baru saja' };
+          }
+          return acc;
+        });
+      }
 
-    const updatedTransactions = data.transactions.filter(t => String(t.id) !== String(txId));
+      finalAccounts = updatedAccounts;
 
-    setData(prev => ({
-      ...prev,
-      accounts: updatedAccounts,
-      transactions: prev.transactions.filter(t => String(t.id) !== String(txId))
-    }));
-
-    if (!isAuthLoading) {
-      saveLocalData({
-        ...data,
+      const nextData = {
+        ...prev,
         accounts: updatedAccounts,
-        transactions: updatedTransactions
-      }, user?.id);
-    }
+        transactions: (prev.transactions || []).filter(t => String(t.id) !== String(txId))
+      };
+
+      if (!isAuthLoading) {
+        saveLocalData(nextData, user?.id);
+      }
+
+      return nextData;
+    });
 
     if (user?.id) {
-      await cloudService.deleteTransaction(user.id, txId, updatedAccounts);
+      await cloudService.deleteTransaction(user.id, txId, finalAccounts);
       setSyncStatus({
         mode: 'online',
         message: 'Tersinkron Cloud Supabase',
@@ -591,69 +743,70 @@ export const AppProvider = ({ children }) => {
   };
 
   const editTransaction = async (txId, updatedFields) => {
-    // 1. Locate existing transaction
-    const oldTx = data.transactions.find(t => String(t.id) === String(txId));
-    if (!oldTx) {
-      console.warn('Transaction to edit not found in current state:', txId);
-      return;
-    }
+    let finalAccounts = [];
+    let savedNewTx = null;
 
-    // 2. Rollback old transaction effect on balances
-    const tempAccounts = data.accounts.map(acc => {
-      let balance = Number(acc.balance) || 0;
-      if (acc.name === oldTx.accountName) {
-        if (oldTx.type === 'expense') balance += oldTx.amount;
-        else if (oldTx.type === 'income') balance = Math.max(0, balance - oldTx.amount);
-        else if (oldTx.type === 'transfer') balance += oldTx.amount;
+    setData(prev => {
+      const oldTx = (prev.transactions || []).find(t => String(t.id) === String(txId));
+      if (!oldTx) {
+        console.warn('Transaction to edit not found in current state:', txId);
+        return prev;
       }
-      if (oldTx.type === 'transfer' && acc.name === oldTx.toAccountName) {
-        balance = Math.max(0, balance - oldTx.amount);
+
+      // Rollback old transaction effect on balances
+      const tempAccounts = (prev.accounts || []).map(acc => {
+        let balance = Number(acc.balance) || 0;
+        if (acc.name === oldTx.accountName) {
+          if (oldTx.type === 'expense') balance += oldTx.amount;
+          else if (oldTx.type === 'income') balance = Math.max(0, balance - oldTx.amount);
+          else if (oldTx.type === 'transfer') balance += oldTx.amount;
+        }
+        if (oldTx.type === 'transfer' && acc.name === oldTx.toAccountName) {
+          balance = Math.max(0, balance - oldTx.amount);
+        }
+        return { ...acc, balance };
+      });
+
+      // Build updated transaction object
+      const newTx = {
+        ...oldTx,
+        ...updatedFields,
+        amount: Number(updatedFields.amount !== undefined ? updatedFields.amount : oldTx.amount)
+      };
+      savedNewTx = newTx;
+
+      // Apply new transaction effect on balances
+      const updatedAccounts = tempAccounts.map(acc => {
+        let balance = Number(acc.balance) || 0;
+        if (acc.name === newTx.accountName) {
+          if (newTx.type === 'expense') balance = Math.max(0, balance - newTx.amount);
+          else if (newTx.type === 'income') balance += newTx.amount;
+          else if (newTx.type === 'transfer') balance = Math.max(0, balance - newTx.amount);
+        }
+        if (newTx.type === 'transfer' && acc.name === newTx.toAccountName) {
+          balance += newTx.amount;
+        }
+        return { ...acc, balance, updated: 'Baru saja' };
+      });
+
+      finalAccounts = updatedAccounts;
+
+      const nextData = {
+        ...prev,
+        accounts: updatedAccounts,
+        transactions: (prev.transactions || []).map(t => String(t.id) === String(txId) ? newTx : t)
+      };
+
+      if (!isAuthLoading) {
+        saveLocalData(nextData, user?.id);
       }
-      return { ...acc, balance };
+
+      return nextData;
     });
 
-    // 3. Build updated transaction object
-    const newTx = {
-      ...oldTx,
-      ...updatedFields,
-      amount: Number(updatedFields.amount !== undefined ? updatedFields.amount : oldTx.amount)
-    };
-
-    // 4. Apply new transaction effect on balances
-    const finalAccounts = tempAccounts.map(acc => {
-      let balance = Number(acc.balance) || 0;
-      if (acc.name === newTx.accountName) {
-        if (newTx.type === 'expense') balance = Math.max(0, balance - newTx.amount);
-        else if (newTx.type === 'income') balance += newTx.amount;
-        else if (newTx.type === 'transfer') balance = Math.max(0, balance - newTx.amount);
-      }
-      if (newTx.type === 'transfer' && acc.name === newTx.toAccountName) {
-        balance += newTx.amount;
-      }
-      return { ...acc, balance, updated: 'Baru saja' };
-    });
-
-    const finalTransactions = data.transactions.map(t => String(t.id) === String(txId) ? newTx : t);
-
-    // 5. Update React state immediately
-    setData(prev => ({
-      ...prev,
-      accounts: finalAccounts,
-      transactions: prev.transactions.map(t => String(t.id) === String(txId) ? newTx : t)
-    }));
-
-    // 6. Update local storage cache immediately
-    if (!isAuthLoading) {
-      saveLocalData({
-        ...data,
-        accounts: finalAccounts,
-        transactions: finalTransactions
-      }, user?.id);
-    }
-
-    // 7. Sync directly to Supabase cloud
-    if (user?.id) {
-      await cloudService.updateTransaction(user.id, txId, newTx, finalAccounts);
+    // Sync directly to Supabase cloud
+    if (user?.id && savedNewTx) {
+      await cloudService.updateTransaction(user.id, txId, savedNewTx, finalAccounts);
       setSyncStatus({
         mode: 'online',
         message: 'Tersinkron Cloud Supabase',
@@ -662,22 +815,48 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Budget
-  const updateBudget = (newTotal, updatedCategories) => {
-    setData(prev => ({
-      ...prev,
-      budget: {
-        ...prev.budget,
-        totalBudget: newTotal !== undefined ? newTotal : prev.budget.totalBudget,
-        categories: updatedCategories || prev.budget.categories
+  // Budget Management (Direct Cloud Sync + Safe Local Persistence)
+  const updateBudget = async (newTotal, updatedCategories) => {
+    let targetTotal = 1500000;
+    let targetCategories = [];
+    let targetStartDay = 1;
+
+    setData(prev => {
+      targetTotal = newTotal !== undefined ? Number(newTotal) : (prev.budget?.totalBudget || 1500000);
+      targetCategories = updatedCategories || prev.budget?.categories || [];
+      targetStartDay = prev.budget?.startDayOfMonth || 1;
+
+      const nextData = {
+        ...prev,
+        budget: {
+          ...prev.budget,
+          totalBudget: targetTotal,
+          categories: targetCategories
+        }
+      };
+
+      if (!isAuthLoading) {
+        saveLocalData(nextData, user?.id);
       }
-    }));
+
+      return nextData;
+    });
+
     if (user?.id) {
-      profileService.upsertProfile(user.id, {
-        monthlyBudget: newTotal !== undefined ? newTotal : data.budget.totalBudget,
-        startDayOfMonth: data.budget.startDayOfMonth || 1,
-        budgetCategories: updatedCategories || data.budget.categories
-      });
+      try {
+        await profileService.updateBudget(user.id, {
+          monthlyBudget: targetTotal,
+          startDayOfMonth: targetStartDay,
+          budgetCategories: targetCategories
+        });
+        setSyncStatus({
+          mode: 'online',
+          message: 'Tersinkron Cloud Supabase',
+          lastSynced: new Date().toLocaleTimeString('id-ID')
+        });
+      } catch (err) {
+        console.error('Failed to sync budget to Supabase profiles:', err);
+      }
     }
   };
 
@@ -788,16 +967,8 @@ export const AppProvider = ({ children }) => {
 
   // --- SEMESTER & ACADEMIC TRANSITION ---
   const promoteToNextSemester = () => {
-    const nextSem = activeSemester + 1;
-    setData(prev => ({
-      ...prev,
-      activeSemester: nextSem,
-      profile: {
-        ...prev.profile,
-        semester: nextSem
-      }
-    }));
-    setViewSemester(nextSem);
+    const nextSem = (activeSemester || 1) + 1;
+    unlockNewSemester(nextSem);
   };
 
   // --- COURSES CRUD (Bound to semester & auto-synced) ---

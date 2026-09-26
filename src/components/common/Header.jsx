@@ -122,13 +122,13 @@ export const Header = () => {
           <span style={{ fontSize: '24px', flexShrink: 0 }}>🤖</span>
           <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
             <div className="greeting-text">
-              Hai {data.profile.fullName ? data.profile.fullName.split(' ')[0] : 'Mahasiswa'}!
+              Hai {data.profile?.fullName ? data.profile.fullName.split(' ')[0] : 'Mahasiswa'}!
             </div>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               <GraduationCap size={12} style={{ flexShrink: 0 }} />
               <span style={{ whiteSpace: 'nowrap' }}>Smt {activeSemester}</span>
               <span>•</span>
-              <span style={{ color: '#FDE68A', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{data.profile.major || 'Mahasiswa'} ⭐</span>
+              <span style={{ color: '#FDE68A', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{data.profile?.major || 'Mahasiswa'} ⭐</span>
             </div>
           </div>
         </div>
