@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { Eye, EyeOff, Lock, Mail, User, ArrowRight, Sparkles, ShieldCheck, Compass, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User, ArrowRight, Sparkles, ShieldCheck, Compass, CheckCircle2, AlertCircle, ArrowLeft, KeyRound } from 'lucide-react';
 import GoogleIcon from '../components/auth/GoogleIcon';
 
 export const AuthView = () => {
-  const { login, loginWithGoogle, register, resetPassword, enterGuestMode } = useApp();
+  const { login, loginWithGoogle, register, resetPassword, enterGuestMode, verifySignupOtp, resendSignupOtp } = useApp();
 
-  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot'
+  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot' | 'verify_otp'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -15,6 +15,13 @@ export const AuthView = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // OTP Verification States
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const otpInputsRef = useRef([]);
 
   // Rate Limiting & Brute-Force Lockout States (persisted in sessionStorage)
   const [loginAttempts, setLoginAttempts] = useState(() => {
@@ -66,6 +73,93 @@ export const AuthView = () => {
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [loginLockoutUntil, forgotCooldownUntil, registerCooldownUntil]);
+
+  // Cooldown effect for resending OTP
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
+
+  const handleOtpChange = (index, value) => {
+    const cleanVal = value.replace(/[^0-9]/g, '').slice(-1);
+    const newDigits = [...otpDigits];
+    newDigits[index] = cleanVal;
+    setOtpDigits(newDigits);
+
+    if (cleanVal && index < 5) {
+      otpInputsRef.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpInputsRef.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+    if (!pasted) return;
+
+    const newDigits = [...otpDigits];
+    for (let i = 0; i < 6; i++) {
+      newDigits[i] = pasted[i] || '';
+    }
+    setOtpDigits(newDigits);
+
+    const nextIndex = Math.min(pasted.length, 5);
+    otpInputsRef.current[nextIndex]?.focus();
+  };
+
+  const handleVerifyOtp = async (e) => {
+    if (e) e.preventDefault();
+    const token = otpDigits.join('').trim();
+    if (token.length < 6) {
+      setErrorMsg('Harap masukkan 6 digit kode verifikasi lengkap.');
+      return;
+    }
+
+    setOtpLoading(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const targetEmail = pendingEmail || email;
+      const res = await verifySignupOtp(targetEmail, token);
+      if (!res.success) {
+        setErrorMsg(res.error || 'Kode verifikasi salah atau sudah kadaluarsa. Periksa kembali kotak masuk email Anda.');
+      } else {
+        setSuccessMsg('Verifikasi berhasil! Mengalihkan ke dashboard...');
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Terjadi kesalahan saat memverifikasi kode.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const targetEmail = pendingEmail || email;
+      const res = await resendSignupOtp(targetEmail);
+      if (!res.success) {
+        setErrorMsg(res.error || 'Gagal mengirim ulang kode konfirmasi. Silakan coba sesaat lagi.');
+      } else {
+        setSuccessMsg(`Kode verifikasi baru telah dikirim ke ${targetEmail}.`);
+        setResendCooldown(60);
+      }
+    } catch (err) {
+      setErrorMsg('Gagal mengirim ulang kode konfirmasi.');
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     setErrorMsg('');
@@ -154,6 +248,14 @@ export const AuthView = () => {
       if (mode === 'login') {
         const res = await login(email, password);
         if (!res.success) {
+          if (res.error?.toLowerCase().includes('not confirmed') || res.error?.toLowerCase().includes('confirm')) {
+            setPendingEmail(email.trim());
+            setMode('verify_otp');
+            setOtpDigits(['', '', '', '', '', '']);
+            setErrorMsg('Email Anda belum dikonfirmasi. Masukkan kode 6 digit dari email atau klik tautan konfirmasi Anda.');
+            return;
+          }
+
           const nextAttempts = loginAttempts + 1;
           setLoginAttempts(nextAttempts);
           sessionStorage.setItem('mkl_auth_login_attempts', nextAttempts.toString());
@@ -188,8 +290,10 @@ export const AuthView = () => {
           sessionStorage.setItem('mkl_auth_register_cooldown', cooldownTime.toString());
 
           if (res.data?.user && !res.data?.session) {
-            setSuccessMsg('Pendaftaran berhasil! Cek kotak masuk email Anda untuk konfirmasi, atau langsung login jika konfirmasi email dinonaktifkan.');
-            setMode('login');
+            setPendingEmail(email.trim());
+            setMode('verify_otp');
+            setOtpDigits(['', '', '', '', '', '']);
+            setSuccessMsg(`Pendaftaran berhasil! Kode verifikasi 6 digit telah dikirim ke ${email.trim()}. Masukkan kode di bawah ini atau klik tautan di email kamu.`);
           }
         }
       }
@@ -237,8 +341,124 @@ export const AuthView = () => {
             </div>
           )}
 
-          {/* Mode 1: Forgot Password View */}
-          {mode === 'forgot' ? (
+          {/* Mode 0: Verify OTP View */}
+          {mode === 'verify_otp' ? (
+            <div className="auth-otp-panel" style={{ animation: 'authFadeUp 0.3s ease' }}>
+              <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+                <div
+                  style={{
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '16px',
+                    backgroundColor: '#EFF6FF',
+                    color: '#2563EB',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '12px',
+                    boxShadow: '0 8px 18px -4px rgba(37, 99, 235, 0.2)'
+                  }}
+                >
+                  <KeyRound size={26} />
+                </div>
+                <h2 style={{ fontSize: '19px', fontWeight: 800, color: '#0F172A', margin: '0 0 6px', letterSpacing: '-0.3px' }}>
+                  Verifikasi Email Mahasiswa
+                </h2>
+                <p style={{ fontSize: '12.5px', color: '#64748B', margin: '0 auto', maxWidth: '320px', lineHeight: 1.5 }}>
+                  Masukkan 6 digit kode yang dikirim ke <strong style={{ color: '#1E293B' }}>{pendingEmail || email}</strong>
+                </p>
+              </div>
+
+              <form onSubmit={handleVerifyOtp} className="auth-modern-form">
+                {/* 6 Digit Inputs */}
+                <div className="auth-otp-boxes-container">
+                  {otpDigits.map((digit, idx) => (
+                    <input
+                      key={idx}
+                      ref={(el) => (otpInputsRef.current[idx] = el)}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      className={`auth-otp-box ${digit ? 'filled' : ''}`}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(idx, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                      onPaste={handleOtpPaste}
+                      disabled={otpLoading}
+                      autoFocus={idx === 0}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  type="submit"
+                  className="auth-primary-submit-btn"
+                  disabled={otpLoading || otpDigits.join('').length < 6}
+                >
+                  {otpLoading ? (
+                    <span className="auth-btn-spinner-wrap">
+                      <span className="auth-btn-spinner" />
+                      <span>Memverifikasi Kode...</span>
+                    </span>
+                  ) : (
+                    <>
+                      <span>Verifikasi & Masuk</span>
+                      <ArrowRight size={17} />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Informative Dual Option Box (Click Link OR Enter Code) */}
+              <div className="auth-otp-dual-notice">
+                <span className="dual-notice-badge">💡 Opsi Bebas</span>
+                <p className="dual-notice-text">
+                  Selain mengetik kode, kamu juga bisa <strong>langsung klik tombol konfirmasi</strong> di emailmu. Halaman ini akan mendeteksi otomatis saat akunmu aktif!
+                </p>
+              </div>
+
+              {/* Action Links */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px', textAlign: 'center' }}>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resendCooldown > 0 || otpLoading}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: resendCooldown > 0 ? '#94A3B8' : '#2563EB',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: resendCooldown > 0 ? 'not-allowed' : 'pointer',
+                    padding: '4px'
+                  }}
+                >
+                  {resendCooldown > 0 ? `Kirim Ulang Kode (${resendCooldown}s)` : 'Belum menerima kode? Kirim Ulang'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('login');
+                    setErrorMsg('');
+                    setSuccessMsg('');
+                    setOtpDigits(['', '', '', '', '', '']);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748B',
+                    fontSize: '11.5px',
+                    cursor: 'pointer',
+                    padding: '4px'
+                  }}
+                >
+                  Ganti Email atau Kembali ke Masuk
+                </button>
+              </div>
+            </div>
+          ) : mode === 'forgot' ? (
             <div className="auth-forgot-panel">
               <div style={{ marginBottom: '16px' }}>
                 <button

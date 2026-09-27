@@ -54,7 +54,7 @@ const reconcileUserData = (cloudData, cached, userId) => {
   }
 
   // 2. Reconcile Profile (Full Name, University, Major)
-  const isPlaceholderName = (name) => !name || name.trim() === '' || name.trim().toLowerCase() === 'mahasiswa';
+  const isPlaceholderName = (name) => !name || name.trim() === '' || name.trim().toLowerCase() === 'mahasiswa' || name.trim().toLowerCase() === 'mahasiswa demo' || name.trim() === 'Han (Farhan)';
   const isPlaceholderUniv = (u) => !u || u.trim() === '' || u.trim().toLowerCase() === 'universitas';
   const isPlaceholderMajor = (m) => !m || m.trim() === '' || m.trim().toLowerCase() === 'program studi';
 
@@ -81,29 +81,21 @@ const reconcileUserData = (cloudData, cached, userId) => {
   }
 
   // 3. Reconcile Semester (Active Semester & Unlocked Semesters)
-  const cachedSem = Number(cached.activeSemester || cached.profile?.semester || 1);
-  const cloudSem = Number(cloudData.activeSemester || cloudData.profile?.semester || 1);
-
-  if (cloudSem === 1 && cachedSem > 1) {
-    cloudData.activeSemester = cachedSem;
-    cloudData.profile.semester = cachedSem;
-    healingPayload.activeSemester = cachedSem;
-    needsCloudHealing = true;
-  } else {
-    const finalSem = cloudSem || cachedSem || 1;
-    cloudData.activeSemester = finalSem;
+  // Cloud is authoritative if set. Fallback to cached only if cloud has no semester specified.
+  const cloudSem = Number(cloudData.activeSemester || cloudData.profile?.semester);
+  const cachedSem = Number(cached.activeSemester || cached.profile?.semester);
+  const finalSem = cloudSem || cachedSem || 1;
+  cloudData.activeSemester = finalSem;
+  if (cloudData.profile) {
     cloudData.profile.semester = finalSem;
   }
 
-  const cachedUnlocked = Array.isArray(cached.unlockedSemesters) ? cached.unlockedSemesters : [cachedSem];
-  const cloudUnlocked = Array.isArray(cloudData.unlockedSemesters) ? cloudData.unlockedSemesters : [cloudSem];
-  const mergedUnlocked = Array.from(new Set([...cloudUnlocked, ...cachedUnlocked, cloudData.activeSemester])).sort((a, b) => a - b);
+  const cachedUnlocked = Array.isArray(cached.unlockedSemesters) ? cached.unlockedSemesters : [finalSem];
+  const cloudUnlocked = Array.isArray(cloudData.unlockedSemesters) && cloudData.unlockedSemesters.length > 0
+    ? cloudData.unlockedSemesters
+    : [finalSem];
+  const mergedUnlocked = Array.from(new Set([...cloudUnlocked, ...cachedUnlocked, finalSem])).sort((a, b) => a - b);
   cloudData.unlockedSemesters = mergedUnlocked;
-
-  if (mergedUnlocked.length > cloudUnlocked.length) {
-    healingPayload.unlockedSemesters = mergedUnlocked;
-    needsCloudHealing = true;
-  }
 
   // 4. Reconcile Budget (if cloud total is default 1500000 but local has custom total)
   if (cloudData.budget && cached.budget) {
@@ -352,6 +344,28 @@ export const AppProvider = ({ children }) => {
     try {
       const authData = await authService.signUp(email, password, metadata);
       return { success: true, data: authData };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const verifySignupOtp = async (email, token) => {
+    try {
+      const authData = await authService.verifyOtp(email, token, 'signup');
+      if (authData?.session) {
+        setSession(authData.session);
+        setUser(authData.user);
+      }
+      return { success: true, data: authData };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const resendSignupOtp = async (email) => {
+    try {
+      const res = await authService.resendSignupOtp(email);
+      return { success: true, data: res };
     } catch (err) {
       return { success: false, error: err.message };
     }
@@ -1944,6 +1958,8 @@ export const AppProvider = ({ children }) => {
         login,
         loginWithGoogle,
         register,
+        verifySignupOtp,
+        resendSignupOtp,
         logout,
         enterGuestMode,
         linkGoogle,

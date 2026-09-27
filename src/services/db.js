@@ -49,6 +49,15 @@ export const loadLocalData = (userId = null) => {
         parsed.unlockedSemesters = Array.from(new Set([...parsed.unlockedSemesters, safeActiveSemester])).sort((a, b) => a - b);
       }
 
+      // Sanitize old stale developer cache if present in localStorage
+      if (parsed.profile?.fullName === 'Han (Farhan)') {
+        parsed.profile.fullName = '';
+        parsed.profile.email = '';
+      }
+      if (Array.isArray(parsed.accounts) && parsed.accounts.some(a => a.name === 'Sea Bank' && a.balance === 5313358)) {
+        parsed.accounts = CLEAN_DATA.accounts;
+      }
+
       return {
         ...CLEAN_DATA,
         ...parsed,
@@ -61,7 +70,7 @@ export const loadLocalData = (userId = null) => {
   } catch (e) {
     console.error('Error loading local storage data:', e);
   }
-  return userId ? CLEAN_DATA : INITIAL_DATA;
+  return CLEAN_DATA;
 };
 
 export const saveLocalData = (data, userId = null) => {

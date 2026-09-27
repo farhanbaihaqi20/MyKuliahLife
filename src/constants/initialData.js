@@ -1,172 +1,81 @@
 export const INITIAL_DATA = {
-  activeSemester: 5,
+  activeSemester: 1,
   profile: {
-    fullName: "Han (Farhan)",
-    email: "farhan.student@kampus.ac.id",
+    fullName: "Mahasiswa Demo",
+    email: "demo@mahasiswa.id",
     university: "Universitas Indonesia",
     major: "Teknik Informatika",
-    semester: 5,
-    targetGpa: 3.85,
+    semester: 1,
+    targetGpa: 3.80,
     isPremium: true
   },
 
   accounts: [
-    { id: "acc-1", name: "Sea Bank", type: "bank", balance: 5313358, isPrimary: true, icon: "🌊", color: "#0077FF", updated: "12 Sep 20:31" },
-    { id: "acc-2", name: "Krom Bank", type: "bank", balance: 1000000, isPrimary: false, icon: "🏦", color: "#6366F1", updated: "09 Sep 11:10" },
-    { id: "acc-3", name: "GoPay", type: "ewallet", balance: 544476, isPrimary: false, icon: "📱", color: "#00AED6", updated: "11 Sep 21:00" },
-    { id: "acc-4", name: "Cash", type: "cash", balance: 181000, isPrimary: false, icon: "💵", color: "#10B981", updated: "12 Sep 01:03" },
-    { id: "acc-5", name: "DANA", type: "ewallet", balance: 69000, isPrimary: false, icon: "💳", color: "#118EEA", updated: "11 Sep 21:00" },
-    { id: "acc-6", name: "ShopeePay", type: "ewallet", balance: 8556, isPrimary: false, icon: "🛍️", color: "#EE4D2D", updated: "09 Sep 09:08" }
+    { id: "acc-1", name: "Dompet Utama (Cash)", type: "cash", balance: 150000, isPrimary: true, icon: "💵", color: "#10B981", updated: "Baru saja" },
+    { id: "acc-2", name: "Rekening Bank", type: "bank", balance: 500000, isPrimary: false, icon: "🏦", color: "#0077FF", updated: "Baru saja" },
+    { id: "acc-3", name: "E-Wallet", type: "ewallet", balance: 100000, isPrimary: false, icon: "📱", color: "#00AED6", updated: "Baru saja" }
   ],
 
   budget: {
-    startDayOfMonth: 5,
-    periodLabel: "5 Sep - 4 Oct 2026",
-    startDate: "2026-09-05",
-    endDate: "2026-10-04",
-    totalBudget: 1000000,
+    startDayOfMonth: 1,
+    periodLabel: "1 Sep - 30 Sep 2026",
+    startDate: "2026-09-01",
+    endDate: "2026-09-30",
+    totalBudget: 1500000,
     categories: [
-      { id: "cat-1", name: "Makanan & minuman", budget: 350000, icon: "🍜", color: "#F97316" },
-      { id: "cat-2", name: "Tagihan & utilitas", budget: 250000, icon: "🧾", color: "#3B82F6" },
-      { id: "cat-3", name: "Kebutuhan Pribadi & Skincare", budget: 150000, icon: "🧴", color: "#EC4899" },
-      { id: "cat-4", name: "Transport & Bensin", budget: 120000, icon: "🛵", color: "#10B981" },
-      { id: "cat-5", name: "Kebutuhan Kuliah & Print", budget: 80000, icon: "📚", color: "#8B5CF6" },
-      { id: "cat-6", name: "Hiburan & Jajan", budget: 50000, icon: "☕", color: "#F43F5E" }
+      { id: "cat-1", name: "Makanan & minuman", budget: 500000, icon: "🍜", color: "#F97316" },
+      { id: "cat-2", name: "Tagihan & utilitas", budget: 300000, icon: "🧾", color: "#3B82F6" },
+      { id: "cat-3", name: "Kebutuhan Pribadi & Skincare", budget: 250000, icon: "🧴", color: "#EC4899" },
+      { id: "cat-4", name: "Transport & Bensin", budget: 200000, icon: "🛵", color: "#10B981" },
+      { id: "cat-5", name: "Kebutuhan Kuliah & Print", budget: 150000, icon: "📚", color: "#8B5CF6" },
+      { id: "cat-6", name: "Hiburan & Jajan", budget: 100000, icon: "☕", color: "#F43F5E" }
     ]
   },
 
   transactions: [
     {
-      id: "tx-skincare-1",
+      id: "tx-demo-1",
       date: "2026-09-12",
+      type: "expense",
+      category: "Makanan & minuman",
+      amount: 25000,
+      accountName: "Dompet Utama (Cash)",
+      merchant: "Kantin Kampus",
+      note: "Makan siang",
+      icon: "🍜"
+    },
+    {
+      id: "tx-demo-2",
+      date: "2026-09-11",
+      type: "expense",
+      category: "Kebutuhan Kuliah & Print",
+      amount: 15000,
+      accountName: "Dompet Utama (Cash)",
+      merchant: "Fotokopi & Print Kampus",
+      note: "Print modul materi kuliah",
+      icon: "📚"
+    },
+    {
+      id: "tx-demo-3",
+      date: "2026-09-10",
+      type: "expense",
+      category: "Transport & Bensin",
+      amount: 30000,
+      accountName: "E-Wallet",
+      merchant: "SPBU Pertamina",
+      note: "Beli bensin motor",
+      icon: "🛵"
+    },
+    {
+      id: "tx-demo-4",
+      date: "2026-09-08",
       type: "expense",
       category: "Kebutuhan Pribadi & Skincare",
       amount: 45000,
-      accountName: "Sea Bank",
-      merchant: "Indomaret Kampus",
-      note: "Sabun cair, sampo & facial wash",
+      accountName: "Rekening Bank",
+      merchant: "Minimarket Kampus",
+      note: "Sabun mandi & perlengkapan harian",
       icon: "🧴"
-    },
-    {
-      id: "tx-1",
-      date: "2026-09-12",
-      type: "expense",
-      category: "Makanan & minuman",
-      amount: 30000,
-      accountName: "Sea Bank",
-      merchant: "Pasar Kouta",
-      note: "galon + jajan",
-      icon: "🍜"
-    },
-    {
-      id: "tx-2",
-      date: "2026-09-12",
-      type: "expense",
-      category: "Makanan & minuman",
-      amount: 11000,
-      accountName: "Sea Bank",
-      merchant: "bu Yayuk",
-      note: "sarapan pagi",
-      icon: "🍜"
-    },
-    {
-      id: "tx-3",
-      date: "2026-09-12",
-      type: "expense",
-      category: "Makanan & minuman",
-      amount: 17500,
-      accountName: "Sea Bank",
-      merchant: "az zahra",
-      note: "nasi ayam geprek",
-      icon: "🍜"
-    },
-    {
-      id: "tx-4",
-      date: "2026-09-12",
-      type: "expense",
-      category: "Makanan & minuman",
-      amount: 15000,
-      accountName: "Cash",
-      merchant: "Warung Bu Yayuk",
-      note: "Nasgor Mawut",
-      icon: "🍜"
-    },
-    {
-      id: "tx-5",
-      date: "2026-09-11",
-      type: "expense",
-      category: "Makanan & minuman",
-      amount: 18000,
-      accountName: "Cash",
-      merchant: "kantin rektorat",
-      note: "makan siang bareng teman",
-      icon: "🍜"
-    },
-    {
-      id: "tx-6",
-      date: "2026-09-11",
-      type: "expense",
-      category: "Makanan & minuman",
-      amount: 6000,
-      accountName: "Cash",
-      merchant: "az Zahra",
-      note: "roti coklat sore",
-      icon: "🍞"
-    },
-    {
-      id: "tx-7",
-      date: "2026-09-11",
-      type: "expense",
-      category: "Makanan & minuman",
-      amount: 13000,
-      accountName: "Cash",
-      merchant: "Warung Bu Yayuk",
-      note: "es teh + batagor",
-      icon: "🍜"
-    },
-    {
-      id: "tx-8",
-      date: "2026-09-10",
-      type: "expense",
-      category: "Makanan & minuman",
-      amount: 4000,
-      accountName: "GoPay",
-      merchant: "kantin rektorat",
-      note: "air mineral",
-      icon: "🍜"
-    },
-    {
-      id: "tx-9",
-      date: "2026-09-10",
-      type: "expense",
-      category: "Makanan & minuman",
-      amount: 21000,
-      accountName: "Sea Bank",
-      merchant: "kantin rektorat",
-      note: "nasi rames komplit",
-      icon: "🍜"
-    },
-    {
-      id: "tx-10",
-      date: "2026-09-09",
-      type: "income",
-      category: "Transfer Masuk",
-      amount: 5400000,
-      accountName: "Sea Bank",
-      merchant: "Kiriman Ortu",
-      note: "Uang bulanan + persiapan tugas akhir",
-      icon: "💰"
-    },
-    {
-      id: "tx-11",
-      date: "2026-09-08",
-      type: "expense",
-      category: "Tagihan & utilitas",
-      amount: 30120,
-      accountName: "Sea Bank",
-      merchant: "PLN / Token",
-      note: "Listrik kamar kost",
-      icon: "⚡"
     }
   ],
 

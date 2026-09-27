@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { formatRupiahNumber, parseRupiahNumber } from '../../utils/formatters';
 import {
   Sparkles,
   User,
   GraduationCap,
+  BookOpen,
   Calendar,
   Wallet,
   Check,
@@ -12,29 +13,29 @@ import {
   Trash2,
   ArrowRight,
   ArrowLeft,
-  ShieldCheck,
   CreditCard,
-  X
+  X,
+  CheckCircle2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const POPULAR_ACCOUNTS = [
   // Banks
-  { name: 'BCA', type: 'bank', icon: '🏦', color: '#0052CC', defaultBal: 1000000 },
-  { name: 'SeaBank', type: 'bank', icon: '🏦', color: '#EA580C', defaultBal: 500000 },
-  { name: 'Bank Mandiri', type: 'bank', icon: '🏦', color: '#0284C7', defaultBal: 1000000 },
-  { name: 'BRI', type: 'bank', icon: '🏦', color: '#00529C', defaultBal: 1000000 },
-  { name: 'BNI', type: 'bank', icon: '🏦', color: '#F15A24', defaultBal: 1000000 },
-  { name: 'BSI', type: 'bank', icon: '🏦', color: '#00A39D', defaultBal: 500000 },
-  { name: 'Bank Jago', type: 'bank', icon: '🏦', color: '#FF7A00', defaultBal: 500000 },
-  { name: 'CIMB Niaga', type: 'bank', icon: '🏦', color: '#8B0000', defaultBal: 500000 },
+  { name: 'BCA', type: 'bank', icon: '🏦', color: '#0052CC', defaultBal: 0 },
+  { name: 'Bank Mandiri', type: 'bank', icon: '🏦', color: '#0284C7', defaultBal: 0 },
+  { name: 'BRI', type: 'bank', icon: '🏦', color: '#00529C', defaultBal: 0 },
+  { name: 'BNI', type: 'bank', icon: '🏦', color: '#F15A24', defaultBal: 0 },
+  { name: 'Bank Jago', type: 'bank', icon: '🏦', color: '#FF7A00', defaultBal: 0 },
+  { name: 'SeaBank', type: 'bank', icon: '🏦', color: '#EA580C', defaultBal: 0 },
+  { name: 'BSI Syariah', type: 'bank', icon: '🏦', color: '#00A39D', defaultBal: 0 },
+  { name: 'CIMB Niaga', type: 'bank', icon: '🏦', color: '#8B0000', defaultBal: 0 },
   // E-Wallets
-  { name: 'GoPay', type: 'ewallet', icon: '📱', color: '#00AED6', defaultBal: 150000 },
-  { name: 'DANA', type: 'ewallet', icon: '📱', color: '#10B981', defaultBal: 100000 },
-  { name: 'OVO', type: 'ewallet', icon: '📱', color: '#4C3494', defaultBal: 100000 },
-  { name: 'ShopeePay', type: 'ewallet', icon: '🛍️', color: '#EE4D2D', defaultBal: 100000 },
+  { name: 'GoPay', type: 'ewallet', icon: '📱', color: '#00AED6', defaultBal: 0 },
+  { name: 'DANA', type: 'ewallet', icon: '📱', color: '#10B981', defaultBal: 0 },
+  { name: 'OVO', type: 'ewallet', icon: '📱', color: '#4C3494', defaultBal: 0 },
+  { name: 'ShopeePay', type: 'ewallet', icon: '🛍️', color: '#EE4D2D', defaultBal: 0 },
   // Cash
-  { name: 'Uang Tunai / Cash', type: 'cash', icon: '💵', color: '#059669', defaultBal: 50000 }
+  { name: 'Uang Tunai / Cash', type: 'cash', icon: '💵', color: '#059669', defaultBal: 0 }
 ];
 
 export const OnboardingModal = () => {
@@ -47,40 +48,31 @@ export const OnboardingModal = () => {
 
   const [step, setStep] = useState(1);
 
-  // Form states - Empty by default so new user doesn't have to delete dummy text
-  const [fullName, setFullName] = useState(() => {
-    const existing = data.profile?.fullName || user?.user_metadata?.full_name || '';
-    return (existing === 'Mahasiswa Baru' || existing === 'Nama Lengkap Anda') ? '' : existing;
-  });
-  const [university, setUniversity] = useState(() => {
-    const existing = data.profile?.university || '';
-    return (existing === 'Universitas' || existing === 'Universitas Indonesia') ? '' : existing;
-  });
-  const [major, setMajor] = useState(() => {
-    const existing = data.profile?.major || '';
-    return (existing === 'Program Studi' || existing === 'Teknik Informatika') ? '' : existing;
-  });
-  const [semester, setSemester] = useState(data.activeSemester || 1);
+  // Safe Name Resolver: Only use Google OAuth metadata if authentic, never hardcoded dummy names
+  const getInitialFullName = () => {
+    const metaName = user?.user_metadata?.full_name || user?.user_metadata?.name || '';
+    if (metaName && metaName !== 'Mahasiswa' && metaName !== 'Mahasiswa Demo' && metaName !== 'Han (Farhan)') {
+      return metaName;
+    }
+    const profName = data?.profile?.fullName || '';
+    if (profName && profName !== 'Mahasiswa' && profName !== 'Mahasiswa Baru' && profName !== 'Mahasiswa Demo' && profName !== 'Han (Farhan)') {
+      return profName;
+    }
+    return '';
+  };
+
+  // Form states - Guaranteed empty and clean for new users
+  const [fullName, setFullName] = useState(() => getInitialFullName());
+  const [university, setUniversity] = useState('');
+  const [major, setMajor] = useState('');
+  const [semester, setSemester] = useState(1);
   const [startDayOfMonth, setStartDayOfMonth] = useState(1);
   const [initialBudget, setInitialBudget] = useState('1.500.000');
 
-  // Wallets
-  const [accounts, setAccounts] = useState(() => {
-    if (data?.accounts && data.accounts.length > 0) {
-      return data.accounts.map(a => ({
-        id: a.id,
-        name: a.name,
-        type: a.type || 'bank',
-        balance: a.balance || 0,
-        isPrimary: Boolean(a.isPrimary),
-        icon: a.icon || (a.type === 'bank' ? '🏦' : a.type === 'ewallet' ? '📱' : '💵'),
-        color: a.color || '#1665D8'
-      }));
-    }
-    return [
-      { id: 'acc-1', name: 'Uang Tunai / Cash', type: 'cash', balance: 50000, isPrimary: true, icon: '💵', color: '#059669' }
-    ];
-  });
+  // Wallets - Start with clean single cash account with Rp 0
+  const [accounts, setAccounts] = useState([
+    { id: 'acc-init-1', name: 'Dompet Utama / Tunai', type: 'cash', balance: 0, isPrimary: true, icon: '💵', color: '#10B981' }
+  ]);
 
   // Custom Wallet Creation state in Step 3
   const [isAddingCustom, setIsAddingCustom] = useState(false);
@@ -88,6 +80,26 @@ export const OnboardingModal = () => {
   const [customAccBal, setCustomAccBal] = useState('');
   const [customAccType, setCustomAccType] = useState('bank');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Always reset to pristine clean state whenever the onboarding modal opens
+  useEffect(() => {
+    if (isOnboardingOpen) {
+      setStep(1);
+      setFullName(getInitialFullName());
+      setUniversity('');
+      setMajor('');
+      setSemester(1);
+      setStartDayOfMonth(1);
+      setInitialBudget('1.500.000');
+      setAccounts([
+        { id: 'acc-init-1', name: 'Dompet Utama / Tunai', type: 'cash', balance: 0, isPrimary: true, icon: '💵', color: '#10B981' }
+      ]);
+      setIsAddingCustom(false);
+      setCustomAccName('');
+      setCustomAccBal('');
+      setCustomAccType('bank');
+    }
+  }, [isOnboardingOpen, user]);
 
   if (!isOnboardingOpen) return null;
 
@@ -99,7 +111,7 @@ export const OnboardingModal = () => {
         id: `acc-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
         name: item.name,
         type: item.type,
-        balance: item.defaultBal,
+        balance: 0,
         isPrimary: accounts.length === 0,
         icon: item.icon,
         color: item.color
@@ -160,13 +172,14 @@ export const OnboardingModal = () => {
 
   const handleFinish = async () => {
     setIsSubmitting(true);
+    const chosenSem = Number(semester) || 1;
     try {
       await completeOnboarding({
         profile: {
           fullName: fullName.trim() || 'Mahasiswa',
           university: university.trim() || 'Universitas',
           major: major.trim() || 'Program Studi',
-          semester: Number(semester) || 1
+          semester: chosenSem
         },
         startDayOfMonth: Number(startDayOfMonth) || 1,
         initialAccounts: accounts,
@@ -187,25 +200,33 @@ export const OnboardingModal = () => {
   return (
     <div className="onboarding-overlay">
       <div className="onboarding-sheet">
-        {/* Header Progress Bar */}
+        {/* Header Segmented Progress Bar */}
         <div className="onboarding-progress-header">
-          <div className="progress-steps-indicator">
-            <span className={`step-dot ${step >= 1 ? 'active' : ''}`}>1</span>
-            <div className={`step-line ${step >= 2 ? 'active' : ''}`} />
-            <span className={`step-dot ${step >= 2 ? 'active' : ''}`}>2</span>
-            <div className={`step-line ${step >= 3 ? 'active' : ''}`} />
-            <span className={`step-dot ${step >= 3 ? 'active' : ''}`}>3</span>
-            <div className={`step-line ${step >= 4 ? 'active' : ''}`} />
-            <span className={`step-dot ${step >= 4 ? 'active' : ''}`}>4</span>
+          <div className="progress-segmented-bar">
+            {[1, 2, 3, 4].map((s) => (
+              <div
+                key={s}
+                className={`progress-segment ${step === s ? 'active' : step > s ? 'completed' : ''}`}
+              />
+            ))}
           </div>
-          <div style={{ textAlign: 'center', marginTop: '12px' }}>
-            <span className="onboarding-step-badge">Langkah {step} dari 4</span>
+
+          <div>
+            <span className="onboarding-step-badge">
+              Langkah {step} dari 4
+            </span>
             <h3 className="onboarding-step-title">
               {step === 1 && 'Identitas & Semester Mahasiswa'}
               {step === 2 && 'Siklus & Anggaran Belanja'}
               {step === 3 && 'Atur Dompet & Saldo Awal'}
               {step === 4 && 'Selamat Datang di MyKuliahLife!'}
             </h3>
+            <p className="onboarding-step-subtitle">
+              {step === 1 && 'Lengkapi data studi dan tentukan semester aktif pertamamu.'}
+              {step === 2 && 'Atur batas budget bulanan dan tanggal kiriman uang bulanan.'}
+              {step === 3 && 'Tambahkan rekening bank atau dompet aktif beserta saldo awalmu.'}
+              {step === 4 && 'Semua siap! Kartu mahasiswa digital dan dompetmu siap digunakan.'}
+            </p>
           </div>
         </div>
 
@@ -214,45 +235,66 @@ export const OnboardingModal = () => {
           {/* STEP 1: IDENTITAS */}
           {step === 1 && (
             <div className="onboarding-form-step">
-              <div className="form-field">
-                <label className="form-label">Nama Lengkap</label>
-                <input
-                  type="text"
-                  className="auth-input"
-                  placeholder="Contoh: Farhan Baihaqi"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  autoFocus
-                />
+              <div className="onboarding-field">
+                <label className="onboarding-label">
+                  Nama Lengkap
+                </label>
+                <div className="onboarding-input-wrap">
+                  <span className="onboarding-input-icon">
+                    <User size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    className="onboarding-modern-input"
+                    placeholder="Contoh: Muhammad Farhan"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    autoFocus
+                  />
+                </div>
               </div>
 
-              <div className="form-field">
-                <label className="form-label">Kampus / Universitas</label>
-                <input
-                  type="text"
-                  className="auth-input"
-                  placeholder="Contoh: Universitas Indonesia"
-                  value={university}
-                  onChange={(e) => setUniversity(e.target.value)}
-                />
+              <div className="onboarding-field">
+                <label className="onboarding-label">
+                  Kampus / Universitas
+                </label>
+                <div className="onboarding-input-wrap">
+                  <span className="onboarding-input-icon">
+                    <GraduationCap size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    className="onboarding-modern-input"
+                    placeholder="Contoh: Universitas Indonesia"
+                    value={university}
+                    onChange={(e) => setUniversity(e.target.value)}
+                  />
+                </div>
               </div>
 
-              <div className="form-field">
-                <label className="form-label">Program Studi / Jurusan</label>
-                <input
-                  type="text"
-                  className="auth-input"
-                  placeholder="Contoh: Teknik Informatika"
-                  value={major}
-                  onChange={(e) => setMajor(e.target.value)}
-                />
+              <div className="onboarding-field">
+                <label className="onboarding-label">
+                  Program Studi / Jurusan
+                </label>
+                <div className="onboarding-input-wrap">
+                  <span className="onboarding-input-icon">
+                    <BookOpen size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    className="onboarding-modern-input"
+                    placeholder="Contoh: Teknik Informatika"
+                    value={major}
+                    onChange={(e) => setMajor(e.target.value)}
+                  />
+                </div>
               </div>
 
-              <div className="form-field">
-                <label className="form-label">
-                  Semester Aktif Awal
-                  <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 500, marginLeft: '6px' }}>
-                    (Bisa dikelola kapan saja di Profil)
+              <div className="onboarding-field">
+                <label className="onboarding-label">
+                  <span>Semester Aktif Saat Ini</span>
+                  <span style={{ fontSize: '11px', color: '#2563EB', fontWeight: 600 }}>
+                    Semester {semester}
                   </span>
                 </label>
                 <div className="semester-pill-grid">
@@ -264,7 +306,7 @@ export const OnboardingModal = () => {
                       onClick={() => setSemester(s)}
                     >
                       <span>Sem {s}</span>
-                      {semester === s && <Check size={14} />}
+                      {semester === s && <Check size={13} style={{ color: '#2563EB' }} />}
                     </button>
                   ))}
                 </div>
@@ -275,32 +317,54 @@ export const OnboardingModal = () => {
           {/* STEP 2: SIKLUS & ANGGARAN */}
           {step === 2 && (
             <div className="onboarding-form-step">
-              <div className="form-field">
-                <label className="form-label">
-                  Tanggal Mulai Siklus / Hari Kiriman Uang
-                </label>
-                <p style={{ fontSize: '12px', color: '#64748B', margin: '-4px 0 10px' }}>
-                  Aplikasi akan mereset hitungan budget bulanan setiap tanggal ini.
+              <div className="onboarding-field">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label className="onboarding-label" style={{ margin: 0 }}>
+                    Hari Kiriman Uang / Mulai Siklus
+                  </label>
+                  <span className="badge-cycle-day">
+                    <Calendar size={13} />
+                    <span>Tgl {startDayOfMonth}</span>
+                  </span>
+                </div>
+                <p style={{ fontSize: '12px', color: '#64748B', margin: '0 0 10px' }}>
+                  Aplikasi akan mereset grafik dan kuota budget bulanan setiap tanggal ini.
                 </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <input
-                    type="range"
-                    min="1"
-                    max="28"
-                    value={startDayOfMonth}
-                    onChange={(e) => setStartDayOfMonth(Number(e.target.value))}
-                    style={{ flex: 1, accentColor: '#1665D8', height: '6px' }}
-                  />
-                  <span className="badge-cycle-day">Tanggal {startDayOfMonth}</span>
+
+                <input
+                  type="range"
+                  min="1"
+                  max="28"
+                  value={startDayOfMonth}
+                  onChange={(e) => setStartDayOfMonth(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: '#2563EB', cursor: 'pointer' }}
+                />
+
+                <div className="cycle-preset-row">
+                  {[
+                    { day: 1, label: 'Tgl 1 (Awal Bulan)' },
+                    { day: 5, label: 'Tgl 5' },
+                    { day: 25, label: 'Tgl 25 (Kiriman)' },
+                    { day: 28, label: 'Tgl 28' }
+                  ].map((p) => (
+                    <button
+                      key={p.day}
+                      type="button"
+                      className={`cycle-preset-btn ${startDayOfMonth === p.day ? 'active' : ''}`}
+                      onClick={() => setStartDayOfMonth(p.day)}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="form-field">
-                <label className="form-label">
-                  Rencana Alokasi Budget Bulanan
+              <div className="onboarding-field" style={{ marginTop: '4px' }}>
+                <label className="onboarding-label">
+                  Target Alokasi Budget Bulanan
                 </label>
-                <p style={{ fontSize: '12px', color: '#64748B', margin: '-4px 0 8px' }}>
-                  Batas pengeluaran bulanan yang kamu rencanakan.
+                <p style={{ fontSize: '12px', color: '#64748B', margin: '0 0 8px' }}>
+                  Batas pengeluaran maksimal kamu dalam 1 periode bulanan.
                 </p>
 
                 <div className="budget-chip-row">
@@ -316,11 +380,10 @@ export const OnboardingModal = () => {
                   ))}
                 </div>
 
-                <div className="auth-input-wrapper" style={{ marginTop: '10px' }}>
-                  <span style={{ fontWeight: 800, color: '#1665D8', marginRight: '6px' }}>Rp</span>
+                <div className="budget-custom-input-box">
+                  <span>Rp</span>
                   <input
                     type="text"
-                    className="auth-input-raw"
                     value={initialBudget}
                     onChange={(e) => setInitialBudget(formatRupiahNumber(e.target.value))}
                     placeholder="1.500.000"
@@ -329,13 +392,13 @@ export const OnboardingModal = () => {
               </div>
 
               <div className="tip-box-clean">
-                <Sparkles size={20} style={{ color: '#1665D8', flexShrink: 0 }} />
+                <Sparkles size={20} style={{ color: '#2563EB', flexShrink: 0 }} />
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
                     Alokasi Saku Harian Aman
                   </div>
-                  <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>
-                    Kamu bisa membelanjakan rata-rata <strong>Rp {estimatedDaily.toLocaleString('id-ID')} / hari</strong> agar pengeluaranmu tetap terkontrol.
+                  <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px', lineHeight: '1.4' }}>
+                    Kamu bisa belanja rata-rata <strong>Rp {estimatedDaily.toLocaleString('id-ID')} / hari</strong> agar pengeluaran tetap terkontrol sampai akhir bulan.
                   </div>
                 </div>
               </div>
@@ -345,61 +408,68 @@ export const OnboardingModal = () => {
           {/* STEP 3: DOMPET & SALDO AWAL */}
           {step === 3 && (
             <div className="onboarding-form-step">
-              <div style={{ fontSize: '13px', color: '#475569', marginBottom: '12px' }}>
-                Sesuaikan saldo awal pada rekening atau dompet aktifmu:
+              <div style={{ fontSize: '12.5px', color: '#64748B', lineHeight: '1.4' }}>
+                Atur saldo awal pada akun atau dompet yang kamu gunakan sehari-hari:
               </div>
 
-              {/* List Dompet Aktif yang Akan Disimpan */}
+              {/* List Dompet Aktif */}
               <div className="account-setup-list">
                 {accounts.map((acc) => (
                   <div key={acc.id} className="account-setup-row">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-                      <span style={{ fontSize: '20px', flexShrink: 0 }}>{acc.icon}</span>
+                      <div className="acc-icon-box">
+                        {acc.icon}
+                      </div>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {acc.name}
                         </div>
-                        <span style={{ fontSize: '11px', color: '#64748B', textTransform: 'capitalize' }}>{acc.type}</span>
+                        <span style={{ fontSize: '10.5px', color: '#64748B', textTransform: 'capitalize' }}>
+                          {acc.type}
+                        </span>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                      <div className="input-nominal-micro">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <div className="input-nominal-clean">
                         <span>Rp</span>
                         <input
                           type="text"
                           value={formatRupiahNumber(acc.balance)}
                           onChange={(e) => handleUpdateBalance(acc.id, e.target.value)}
+                          placeholder="0"
                         />
                       </div>
-                      <button
-                        type="button"
-                        className="delete-acc-btn"
-                        onClick={() => handleRemoveAccount(acc.id)}
-                        title="Hapus dompet ini"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      {accounts.length > 1 && (
+                        <button
+                          type="button"
+                          className="delete-acc-btn-subtle"
+                          onClick={() => handleRemoveAccount(acc.id)}
+                          title="Hapus dompet ini"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Form Tambah Dompet Kustom (Bebas) */}
-              <div style={{ marginTop: '14px' }}>
+              {/* Form Tambah Dompet Kustom */}
+              <div>
                 {!isAddingCustom ? (
                   <button
                     type="button"
                     onClick={() => setIsAddingCustom(true)}
                     style={{
                       width: '100%',
-                      padding: '11px 14px',
+                      padding: '10px 14px',
                       borderRadius: '12px',
-                      border: '1.5px dashed #2563EB',
-                      background: '#EFF6FF',
-                      color: '#1D4ED8',
-                      fontSize: '13px',
-                      fontWeight: 700,
+                      border: '1.5px dashed #CBD5E1',
+                      background: '#F8FAFC',
+                      color: '#2563EB',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -408,44 +478,43 @@ export const OnboardingModal = () => {
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <Plus size={16} />
-                    <span>+ Tambah Dompet Kustom (Bebas / Custom)</span>
+                    <Plus size={15} />
+                    <span>+ Tambah Dompet Kustom / Lainnya</span>
                   </button>
                 ) : (
                   <div
                     style={{
                       padding: '14px',
                       borderRadius: '14px',
-                      border: '1px solid #BFDBFE',
-                      background: '#F8FAFC',
+                      border: '1.5px solid #BFDBFE',
+                      background: '#EFF6FF',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '10px'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>
-                        Tambah Dompet Baru (Kustom)
+                      <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#1E40AF' }}>
+                        Tambah Dompet Baru
                       </span>
                       <button
                         type="button"
                         onClick={() => setIsAddingCustom(false)}
                         style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: '2px' }}
                       >
-                        <X size={16} />
+                        <X size={15} />
                       </button>
                     </div>
 
-                    <div className="input-group" style={{ margin: 0 }}>
-                      <input
-                        type="text"
-                        className="input-field"
-                        placeholder="Nama Dompet (Misal: BSI Syariah, Tabungan Kos, dll)"
-                        value={customAccName}
-                        onChange={(e) => setCustomAccName(e.target.value)}
-                        autoFocus
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      className="onboarding-modern-input"
+                      style={{ paddingLeft: '14px', background: '#FFFFFF' }}
+                      placeholder="Nama Dompet (Misal: Bank Jatim, Tabungan Kos)"
+                      value={customAccName}
+                      onChange={(e) => setCustomAccName(e.target.value)}
+                      autoFocus
+                    />
 
                     {/* Tipe Dompet */}
                     <div style={{ display: 'flex', gap: '6px' }}>
@@ -464,10 +533,10 @@ export const OnboardingModal = () => {
                             padding: '6px 4px',
                             borderRadius: '8px',
                             border: customAccType === t.type ? '1.5px solid #2563EB' : '1px solid #E2E8F0',
-                            background: customAccType === t.type ? '#EFF6FF' : '#FFFFFF',
-                            color: customAccType === t.type ? '#1E40AF' : '#475569',
+                            background: customAccType === t.type ? '#2563EB' : '#FFFFFF',
+                            color: customAccType === t.type ? '#FFFFFF' : '#475569',
                             fontSize: '11px',
-                            fontWeight: 700,
+                            fontWeight: 600,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -482,11 +551,11 @@ export const OnboardingModal = () => {
                     </div>
 
                     {/* Saldo Awal */}
-                    <div className="input-nominal-micro" style={{ width: '100%', boxSizing: 'border-box' }}>
+                    <div className="input-nominal-clean" style={{ background: '#FFFFFF', padding: '8px 12px' }}>
                       <span style={{ color: '#64748B' }}>Saldo Awal: Rp</span>
                       <input
                         type="text"
-                        style={{ width: '100%' }}
+                        style={{ width: '100%', textAlign: 'left' }}
                         placeholder="0"
                         value={formatRupiahNumber(customAccBal)}
                         onChange={(e) => setCustomAccBal(e.target.value)}
@@ -496,18 +565,37 @@ export const OnboardingModal = () => {
                     <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
                       <button
                         type="button"
-                        className="btn-secondary"
                         onClick={() => setIsAddingCustom(false)}
-                        style={{ flex: 1, padding: '8px 12px', fontSize: '12px' }}
+                        style={{
+                          flex: 1,
+                          padding: '8px 12px',
+                          borderRadius: '10px',
+                          border: '1px solid #CBD5E1',
+                          background: '#FFFFFF',
+                          color: '#475569',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
                       >
                         Batal
                       </button>
                       <button
                         type="button"
-                        className="btn-primary"
                         onClick={handleAddCustomAccount}
                         disabled={!customAccName.trim()}
-                        style={{ flex: 1.5, padding: '8px 12px', fontSize: '12px' }}
+                        style={{
+                          flex: 1.5,
+                          padding: '8px 12px',
+                          borderRadius: '10px',
+                          border: 'none',
+                          background: '#2563EB',
+                          color: '#FFFFFF',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          opacity: !customAccName.trim() ? 0.5 : 1
+                        }}
                       >
                         Simpan Dompet
                       </button>
@@ -517,9 +605,9 @@ export const OnboardingModal = () => {
               </div>
 
               {/* Tambah Cepat Pilihan Populer */}
-              <div style={{ marginTop: '16px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>
-                  + Pilihan Cepat Bank & E-Wallet Populer:
+              <div style={{ marginTop: '6px' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748B', marginBottom: '8px' }}>
+                  + Pilihan Cepat Bank & Dompet Populer:
                 </div>
                 <div className="popular-acc-chips">
                   {POPULAR_ACCOUNTS.map((item) => {
@@ -532,15 +620,13 @@ export const OnboardingModal = () => {
                         onClick={() => handleAddPopularAccount(item)}
                         style={{
                           opacity: isAdded ? 0.6 : 1,
-                          backgroundColor: isAdded ? '#EFF6FF' : '#F8FAFC',
-                          borderColor: isAdded ? '#93C5FD' : '#E2E8F0',
                           cursor: isAdded ? 'default' : 'pointer'
                         }}
                         title={isAdded ? 'Sudah ditambahkan' : `Tambah ${item.name}`}
                       >
                         <span>{item.icon}</span>
                         <span>{item.name}</span>
-                        {isAdded && <Check size={12} style={{ color: '#2563EB', marginLeft: '2px' }} />}
+                        {isAdded && <Check size={11} style={{ color: '#2563EB', marginLeft: '2px' }} />}
                       </button>
                     );
                   })}
@@ -556,14 +642,14 @@ export const OnboardingModal = () => {
               <div className="ktm-card-preview">
                 <div className="ktm-card-top">
                   <div className="ktm-chip">KTM DIGITAL</div>
-                  <div className="ktm-univ">{university || 'Universitas'}</div>
+                  <div className="ktm-univ">{university.trim() || 'Universitas'}</div>
                 </div>
 
                 <div className="ktm-card-middle">
                   <div className="ktm-avatar-circle">🎓</div>
                   <div className="ktm-user-info">
-                    <div className="ktm-name">{fullName || 'Mahasiswa'}</div>
-                    <div className="ktm-major">{major || 'Program Studi'}</div>
+                    <div className="ktm-name">{fullName.trim() || 'Mahasiswa'}</div>
+                    <div className="ktm-major">{major.trim() || 'Program Studi'}</div>
                   </div>
                 </div>
 
@@ -573,12 +659,27 @@ export const OnboardingModal = () => {
                 </div>
               </div>
 
-              <div style={{ margin: '18px 0 6px', color: '#0F172A', fontWeight: 800, fontSize: '16px' }}>
-                Setup Profil Selesai! 🎉
+              {/* Ready Checklist Highlights */}
+              <div className="onboarding-checklist-preview">
+                <div className="onboarding-check-row">
+                  <div className="onboarding-check-badge">
+                    <Check size={12} />
+                  </div>
+                  <span>Profil akademik & Semester {semester} siap dikelola</span>
+                </div>
+                <div className="onboarding-check-row">
+                  <div className="onboarding-check-badge">
+                    <Check size={12} />
+                  </div>
+                  <span>{accounts.length} dompet aktif dengan saldo awal tercatat</span>
+                </div>
+                <div className="onboarding-check-row">
+                  <div className="onboarding-check-badge">
+                    <Check size={12} />
+                  </div>
+                  <span>Siklus bulanan dimulai setiap Tanggal {startDayOfMonth}</span>
+                </div>
               </div>
-              <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.5', maxWidth: '340px', margin: '0 auto' }}>
-                Semua konfigurasi awal selesai. Kamu bisa langsung mengelola pengeluaran harian dan aktivitas akademikmu.
-              </p>
             </div>
           )}
         </div>
@@ -591,7 +692,7 @@ export const OnboardingModal = () => {
               className="onboarding-back-btn"
               onClick={() => setStep(step - 1)}
             >
-              <ArrowLeft size={16} />
+              <ArrowLeft size={15} />
               <span>Kembali</span>
             </button>
           ) : (
@@ -605,7 +706,7 @@ export const OnboardingModal = () => {
               onClick={() => setStep(step + 1)}
             >
               <span>Lanjut</span>
-              <ArrowRight size={16} />
+              <ArrowRight size={15} />
             </button>
           ) : (
             <button

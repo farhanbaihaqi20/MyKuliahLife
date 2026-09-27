@@ -1290,6 +1290,7 @@ export const AcademicView = () => {
                     key={s}
                     onClick={() => {
                       setViewSemester(s);
+                      changeActiveSemester(s);
                       setIsSemesterPickerOpen(false);
                     }}
                     style={{

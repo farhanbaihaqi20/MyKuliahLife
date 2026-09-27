@@ -52,6 +52,33 @@ export const authService = {
     return data;
   },
 
+  // Verifikasi Kode OTP (Pendaftaran / Konfirmasi Email)
+  async verifyOtp(email, token, type = 'signup') {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Koneksi Supabase belum aktif.');
+    }
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: token.trim(),
+      type
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  // Kirim ulang OTP / Tautan Konfirmasi Pendaftaran
+  async resendSignupOtp(email) {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Koneksi Supabase belum aktif.');
+    }
+    const { data, error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim().toLowerCase()
+    });
+    if (error) throw error;
+    return data;
+  },
+
   // Keluar / Sign Out
   async signOut() {
     if (!isSupabaseConfigured() || !supabase) return;
