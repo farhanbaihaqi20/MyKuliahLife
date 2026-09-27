@@ -122,6 +122,149 @@ export const authService = {
     } catch {
       return [];
     }
+  },
+
+  // Cek apakah email sudah terdaftar di Supabase (via RPC check_email_exists)
+  async checkEmailExists(email) {
+    if (!isSupabaseConfigured() || !supabase || !email) return null;
+    try {
+      const { data, error } = await supabase.rpc('check_email_exists', {
+        target_email: email.trim().toLowerCase()
+      });
+      if (!error && typeof data === 'boolean') {
+        return data;
+      }
+    } catch (err) {
+      console.warn('RPC check_email_exists error:', err);
+    }
+    return null;
+  },
+
+  // Kirim email pemulihan / reset kata sandi
+  async resetPasswordForEmail(email) {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Koneksi Supabase belum aktif. Pastikan environment variables sudah diset.');
+    }
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}`
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  // Perbarui kata sandi pengguna (dipanggil setelah user buka recovery link)
+  async updateUserPassword(newPassword) {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Koneksi Supabase belum aktif.');
+    }
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  // Perbarui metadata pengguna (misal URL foto avatar)
+  async updateUserMetadata(metadata = {}) {
+    if (!isSupabaseConfigured() || !supabase) return null;
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        data: metadata
+      });
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.warn('Failed to update user metadata:', err);
+      return null;
+    }
+  },
+
+  // Ambil data user segar langsung dari server Supabase (bukan hanya cache lokal)
+  async getUser() {
+    if (!isSupabaseConfigured() || !supabase) return null;
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return user;
+    } catch (err) {
+      console.warn('Error fetching fresh Supabase user:', err);
+      return null;
+    }
+  }
+};
+
+// =========================================================================
+// 1.1 STORAGE SERVICE: FOTO PROFIL (AVATARS)
+// =========================================================================
+
+export const storageService = {
+  // Upload avatar image blob to Supabase Storage bucket 'avatars'
+  async uploadAvatar(userId, fileBlob) {
+    if (!isSupabaseConfigured() || !supabase || !userId) {
+      throw new Error('Koneksi Supabase belum aktif.');
+    }
+    const filePath = `${userId}/avatar.jpg`;
+    const { data, error } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, fileBlob, {
+        contentType: 'image/jpeg',
+        upsert: true
+      });
+
+    if (error) throw error;
+
+    // Ambil URL publik gambar
+    const { data: publicUrlData } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    const publicUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+    return { path: data.path, publicUrl };
+  },
+
+  // Ambil URL publik avatar pengguna
+  getAvatarUrl(userId) {
+    if (!isSupabaseConfigured() || !supabase || !userId) return null;
+    try {
+      const filePath = `${userId}/avatar.jpg`;
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      return data?.publicUrl ? `${data.publicUrl}?t=${Date.now()}` : null;
+    } catch {
+      return null;
+    }
+  },
+
+  // Cek apakah file avatar ada di Supabase Storage via HEAD request cepat (tanpa butuh SELECT policy)
+  async checkAvatarExists(userId) {
+    if (!isSupabaseConfigured() || !supabase || !userId) return null;
+    try {
+      const filePath = `${userId}/avatar.jpg`;
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      const url = data?.publicUrl;
+      if (!url) return null;
+      const res = await fetch(url, { method: 'HEAD' });
+      if (res.ok) {
+        return `${url}?t=${Date.now()}`;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  },
+
+  // Hapus avatar dari storage
+  async removeAvatar(userId) {
+    if (!isSupabaseConfigured() || !supabase || !userId) return;
+    try {
+      const filePath = `${userId}/avatar.jpg`;
+      await supabase.storage.from('avatars').remove([filePath]);
+    } catch (err) {
+      console.warn('Failed to remove avatar from storage:', err);
+    }
   }
 };
 
@@ -190,6 +333,9 @@ export const profileService = {
       if (profileData.budgetCategories || profileData.budget_categories) {
         payload.budget_categories = profileData.budgetCategories || profileData.budget_categories;
       }
+      if (profileData.avatarUrl !== undefined || profileData.avatar_url !== undefined) {
+        payload.avatar_url = profileData.avatarUrl || profileData.avatar_url || null;
+      }
 
       const { data, error } = await supabase
         .from('profiles')
@@ -197,7 +343,16 @@ export const profileService = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.message?.includes('avatar_url') || error.code === '42703') {
+          console.warn('Kolom avatar_url belum dibuat di tabel profiles, upsert fallback tanpa avatar_url.');
+          delete payload.avatar_url;
+          const retryRes = await supabase.from('profiles').upsert(payload).select().single();
+          if (retryRes.error) throw retryRes.error;
+          return retryRes.data;
+        }
+        throw error;
+      }
       return data;
     } catch (err) {
       console.error('Failed to upsert profile:', err);
@@ -292,6 +447,9 @@ export const profileService = {
       if (profileFields.budgetCategories || profileFields.budget_categories) {
         updatePayload.budget_categories = profileFields.budgetCategories || profileFields.budget_categories;
       }
+      if (profileFields.avatarUrl !== undefined || profileFields.avatar_url !== undefined) {
+        updatePayload.avatar_url = profileFields.avatarUrl || profileFields.avatar_url || null;
+      }
 
       const { data, error } = await supabase
         .from('profiles')
@@ -301,6 +459,18 @@ export const profileService = {
         .maybeSingle();
 
       if (error) {
+        if (error.message?.includes('avatar_url') || error.code === '42703') {
+          console.warn('Kolom avatar_url belum dibuat di tabel profiles, update fallback tanpa avatar_url.');
+          delete updatePayload.avatar_url;
+          const retryRes = await supabase
+            .from('profiles')
+            .update(updatePayload)
+            .eq('id', userId)
+            .select()
+            .maybeSingle();
+          if (retryRes.error) throw retryRes.error;
+          return retryRes.data || null;
+        }
         console.error('Failed to update profile in Supabase:', error);
         throw error;
       }
@@ -399,7 +569,8 @@ export const dataSyncService = {
           university: prof.university,
           major: prof.major,
           semester: activeSemester,
-          targetGpa: Number(prof.target_gpa) || 3.80
+          targetGpa: Number(prof.target_gpa) || 3.80,
+          avatarUrl: prof.avatar_url || null
         },
         activeSemester,
         unlockedSemesters,

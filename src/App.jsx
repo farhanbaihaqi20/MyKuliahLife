@@ -12,6 +12,7 @@ import { GradesView } from './views/GradesView';
 import { ProfileSyncView } from './views/ProfileSyncView';
 import { AuthView } from './views/AuthView';
 import { ExtrasView } from './views/ExtrasView';
+import { ResetPasswordModal } from './components/auth/ResetPasswordModal';
 import { ArrowLeft } from 'lucide-react';
 import './styles/app.css';
 
@@ -98,7 +99,7 @@ const MainScreen = () => {
 };
 
 const AppContent = () => {
-  const { session, isGuestMode, isAuthLoading } = useApp();
+  const { session, isGuestMode, isAuthLoading, isResetPasswordModalOpen } = useApp();
 
   if (isAuthLoading) {
     return (
@@ -112,16 +113,18 @@ const AppContent = () => {
     );
   }
 
-  // Mandatory Login Gate
-  if (!session && !isGuestMode) {
-    return (
-      <div className="mobile-device-frame">
-        <AuthView />
-      </div>
-    );
-  }
-
-  return <MainScreen />;
+  return (
+    <>
+      {!session && !isGuestMode ? (
+        <div className="mobile-device-frame">
+          <AuthView />
+        </div>
+      ) : (
+        <MainScreen />
+      )}
+      {isResetPasswordModalOpen && <ResetPasswordModal />}
+    </>
+  );
 };
 
 export default function App() {

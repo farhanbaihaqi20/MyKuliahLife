@@ -46,6 +46,8 @@ export const ProfileSyncView = () => {
     isBalanceVisible,
     localAvatar,
     saveLocalAvatar,
+    uploadUserAvatar,
+    removeUserAvatar,
     isGuestMode,
     linkGoogle,
     unlinkGoogle,
@@ -53,6 +55,8 @@ export const ProfileSyncView = () => {
   } = useApp();
 
   const fileInputRef = useRef(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoMessage, setPhotoMessage] = useState(null);
 
   // Linked Identities State
   const [linkedIdentities, setLinkedIdentities] = useState([]);
@@ -183,7 +187,7 @@ export const ProfileSyncView = () => {
     confetti({ particleCount: 35, spread: 60, origin: { y: 0.6 } });
   };
 
-  // Local Avatar Upload (Stored strictly in browser localStorage)
+  // Photo Upload & Cloud Storage Sync
   const handlePhotoSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -193,6 +197,8 @@ export const ProfileSyncView = () => {
       alert('Ukuran file maksimal 10MB.');
       return;
     }
+
+    setIsUploadingPhoto(true);
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -211,8 +217,33 @@ export const ProfileSyncView = () => {
 
         ctx.drawImage(img, startX, startY, minEdge, minEdge, 0, 0, maxDim, maxDim);
         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        saveLocalAvatar(compressedDataUrl);
-        confetti({ particleCount: 30, spread: 60, origin: { y: 0.5 } });
+
+        // Convert canvas to blob for cloud storage
+        canvas.toBlob(async (blob) => {
+          try {
+            const res = await uploadUserAvatar(blob, compressedDataUrl);
+            if (res.cloudError) {
+              setPhotoMessage({
+                type: 'warning',
+                text: 'Foto tersimpan di browser ini. Periksa izin Supabase Storage bucket "avatars" untuk sinkronisasi antar-browser.'
+              });
+            } else {
+              setPhotoMessage({
+                type: 'success',
+                text: 'Foto profil berhasil diunggah ke Cloud Supabase & tersinkronisasi antar-browser!'
+              });
+            }
+            confetti({ particleCount: 30, spread: 60, origin: { y: 0.5 } });
+          } catch (err) {
+            console.warn('Gagal upload foto profil:', err);
+            setPhotoMessage({
+              type: 'error',
+              text: 'Gagal mengunggah foto profil: ' + err.message
+            });
+          } finally {
+            setIsUploadingPhoto(false);
+          }
+        }, 'image/jpeg', 0.85);
       };
       img.src = event.target.result;
     };
@@ -220,10 +251,14 @@ export const ProfileSyncView = () => {
     e.target.value = '';
   };
 
-  const handleRemovePhoto = (e) => {
+  const handleRemovePhoto = async (e) => {
     e.stopPropagation();
-    if (window.confirm('Hapus foto profil dari browser?')) {
-      saveLocalAvatar('');
+    if (window.confirm('Hapus foto profil?')) {
+      await removeUserAvatar();
+      setPhotoMessage({
+        type: 'info',
+        text: 'Foto profil telah dihapus dari cloud & browser.'
+      });
     }
   };
 
@@ -280,13 +315,30 @@ export const ProfileSyncView = () => {
         </div>
 
         <div className="ktm-digital-content">
-          {/* Avatar Box with Local Photo & Camera Button */}
+          {/* Avatar Box with Photo & Camera Button */}
           <div className="ktm-avatar-box">
-            {localAvatar ? (
+            {isUploadingPhoto ? (
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(239, 246, 255, 0.85)',
+                  borderRadius: '16px'
+                }}
+              >
+                <RefreshCw size={20} className="spin" style={{ color: '#2563EB' }} />
+              </div>
+            ) : localAvatar ? (
               <img
                 src={localAvatar}
                 alt="Foto Profil Mahasiswa"
                 className="ktm-avatar-img"
+                onError={() => {
+                  saveLocalAvatar('');
+                }}
               />
             ) : (
               <div style={{ fontSize: '26px' }}>🎓</div>
@@ -297,13 +349,14 @@ export const ProfileSyncView = () => {
               type="button"
               className="ktm-photo-badge-btn"
               onClick={() => fileInputRef.current?.click()}
-              title="Pasang / Ganti Foto Profil (Tersimpan Lokal)"
+              disabled={isUploadingPhoto}
+              title="Pasang / Ganti Foto Profil (Tersinkron Cloud)"
             >
               <Camera size={12} />
             </button>
 
             {/* Remove Photo Button if photo exists */}
-            {localAvatar && (
+            {localAvatar && !isUploadingPhoto && (
               <button
                 type="button"
                 className="ktm-photo-remove-btn"
@@ -346,6 +399,47 @@ export const ProfileSyncView = () => {
           </div>
         </div>
       </div>
+
+      {/* Notifikasi Status Sinkronisasi Foto Profil */}
+      {photoMessage && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 14px',
+            borderRadius: '12px',
+            fontSize: '13px',
+            fontWeight: 500,
+            marginTop: '12px',
+            backgroundColor: photoMessage.type === 'success' ? '#ECFDF5' : (photoMessage.type === 'warning' ? '#FFFBEB' : (photoMessage.type === 'error' ? '#FEF2F2' : '#EFF6FF')),
+            color: photoMessage.type === 'success' ? '#065F46' : (photoMessage.type === 'warning' ? '#92400E' : (photoMessage.type === 'error' ? '#991B1B' : '#1E40AF')),
+            border: `1px solid ${photoMessage.type === 'success' ? '#A7F3D0' : (photoMessage.type === 'warning' ? '#FDE68A' : (photoMessage.type === 'error' ? '#FECACA' : '#BFDBFE'))}`,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+            animation: 'fadeIn 0.2s ease-in-out'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {photoMessage.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+            <span>{photoMessage.text}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPhotoMessage(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'inherit',
+              padding: '2px',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* 2. LAPORAN PENTING: RINGKASAN AKADEMIK */}
       <div className="card-standard" style={{ marginTop: '16px' }}>

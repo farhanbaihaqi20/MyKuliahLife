@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { loadLocalData, saveLocalData } from '../services/db';
 import { isSupabaseConfigured, supabase } from '../services/supabase';
-import { authService, profileService, dataSyncService, cloudService, generateUUID } from '../services/supabaseService';
+import { authService, profileService, dataSyncService, cloudService, storageService, generateUUID } from '../services/supabaseService';
 import { INITIAL_DATA, CLEAN_DATA } from '../constants/initialData';
 import { getFinancialCycle } from '../utils/dateCycle';
 
@@ -156,6 +156,7 @@ export const AppProvider = ({ children }) => {
   const [quickAddType, setQuickAddType] = useState('transaction');
   const [quickAddCategory, setQuickAddCategory] = useState(null);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
   const [isCycleModalOpen, setIsCycleModalOpen] = useState(false);
 
   // Global navigation helper that synchronizes active tab and subtab
@@ -214,9 +215,27 @@ export const AppProvider = ({ children }) => {
 
           // Check if user has cloud data
           const rawCloudData = await dataSyncService.loadUserData(currUser.id);
+          const freshUser = await authService.getUser();
+
+          // Prioritas pencarian avatar Cloud: DB profiles -> user_metadata -> Supabase Storage
+          let cloudAvatar = rawCloudData?.profile?.avatarUrl || freshUser?.user_metadata?.avatar_url || currUser.user_metadata?.avatar_url || null;
+          if (!cloudAvatar) {
+            cloudAvatar = await storageService.checkAvatarExists(currUser.id);
+          }
+
+          if (cloudAvatar) {
+            saveLocalAvatar(cloudAvatar);
+          }
+
           if (rawCloudData) {
             const cached = loadLocalData(currUser.id);
             const resolvedData = reconcileUserData(rawCloudData, cached, currUser.id);
+            if (cloudAvatar) {
+              resolvedData.profile = {
+                ...resolvedData.profile,
+                avatarUrl: cloudAvatar
+              };
+            }
             setData(resolvedData);
             saveLocalData(resolvedData, currUser.id);
             setIsOnboardingOpen(false);
@@ -224,6 +243,9 @@ export const AppProvider = ({ children }) => {
             // New user without cloud profile
             const cached = loadLocalData(currUser.id);
             if (cached && cached.profile?.fullName && cached.profile.fullName !== 'Mahasiswa') {
+              if (cloudAvatar) {
+                cached.profile = { ...cached.profile, avatarUrl: cloudAvatar };
+              }
               setData(cached);
               setIsOnboardingOpen(false);
             } else {
@@ -258,6 +280,10 @@ export const AppProvider = ({ children }) => {
       const newUser = newSession?.user || null;
       setUser(newUser);
 
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsResetPasswordModalOpen(true);
+      }
+
       if (newUser && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
         setSyncStatus({
           mode: 'online',
@@ -266,9 +292,26 @@ export const AppProvider = ({ children }) => {
         });
 
         const rawCloudData = await dataSyncService.loadUserData(newUser.id);
+        const freshUser = await authService.getUser();
+
+        let cloudAvatar = rawCloudData?.profile?.avatarUrl || freshUser?.user_metadata?.avatar_url || newUser.user_metadata?.avatar_url || null;
+        if (!cloudAvatar) {
+          cloudAvatar = await storageService.checkAvatarExists(newUser.id);
+        }
+
+        if (cloudAvatar) {
+          saveLocalAvatar(cloudAvatar);
+        }
+
         if (rawCloudData) {
           const cached = loadLocalData(newUser.id);
           const resolvedData = reconcileUserData(rawCloudData, cached, newUser.id);
+          if (cloudAvatar) {
+            resolvedData.profile = {
+              ...resolvedData.profile,
+              avatarUrl: cloudAvatar
+            };
+          }
           setData(resolvedData);
           saveLocalData(resolvedData, newUser.id);
           setIsOnboardingOpen(false);
@@ -285,6 +328,7 @@ export const AppProvider = ({ children }) => {
         setData(CLEAN_DATA);
         setIsGuestMode(false);
         setIsOnboardingOpen(false);
+        saveLocalAvatar('');
       }
     });
 
@@ -363,6 +407,31 @@ export const AppProvider = ({ children }) => {
   const triggerSync = async () => {
     setSyncStatus(prev => ({ ...prev, message: 'Menyinkronkan data...' }));
     const res = await syncWithCloud(data, user?.id);
+
+    // Sinkronkan juga avatar dari cloud jika akun terhubung
+    if (user?.id) {
+      try {
+        const rawCloudData = await dataSyncService.loadUserData(user.id);
+        const freshUser = await authService.getUser();
+        let cloudAvatar = rawCloudData?.profile?.avatarUrl || freshUser?.user_metadata?.avatar_url || null;
+        if (!cloudAvatar) {
+          cloudAvatar = await storageService.checkAvatarExists(user.id);
+        }
+        if (cloudAvatar) {
+          saveLocalAvatar(cloudAvatar);
+          setData(prev => ({
+            ...prev,
+            profile: {
+              ...prev.profile,
+              avatarUrl: cloudAvatar
+            }
+          }));
+        }
+      } catch (err) {
+        console.warn('Avatar sync check warning:', err);
+      }
+    }
+
     setSyncStatus({
       mode: res.mode === 'cloud' ? 'online' : (res.mode === 'offline' ? 'offline' : 'ready'),
       message: res.message,
@@ -371,7 +440,7 @@ export const AppProvider = ({ children }) => {
     return res;
   };
 
-  // Local Avatar (Stored strictly in browser localStorage, not uploaded to database)
+  // Local Avatar (Stored in browser localStorage & synced to Cloud Supabase)
   const [localAvatar, setLocalAvatarState] = useState(() => {
     try {
       return localStorage.getItem('mykuliahlife_local_avatar') || localStorage.getItem('myuang_local_avatar') || '';
@@ -394,6 +463,117 @@ export const AppProvider = ({ children }) => {
     } catch (e) {
       console.warn('Failed to save local avatar:', e);
     }
+  };
+
+  const uploadUserAvatar = async (fileBlob, base64Preview) => {
+    try {
+      // 1. Tampilkan lokal preview segera agar interaksi instan
+      if (base64Preview) {
+        saveLocalAvatar(base64Preview);
+      }
+
+      if (user?.id) {
+        let finalAvatarUrl = null;
+        let storageErrorNotice = null;
+
+        // 2. Upload file gambar ke Supabase Storage (Bucket 'avatars')
+        try {
+          const { publicUrl } = await storageService.uploadAvatar(user.id, fileBlob);
+          if (publicUrl) {
+            finalAvatarUrl = publicUrl;
+          }
+        } catch (storageErr) {
+          console.warn('Supabase storage upload notice:', storageErr);
+          storageErrorNotice = storageErr.message;
+        }
+
+        // 3. Jika berhasil di-upload ke Storage Cloud (URL publik http/https)
+        if (finalAvatarUrl && finalAvatarUrl.startsWith('http')) {
+          // A. Simpan ke database profiles table Supabase (lintas browser/perangkat)
+          try {
+            await profileService.updateProfile(user.id, { avatarUrl: finalAvatarUrl });
+          } catch (dbErr) {
+            console.warn('Gagal menyimpan avatar_url di tabel profiles:', dbErr);
+          }
+
+          // B. Simpan ke user_metadata Supabase Auth
+          try {
+            await authService.updateUserMetadata({ avatar_url: finalAvatarUrl });
+          } catch (metaErr) {
+            console.warn('Gagal update user metadata:', metaErr);
+          }
+
+          // C. Simpan ke state lokal & React context
+          saveLocalAvatar(finalAvatarUrl);
+          setData(prev => {
+            const next = {
+              ...prev,
+              profile: {
+                ...prev.profile,
+                avatarUrl: finalAvatarUrl
+              }
+            };
+            saveLocalData(next, user.id);
+            return next;
+          });
+
+          return { success: true, url: finalAvatarUrl, cloudError: null };
+        }
+
+        // Fallback jika storage bucket belum aktif: simpan lokal saja (jangan simpan base64 besar ke JWT auth)
+        return { success: true, url: base64Preview, cloudError: storageErrorNotice };
+      }
+      return { success: true, url: base64Preview, localOnly: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const removeUserAvatar = async () => {
+    saveLocalAvatar('');
+    setData(prev => {
+      const next = {
+        ...prev,
+        profile: {
+          ...prev.profile,
+          avatarUrl: null
+        }
+      };
+      if (user?.id) saveLocalData(next, user.id);
+      return next;
+    });
+
+    if (user?.id) {
+      try {
+        await storageService.removeAvatar(user.id);
+        await authService.updateUserMetadata({ avatar_url: null });
+        await profileService.updateProfile(user.id, { avatarUrl: null });
+      } catch (err) {
+        console.warn('Failed to remove avatar from storage or db:', err);
+      }
+    }
+  };
+
+  const resetPassword = async (email) => {
+    try {
+      await authService.resetPasswordForEmail(email);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updatePassword = async (newPassword) => {
+    try {
+      await authService.updateUserPassword(newPassword);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const checkEmailRegistered = async (email) => {
+    return await authService.checkEmailExists(email);
   };
 
   // Profile Management
@@ -1769,6 +1949,11 @@ export const AppProvider = ({ children }) => {
         linkGoogle,
         unlinkGoogle,
         getLinkedIdentities,
+        resetPassword,
+        updatePassword,
+        checkEmailRegistered,
+        isResetPasswordModalOpen,
+        setIsResetPasswordModalOpen,
         // Onboarding & Reset
         resetToDemoData,
         resetToCleanData,
@@ -1776,6 +1961,8 @@ export const AppProvider = ({ children }) => {
         updateProfile,
         localAvatar,
         saveLocalAvatar,
+        uploadUserAvatar,
+        removeUserAvatar,
         // Semester System (Centralized in Profile)
         activeSemester,
         unlockedSemesters,

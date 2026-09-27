@@ -144,6 +144,9 @@ export const Header = () => {
               src={localAvatar}
               alt="Foto Profil"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={() => {
+                saveLocalAvatar('');
+              }}
             />
           ) : (
             <User size={20} />
