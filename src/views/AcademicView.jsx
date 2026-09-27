@@ -24,6 +24,7 @@ import confetti from 'canvas-confetti';
 import SwipeableItem from '../components/common/SwipeableItem';
 import CourseDetailModal from '../components/academic/CourseDetailModal';
 import EditCourseModal from '../components/academic/EditCourseModal';
+import { sanitizeUrl, isSafeExternalUrl } from '../utils/security';
 
 export const AcademicView = () => {
   const {
@@ -916,11 +917,11 @@ export const AcademicView = () => {
                     {note.content}
                   </p>
 
-                  {note.materialUrl && (
+                  {isSafeExternalUrl(note.materialUrl) && (
                     <a
-                      href={note.materialUrl}
+                      href={sanitizeUrl(note.materialUrl)}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',

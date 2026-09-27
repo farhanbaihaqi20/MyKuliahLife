@@ -1,0 +1,8 @@
+# Security Policy for MyKuliahLife
+# https://mykuliahlife.web.id
+
+Contact: mailto:admin@mykuliahlife.web.id
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: id, en
+Canonical: https://mykuliahlife.web.id/.well-known/security.txt
+Policy: https://mykuliahlife.web.id

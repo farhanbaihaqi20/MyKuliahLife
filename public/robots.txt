@@ -1,0 +1,11 @@
+# robots.txt for MyKuliahLife (https://mykuliahlife.web.id)
+# Allow public indexing of landing and main portal while restricting private routes
+
+User-agent: *
+Disallow: /reset-password
+Disallow: /app/
+Disallow: /api/
+Allow: /
+
+# Sitemap definition
+Sitemap: https://mykuliahlife.web.id/sitemap.xml

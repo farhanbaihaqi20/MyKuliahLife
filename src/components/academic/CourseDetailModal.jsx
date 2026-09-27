@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../../context/AppContext';
+import { sanitizeUrl, isSafeExternalUrl } from '../../utils/security';
 
 const GRADE_OPTIONS = [
   { letter: 'A', point: 4.0, label: 'Sangat Baik' },
@@ -738,9 +739,9 @@ export default function CourseDetailModal({
                           )}
                         </div>
 
-                        {n.driveUrl && (
+                        {isSafeExternalUrl(n.driveUrl) && (
                           <a
-                            href={n.driveUrl}
+                            href={sanitizeUrl(n.driveUrl)}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#1665D8', fontWeight: 700, textDecoration: 'none' }}
