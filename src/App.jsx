@@ -12,7 +12,7 @@ import { GradesView } from './views/GradesView';
 import { ProfileSyncView } from './views/ProfileSyncView';
 import { AuthView } from './views/AuthView';
 import { ExtrasView } from './views/ExtrasView';
-import { ResetPasswordModal } from './components/auth/ResetPasswordModal';
+import { ResetPasswordView } from './views/ResetPasswordView';
 import { ArrowLeft } from 'lucide-react';
 import './styles/app.css';
 
@@ -113,6 +113,15 @@ const AppContent = () => {
     );
   }
 
+  // Jika sedang memulihkan kata sandi, tampilkan halaman khusus Buat Kata Sandi Baru (bebas dari tampilan dashboard)
+  if (isResetPasswordModalOpen) {
+    return (
+      <div className="mobile-device-frame">
+        <ResetPasswordView />
+      </div>
+    );
+  }
+
   return (
     <>
       {!session && !isGuestMode ? (
@@ -122,7 +131,6 @@ const AppContent = () => {
       ) : (
         <MainScreen />
       )}
-      {isResetPasswordModalOpen && <ResetPasswordModal />}
     </>
   );
 };
