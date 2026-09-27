@@ -4,6 +4,7 @@ import { isSupabaseConfigured, supabase } from '../services/supabase';
 import { authService, profileService, dataSyncService, cloudService, storageService, generateUUID } from '../services/supabaseService';
 import { INITIAL_DATA, CLEAN_DATA } from '../constants/initialData';
 import { getFinancialCycle } from '../utils/dateCycle';
+import { sanitizeSlug } from '../utils/security';
 
 const FUEL_API_BASE = 'https://nasgunawann.github.io/bensin-api/v1/provinsi';
 const FUEL_PRODUCT_MAP = {
@@ -584,10 +585,6 @@ export const AppProvider = ({ children }) => {
     } catch (err) {
       return { success: false, error: err.message };
     }
-  };
-
-  const checkEmailRegistered = async (email) => {
-    return await authService.checkEmailExists(email);
   };
 
   // Profile Management
@@ -1221,7 +1218,7 @@ export const AppProvider = ({ children }) => {
     const fuelPrice = Number(logData.pricePerLiter) || 10000;
     const amount = Number(logData.amount) || 0;
     const calculatedLiters = logData.liters ? Number(logData.liters) : Number((amount / fuelPrice).toFixed(3));
-    
+
     const currSettings = data.fuelSettings || {
       motorName: 'Motor Saya',
       motorType: 'Matic',
@@ -1237,8 +1234,8 @@ export const AppProvider = ({ children }) => {
     const tankCap = Number(currSettings.tankCapacity) || 4.2;
     const addedPercent = (calculatedLiters / tankCap) * 100;
     const newTankLevel = Math.min(100, Math.round((Number(currSettings.currentTankLevel) || 50) + addedPercent));
-    const newOdo = logData.odometer !== undefined && logData.odometer !== null && logData.odometer !== '' 
-      ? Number(logData.odometer) 
+    const newOdo = logData.odometer !== undefined && logData.odometer !== null && logData.odometer !== ''
+      ? Number(logData.odometer)
       : (currSettings.currentOdometer || 0);
 
     const updatedFuelSettings = {
@@ -1287,7 +1284,7 @@ export const AppProvider = ({ children }) => {
       };
       const fuelLabel = fuelNames[logData.fuelType] || 'BBM';
       const odoText = logData.odometer ? ` | Odo: ${Number(logData.odometer).toLocaleString('id-ID')} km` : '';
-      
+
       await addTransaction({
         type: 'expense',
         category: 'Transport & Bensin',
@@ -1354,12 +1351,13 @@ export const AppProvider = ({ children }) => {
   };
 
   const fetchFuelPrices = async (targetSlug = null) => {
-    const slug = targetSlug || data.fuelSettings?.provinceSlug || 'jawa-timur';
+    const rawSlug = targetSlug || data.fuelSettings?.provinceSlug || 'jawa-timur';
+    const slug = sanitizeSlug(rawSlug, 'jawa-timur');
     try {
       const res = await fetch(`${FUEL_API_BASE}/${slug}.json`);
       if (!res.ok) throw new Error('Gagal mengambil data dari server bensin-api');
       const json = await res.json();
-      
+
       const newPrices = {};
       if (Array.isArray(json.products)) {
         json.products.forEach(p => {
@@ -1437,10 +1435,10 @@ export const AppProvider = ({ children }) => {
       const updatedCourses = prev.courses.map(c => c.id === courseId ? updatedCourse : c);
 
       // Sync name changes to assignments and notes
-      const updatedAssignments = prev.assignments.map(a => 
+      const updatedAssignments = prev.assignments.map(a =>
         a.courseId === courseId ? { ...a, courseName: updatedCourse.name } : a
       );
-      const updatedCourseNotes = prev.courseNotes.map(n => 
+      const updatedCourseNotes = prev.courseNotes.map(n =>
         n.courseId === courseId ? { ...n, courseName: updatedCourse.name } : n
       );
 
@@ -1510,7 +1508,7 @@ export const AppProvider = ({ children }) => {
       const numPoint = Number(point);
       const gradeObj = { letter, point: numPoint, isGraded: true };
 
-      const updatedCourses = prev.courses.map(c => 
+      const updatedCourses = prev.courses.map(c =>
         c.id === courseId ? { ...c, grade: gradeObj } : c
       );
 
@@ -1967,7 +1965,6 @@ export const AppProvider = ({ children }) => {
         getLinkedIdentities,
         resetPassword,
         updatePassword,
-        checkEmailRegistered,
         isResetPasswordModalOpen,
         setIsResetPasswordModalOpen,
         // Onboarding & Reset

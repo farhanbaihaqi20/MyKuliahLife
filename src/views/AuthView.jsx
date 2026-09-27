@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Eye, EyeOff, Lock, Mail, User, ArrowRight, Sparkles, ShieldCheck, Compass, CheckCircle2, AlertCircle, ArrowLeft, KeyRound } from 'lucide-react';
 import GoogleIcon from '../components/auth/GoogleIcon';
+import { validateStrongPassword, formatAuthError } from '../utils/security';
 
 export const AuthView = () => {
   const { login, loginWithGoogle, register, resetPassword, enterGuestMode, verifySignupOtp, resendSignupOtp } = useApp();
@@ -238,7 +239,13 @@ export const AuthView = () => {
       return;
     }
 
-    if (password.length < 6) {
+    if (mode === 'register') {
+      const pwdCheck = validateStrongPassword(password);
+      if (!pwdCheck.valid) {
+        setErrorMsg(pwdCheck.message);
+        return;
+      }
+    } else if (password.length < 6) {
       setErrorMsg('Kata sandi minimal terdiri dari 6 karakter.');
       return;
     }
@@ -282,7 +289,7 @@ export const AuthView = () => {
       } else {
         const res = await register(email, password, { full_name: fullName.trim() || 'Mahasiswa' });
         if (!res.success) {
-          setErrorMsg(res.error || 'Gagal mendaftar. Silakan coba lagi.');
+          setErrorMsg(formatAuthError(res.error || 'Gagal mendaftar. Silakan coba lagi.'));
         } else {
           // Cooldown 30 detik setelah pendaftaran
           const cooldownTime = Date.now() + 30000;
@@ -298,7 +305,7 @@ export const AuthView = () => {
         }
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Terjadi kendala saat menghubungi server Supabase.');
+      setErrorMsg(formatAuthError(err.message || 'Terjadi kendala saat menghubungi server Supabase.'));
     } finally {
       setLoading(false);
     }
@@ -329,8 +336,10 @@ export const AuthView = () => {
           {/* Alerts */}
           {errorMsg && (
             <div className="auth-modern-alert error">
-              <AlertCircle size={16} className="alert-icon" />
-              <span>{errorMsg}</span>
+              <AlertCircle size={18} className="alert-icon" />
+              <div className="alert-body">
+                <span className="alert-text">{formatAuthError(errorMsg)}</span>
+              </div>
             </div>
           )}
 
@@ -655,7 +664,7 @@ export const AuthView = () => {
                     <input
                       type={showPassword ? 'text' : 'password'}
                       className="auth-modern-input"
-                      placeholder="Minimal 6 karakter"
+                      placeholder={mode === 'register' ? 'Minimal 8 karakter (huruf & angka)' : 'Masukkan kata sandi'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required

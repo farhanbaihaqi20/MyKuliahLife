@@ -18,6 +18,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { formatRupiahNumber } from '../../utils/formatters';
+import { sanitizeCsvCell } from '../../utils/security';
 
 const INDONESIAN_MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -326,18 +327,18 @@ export const FinancialStatementModal = ({
     csv += 'MYKULIAHLIFE FINANCIAL OPERATING SYSTEM\r\n';
     csv += 'REKENING KORAN RESMI (OFFICIAL FINANCIAL STATEMENT)\r\n';
     csv += `Nomor Dokumen,${statementId}\r\n`;
-    csv += `Tanggal Cetak,"${printTimestamp}"\r\n`;
-    csv += `Periode Laporan,"${periodLabel}"\r\n`;
+    csv += `Tanggal Cetak,${sanitizeCsvCell(printTimestamp)}\r\n`;
+    csv += `Periode Laporan,${sanitizeCsvCell(periodLabel)}\r\n`;
     csv += `Status Verifikasi,TERVERIFIKASI SISTEM (DIGITALLY ENCRYPTED)\r\n`;
     csv += '\r\n';
 
     // Account Holder Info
     csv += 'INFORMASI PEMILIK REKENING / NASABAH\r\n';
-    csv += `Nama Lengkap,"${profile.fullName || 'Mahasiswa MyKuliahLife'}"\r\n`;
-    csv += `Email Mahasiswa,"${profile.email || '-'}"\r\n`;
-    csv += `Perguruan Tinggi,"${profile.university || '-'}"\r\n`;
-    csv += `Program Studi,"${profile.major || '-'} (Semester ${profile.semester || '-'})"\r\n`;
-    csv += `Rekening Terpilih,"${selectedAccount ? selectedAccount.name : 'Konsolidasi Semua Rekening'}"\r\n`;
+    csv += `Nama Lengkap,${sanitizeCsvCell(profile.fullName || 'Mahasiswa MyKuliahLife')}\r\n`;
+    csv += `Email Mahasiswa,${sanitizeCsvCell(profile.email || '-')}\r\n`;
+    csv += `Perguruan Tinggi,${sanitizeCsvCell(profile.university || '-')}\r\n`;
+    csv += `Program Studi,${sanitizeCsvCell(`${profile.major || '-'} (Semester ${profile.semester || '-'})`)}\r\n`;
+    csv += `Rekening Terpilih,${sanitizeCsvCell(selectedAccount ? selectedAccount.name : 'Konsolidasi Semua Rekening')}\r\n`;
     csv += '\r\n';
 
     // Executive Summary
@@ -356,14 +357,14 @@ export const FinancialStatementModal = ({
 
     transactionsChronological.forEach((tx) => {
       const descText = (tx.merchant ? `${tx.merchant} - ` : '') + (tx.note || tx.category || 'Transaksi');
-      const escapedDesc = `"${descText.replace(/"/g, '""')}"`;
-      const cat = `"${(tx.category || '-').replace(/"/g, '""')}"`;
-      const acc = `"${(tx.accountName || '-').replace(/"/g, '""')}"`;
-      const dk = tx.type === 'income' ? 'Kredit (CR)' : 'Debit (DB)';
+      const escapedDesc = sanitizeCsvCell(descText);
+      const cat = sanitizeCsvCell(tx.category || '-');
+      const acc = sanitizeCsvCell(tx.accountName || '-');
+      const dk = sanitizeCsvCell(tx.type === 'income' ? 'Kredit (CR)' : 'Debit (DB)');
       const amount = tx.amount || 0;
       const runBal = tx.runningBalance || 0;
 
-      csv += `${tx.rowNumber},${tx.date},${escapedDesc},${cat},${acc},${dk},${amount},${runBal}\r\n`;
+      csv += `${tx.rowNumber},${sanitizeCsvCell(tx.date)},${escapedDesc},${cat},${acc},${dk},${amount},${runBal}\r\n`;
     });
 
     csv += '\r\n';

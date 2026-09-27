@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight, KeyRound } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { validateStrongPassword, formatAuthError } from '../../utils/security';
 
 export const ResetPasswordModal = () => {
   const { updatePassword, setIsResetPasswordModalOpen } = useApp();
@@ -18,8 +19,9 @@ export const ResetPasswordModal = () => {
     setErrorMsg('');
     setSuccessMsg('');
 
-    if (!newPassword || newPassword.length < 6) {
-      setErrorMsg('Kata sandi baru minimal harus 6 karakter.');
+    const pwdCheck = validateStrongPassword(newPassword);
+    if (!pwdCheck.valid) {
+      setErrorMsg(pwdCheck.message);
       return;
     }
 
@@ -32,7 +34,7 @@ export const ResetPasswordModal = () => {
     try {
       const res = await updatePassword(newPassword);
       if (!res.success) {
-        setErrorMsg(res.error || 'Gagal memperbarui kata sandi. Silakan coba lagi.');
+        setErrorMsg(formatAuthError(res.error || 'Gagal memperbarui kata sandi. Silakan coba lagi.'));
       } else {
         setSuccessMsg('Kata sandi Anda berhasil diperbarui! Mengalihkan ke dashboard...');
         confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
@@ -41,7 +43,7 @@ export const ResetPasswordModal = () => {
         }, 1800);
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Terjadi kesalahan saat memperbarui kata sandi.');
+      setErrorMsg(formatAuthError(err.message || 'Terjadi kesalahan saat memperbarui kata sandi.'));
     } finally {
       setLoading(false);
     }
@@ -99,15 +101,19 @@ export const ResetPasswordModal = () => {
 
         {errorMsg && (
           <div className="auth-modern-alert error" style={{ marginBottom: '14px' }}>
-            <AlertCircle size={16} className="alert-icon" />
-            <span>{errorMsg}</span>
+            <AlertCircle size={18} className="alert-icon" />
+            <div className="alert-body">
+              <span className="alert-text">{formatAuthError(errorMsg)}</span>
+            </div>
           </div>
         )}
 
         {successMsg && (
           <div className="auth-modern-alert success" style={{ marginBottom: '14px' }}>
-            <CheckCircle2 size={16} className="alert-icon" />
-            <span>{successMsg}</span>
+            <CheckCircle2 size={18} className="alert-icon" />
+            <div className="alert-body">
+              <span className="alert-text">{successMsg}</span>
+            </div>
           </div>
         )}
 
@@ -119,7 +125,7 @@ export const ResetPasswordModal = () => {
               <input
                 type={showPassword ? 'text' : 'password'}
                 className="auth-modern-input"
-                placeholder="Minimal 6 karakter"
+                placeholder="Minimal 8 karakter (huruf & angka)"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required

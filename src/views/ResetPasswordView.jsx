@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight, KeyRound, ArrowLeft, ShieldCheck } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { validateStrongPassword, formatAuthError } from '../utils/security';
 
 export const ResetPasswordView = () => {
   const { updatePassword, setIsResetPasswordModalOpen, logout } = useApp();
@@ -16,10 +17,10 @@ export const ResetPasswordView = () => {
   // Password Strength Calculation
   const getPasswordStrength = (pass) => {
     if (!pass) return { score: 0, label: '', color: '#CBD5E1' };
-    if (pass.length < 6) return { score: 1, label: 'Terlalu Pendek (< 6 karakter)', color: '#EF4444' };
+    if (pass.length < 8) return { score: 1, label: 'Terlalu Pendek (< 8 karakter)', color: '#EF4444' };
     
     let score = 1;
-    if (pass.length >= 8) score++;
+    if (pass.length >= 10) score++;
     if (/[0-9]/.test(pass) && /[a-zA-Z]/.test(pass)) score++;
     if (/[^a-zA-Z0-9]/.test(pass)) score++;
 
@@ -34,8 +35,9 @@ export const ResetPasswordView = () => {
     setErrorMsg('');
     setSuccessMsg('');
 
-    if (!newPassword || newPassword.length < 6) {
-      setErrorMsg('Kata sandi baru minimal harus 6 karakter.');
+    const pwdCheck = validateStrongPassword(newPassword);
+    if (!pwdCheck.valid) {
+      setErrorMsg(pwdCheck.message);
       return;
     }
 
@@ -48,7 +50,7 @@ export const ResetPasswordView = () => {
     try {
       const res = await updatePassword(newPassword);
       if (!res.success) {
-        setErrorMsg(res.error || 'Gagal memperbarui kata sandi. Silakan coba lagi.');
+        setErrorMsg(formatAuthError(res.error || 'Gagal memperbarui kata sandi. Silakan coba lagi.'));
       } else {
         setSuccessMsg('Kata sandi Anda berhasil diperbarui! Mengalihkan ke dashboard...');
         confetti({ particleCount: 55, spread: 75, origin: { y: 0.55 } });
@@ -57,7 +59,7 @@ export const ResetPasswordView = () => {
         }, 1500);
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Terjadi kesalahan saat memperbarui kata sandi.');
+      setErrorMsg(formatAuthError(err.message || 'Terjadi kesalahan saat memperbarui kata sandi.'));
     } finally {
       setLoading(false);
     }
@@ -122,15 +124,19 @@ export const ResetPasswordView = () => {
           {/* Alert Messages */}
           {errorMsg && (
             <div className="auth-modern-alert error" style={{ marginBottom: '14px' }}>
-              <AlertCircle size={16} className="alert-icon" />
-              <span>{errorMsg}</span>
+              <AlertCircle size={18} className="alert-icon" />
+              <div className="alert-body">
+                <span className="alert-text">{formatAuthError(errorMsg)}</span>
+              </div>
             </div>
           )}
 
           {successMsg && (
             <div className="auth-modern-alert success" style={{ marginBottom: '14px' }}>
-              <CheckCircle2 size={16} className="alert-icon" />
-              <span>{successMsg}</span>
+              <CheckCircle2 size={18} className="alert-icon" />
+              <div className="alert-body">
+                <span className="alert-text">{successMsg}</span>
+              </div>
             </div>
           )}
 
@@ -142,7 +148,7 @@ export const ResetPasswordView = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   className="auth-modern-input"
-                  placeholder="Minimal 6 karakter"
+                  placeholder="Minimal 8 karakter (huruf & angka)"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
@@ -169,7 +175,7 @@ export const ResetPasswordView = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', fontSize: '11px' }}>
                     <span style={{ color: strength.color, fontWeight: 600 }}>{strength.label}</span>
-                    <span style={{ color: '#94A3B8' }}>Min. 6 karakter</span>
+                    <span style={{ color: '#94A3B8' }}>Min. 8 karakter (huruf & angka)</span>
                   </div>
                 </div>
               )}

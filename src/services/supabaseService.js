@@ -151,22 +151,6 @@ export const authService = {
     }
   },
 
-  // Cek apakah email sudah terdaftar di Supabase (via RPC check_email_exists)
-  async checkEmailExists(email) {
-    if (!isSupabaseConfigured() || !supabase || !email) return null;
-    try {
-      const { data, error } = await supabase.rpc('check_email_exists', {
-        target_email: email.trim().toLowerCase()
-      });
-      if (!error && typeof data === 'boolean') {
-        return data;
-      }
-    } catch (err) {
-      console.warn('RPC check_email_exists error:', err);
-    }
-    return null;
-  },
-
   // Kirim email pemulihan / reset kata sandi
   async resetPasswordForEmail(email) {
     if (!isSupabaseConfigured() || !supabase) {
