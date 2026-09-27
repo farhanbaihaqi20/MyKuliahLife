@@ -20,8 +20,12 @@ import {
   ShieldCheck,
   CheckCircle2,
   FileCheck,
-  AlertCircle
+  AlertCircle,
+  Link2,
+  Unlink,
+  RefreshCw
 } from 'lucide-react';
+import GoogleIcon from '../components/auth/GoogleIcon';
 import confetti from 'canvas-confetti';
 
 export const ProfileSyncView = () => {
@@ -41,10 +45,83 @@ export const ProfileSyncView = () => {
     totalBudget,
     isBalanceVisible,
     localAvatar,
-    saveLocalAvatar
+    saveLocalAvatar,
+    isGuestMode,
+    linkGoogle,
+    unlinkGoogle,
+    getLinkedIdentities
   } = useApp();
 
   const fileInputRef = useRef(null);
+
+  // Linked Identities State
+  const [linkedIdentities, setLinkedIdentities] = useState([]);
+  const [isLoadingIdentities, setIsLoadingIdentities] = useState(false);
+  const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
+  const [isUnlinkingGoogle, setIsUnlinkingGoogle] = useState(false);
+  const [identityMessage, setIdentityMessage] = useState(null);
+
+  const fetchIdentities = async () => {
+    if (!user || isGuestMode) return;
+    setIsLoadingIdentities(true);
+    try {
+      const list = await getLinkedIdentities();
+      if (Array.isArray(list) && list.length > 0) {
+        setLinkedIdentities(list);
+      } else if (user?.identities && user.identities.length > 0) {
+        setLinkedIdentities(user.identities);
+      } else {
+        setLinkedIdentities([]);
+      }
+    } catch (err) {
+      console.warn('Gagal memuat daftar identitas akun:', err);
+    } finally {
+      setIsLoadingIdentities(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchIdentities();
+  }, [user, isGuestMode]);
+
+  const handleConnectGoogle = async () => {
+    setIdentityMessage(null);
+    setIsLinkingGoogle(true);
+    try {
+      const res = await linkGoogle();
+      if (!res.success) {
+        setIdentityMessage({ type: 'error', text: res.error || 'Gagal memulai koneksi Google.' });
+        setIsLinkingGoogle(false);
+      }
+    } catch (err) {
+      setIdentityMessage({ type: 'error', text: err.message || 'Terjadi kesalahan saat menghubungkan akun.' });
+      setIsLinkingGoogle(false);
+    }
+  };
+
+  const handleDisconnectGoogle = async (googleIdentity) => {
+    if (!window.confirm('Yakin ingin memutuskan koneksi akun Google? Anda tetap dapat login menggunakan email dan password.')) {
+      return;
+    }
+    setIdentityMessage(null);
+    setIsUnlinkingGoogle(true);
+    try {
+      const res = await unlinkGoogle(googleIdentity);
+      if (res.success) {
+        setIdentityMessage({ type: 'success', text: 'Koneksi akun Google berhasil diputuskan.' });
+        await fetchIdentities();
+      } else {
+        setIdentityMessage({ type: 'error', text: res.error || 'Gagal memutuskan akun Google.' });
+      }
+    } catch (err) {
+      setIdentityMessage({ type: 'error', text: err.message || 'Gagal memutuskan akun Google.' });
+    } finally {
+      setIsUnlinkingGoogle(false);
+    }
+  };
+
+  const googleIdentity = linkedIdentities.find((i) => i.provider === 'google');
+  const hasEmailIdentity = linkedIdentities.some((i) => i.provider === 'email') || (!googleIdentity && !!user?.email);
 
   // Edit Profile Form state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -473,7 +550,231 @@ export const ProfileSyncView = () => {
         </div>
       </div>
 
-      {/* 5. STATUS AKUN & CLOUD SYNC */}
+      {/* 5. AKUN TERHUBUNG & MULTI-LOGIN */}
+      <div className="card-standard" style={{ marginTop: '16px' }}>
+        <div className="section-header-row" style={{ marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Link2 size={18} style={{ color: '#1665D8' }} />
+            <h3 className="section-title" style={{ margin: 0 }}>
+              Akun Terhubung
+            </h3>
+          </div>
+          {!isGuestMode && (
+            <button
+              type="button"
+              className="section-action-link"
+              onClick={fetchIdentities}
+              disabled={isLoadingIdentities}
+              title="Muat ulang status akun"
+              style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              <RefreshCw size={12} className={isLoadingIdentities ? 'spin' : ''} />
+              <span>Segarkan</span>
+            </button>
+          )}
+        </div>
+
+        {identityMessage && (
+          <div
+            style={{
+              padding: '10px 12px',
+              borderRadius: '10px',
+              fontSize: '12px',
+              marginBottom: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: identityMessage.type === 'success' ? '#ECFDF5' : '#FEF2F2',
+              color: identityMessage.type === 'success' ? '#065F46' : '#991B1B',
+              border: `1px solid ${identityMessage.type === 'success' ? '#A7F3D0' : '#FECACA'}`
+            }}
+          >
+            {identityMessage.type === 'success' ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
+            <span>{identityMessage.text}</span>
+          </div>
+        )}
+
+        {isGuestMode ? (
+          <div style={{ padding: '12px 14px', backgroundColor: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Mode Tamu (Guest Mode)</div>
+            <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px', lineHeight: 1.4 }}>
+              Anda saat ini sedang menggunakan akun tamu lokal. Keluar untuk masuk atau membuat akun Supabase resmi agar dapat menghubungkan Google.
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Email & Password Identity */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 14px',
+                borderRadius: '12px',
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #E2E8F0'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    backgroundColor: '#EFF6FF',
+                    color: '#2563EB',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}
+                >
+                  <ShieldCheck size={18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+                    Email & Password
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#64748B' }}>
+                    {user?.email || 'Belum terkonfigurasi'}
+                  </div>
+                </div>
+              </div>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#059669',
+                  backgroundColor: '#D1FAE5',
+                  padding: '3px 8px',
+                  borderRadius: '8px'
+                }}
+              >
+                Aktif
+              </span>
+            </div>
+
+            {/* Google Identity */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 14px',
+                borderRadius: '12px',
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #E2E8F0'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #E2E8F0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}
+                >
+                  <GoogleIcon size={18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+                    Akun Google
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#64748B' }}>
+                    {googleIdentity ? (
+                      googleIdentity.identity_data?.email || user?.email || 'Terkoneksi'
+                    ) : (
+                      'Belum terhubung ke Google'
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {googleIdentity ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#059669',
+                      backgroundColor: '#D1FAE5',
+                      padding: '3px 8px',
+                      borderRadius: '8px'
+                    }}
+                  >
+                    Terhubung
+                  </span>
+                  {hasEmailIdentity && (
+                    <button
+                      type="button"
+                      onClick={() => handleDisconnectGoogle(googleIdentity)}
+                      disabled={isUnlinkingGoogle}
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        color: '#94A3B8',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '6px'
+                      }}
+                      title="Putuskan sambungan Google"
+                    >
+                      <Unlink size={15} />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleConnectGoogle}
+                  disabled={isLinkingGoogle}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: '#1E293B',
+                    cursor: isLinkingGoogle ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <GoogleIcon size={14} />
+                  <span>{isLinkingGoogle ? 'Menghubungkan...' : 'Hubungkan'}</span>
+                </button>
+              )}
+            </div>
+
+            <div
+              style={{
+                fontSize: '11px',
+                color: '#64748B',
+                lineHeight: 1.45,
+                marginTop: '4px',
+                padding: '0 2px'
+              }}
+            >
+              💡 Hubungkan Google agar Anda bisa login dengan Google maupun email & password ke akun yang sama secara fleksibel.
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 6. STATUS AKUN & CLOUD SYNC */}
       <div className="card-standard" style={{ marginTop: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

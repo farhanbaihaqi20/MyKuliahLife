@@ -328,6 +328,37 @@ export const AppProvider = ({ children }) => {
     setIsOnboardingOpen(false);
   };
 
+  const loginWithGoogle = async () => {
+    try {
+      await authService.signInWithGoogle();
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const linkGoogle = async () => {
+    try {
+      await authService.linkGoogleIdentity();
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const unlinkGoogle = async (identity) => {
+    try {
+      await authService.unlinkGoogleIdentity(identity);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const getLinkedIdentities = async () => {
+    return await authService.getLinkedIdentities();
+  };
+
   // Sync Action
   const triggerSync = async () => {
     setSyncStatus(prev => ({ ...prev, message: 'Menyinkronkan data...' }));
@@ -1731,9 +1762,13 @@ export const AppProvider = ({ children }) => {
         isAuthLoading,
         isGuestMode,
         login,
+        loginWithGoogle,
         register,
         logout,
         enterGuestMode,
+        linkGoogle,
+        unlinkGoogle,
+        getLinkedIdentities,
         // Onboarding & Reset
         resetToDemoData,
         resetToCleanData,

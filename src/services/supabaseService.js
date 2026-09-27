@@ -66,6 +66,62 @@ export const authService = {
   onAuthStateChange(callback) {
     if (!isSupabaseConfigured() || !supabase) return { data: { subscription: { unsubscribe: () => { } } } };
     return supabase.auth.onAuthStateChange(callback);
+  },
+
+  // Masuk dengan Google OAuth
+  async signInWithGoogle() {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Koneksi Supabase belum aktif. Pastikan environment variables sudah diset.');
+    }
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent'
+        }
+      }
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  // Link akun Google ke user yang sudah login (misal email+pw)
+  async linkGoogleIdentity() {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Koneksi Supabase belum aktif.');
+    }
+    const { data, error } = await supabase.auth.linkIdentity({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  // Unlink identitas dari user
+  async unlinkGoogleIdentity(identity) {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Koneksi Supabase belum aktif.');
+    }
+    const { data, error } = await supabase.auth.unlinkIdentity(identity);
+    if (error) throw error;
+    return data;
+  },
+
+  // Dapatkan daftar identitas akun yang terhubung
+  async getLinkedIdentities() {
+    if (!isSupabaseConfigured() || !supabase) return [];
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) return [];
+      return user.identities || [];
+    } catch {
+      return [];
+    }
   }
 };
 
