@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Eye, EyeOff, Lock, Mail, User, ArrowRight, Sparkles, ShieldCheck, Compass, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
 import GoogleIcon from '../components/auth/GoogleIcon';
 
 export const AuthView = () => {
-  const { login, loginWithGoogle, register, resetPassword, checkEmailRegistered, enterGuestMode } = useApp();
+  const { login, loginWithGoogle, register, resetPassword, enterGuestMode } = useApp();
 
   const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot'
   const [email, setEmail] = useState('');
@@ -15,7 +15,57 @@ export const AuthView = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isEmailUnregistered, setIsEmailUnregistered] = useState(false);
+
+  // Rate Limiting & Brute-Force Lockout States (persisted in sessionStorage)
+  const [loginAttempts, setLoginAttempts] = useState(() => {
+    const saved = parseInt(sessionStorage.getItem('mkl_auth_login_attempts') || '0', 10);
+    return Number.isNaN(saved) ? 0 : saved;
+  });
+  const [loginLockoutUntil, setLoginLockoutUntil] = useState(() => {
+    const saved = parseInt(sessionStorage.getItem('mkl_auth_login_lockout') || '0', 10);
+    return Number.isNaN(saved) ? 0 : saved;
+  });
+  const [loginCountdown, setLoginCountdown] = useState(0);
+
+  const [forgotCooldownUntil, setForgotCooldownUntil] = useState(() => {
+    const saved = parseInt(sessionStorage.getItem('mkl_auth_forgot_cooldown') || '0', 10);
+    return Number.isNaN(saved) ? 0 : saved;
+  });
+  const [forgotCountdown, setForgotCountdown] = useState(0);
+
+  const [registerCooldownUntil, setRegisterCooldownUntil] = useState(() => {
+    const saved = parseInt(sessionStorage.getItem('mkl_auth_register_cooldown') || '0', 10);
+    return Number.isNaN(saved) ? 0 : saved;
+  });
+  const [registerCountdown, setRegisterCountdown] = useState(0);
+
+  // Countdown timer effect
+  useEffect(() => {
+    const tick = () => {
+      const now = Date.now();
+      if (loginLockoutUntil > now) {
+        setLoginCountdown(Math.ceil((loginLockoutUntil - now) / 1000));
+      } else {
+        setLoginCountdown(0);
+      }
+
+      if (forgotCooldownUntil > now) {
+        setForgotCountdown(Math.ceil((forgotCooldownUntil - now) / 1000));
+      } else {
+        setForgotCountdown(0);
+      }
+
+      if (registerCooldownUntil > now) {
+        setRegisterCountdown(Math.ceil((registerCooldownUntil - now) / 1000));
+      } else {
+        setRegisterCountdown(0);
+      }
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [loginLockoutUntil, forgotCooldownUntil, registerCooldownUntil]);
 
   const handleGoogleSignIn = async () => {
     setErrorMsg('');
@@ -37,9 +87,10 @@ export const AuthView = () => {
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
+    if (forgotCountdown > 0) return;
+
     setErrorMsg('');
     setSuccessMsg('');
-    setIsEmailUnregistered(false);
 
     if (!email.trim()) {
       setErrorMsg('Harap masukkan alamat email mahasiswa Anda.');
@@ -48,24 +99,26 @@ export const AuthView = () => {
 
     setLoading(true);
     try {
-      // 1. Cek apakah email terdaftar di database
-      const exists = await checkEmailRegistered(email);
-      if (exists === false) {
-        setIsEmailUnregistered(true);
-        setErrorMsg('Email ini belum terdaftar di MyKuliahLife. Silakan buat akun baru terlebih dahulu.');
-        setLoading(false);
-        return;
-      }
-
-      // 2. Kirim email pemulihan
+      // Panggil reset password langsung tanpa ekspos RPC publik (mencegah email enumeration)
       const res = await resetPassword(email);
+
+      // Cooldown 60 detik setelah setiap pengiriman pemulihan kata sandi
+      const cooldownTime = Date.now() + 60000;
+      setForgotCooldownUntil(cooldownTime);
+      sessionStorage.setItem('mkl_auth_forgot_cooldown', cooldownTime.toString());
+
       if (!res.success) {
-        setErrorMsg(res.error || 'Gagal mengirim email pemulihan.');
+        if (res.error?.toLowerCase().includes('rate limit') || res.error?.toLowerCase().includes('security purposes')) {
+          setErrorMsg('Batas pengiriman email keamanan tercapai. Harap tunggu beberapa saat sebelum mencoba lagi.');
+        } else {
+          // Respon netral demi mencegah email enumeration (OWASP recommendation)
+          setSuccessMsg(`Jika email ${email} terdaftar di MyKuliahLife, instruksi dan tautan pemulihan kata sandi telah dikirim. Silakan periksa kotak masuk atau folder spam Anda.`);
+        }
       } else {
-        setSuccessMsg(`Tautan pemulihan kata sandi telah dikirim ke ${email}. Silakan periksa kotak masuk atau folder spam email Anda.`);
+        setSuccessMsg(`Jika email ${email} terdaftar di MyKuliahLife, instruksi dan tautan pemulihan kata sandi telah dikirim. Silakan periksa kotak masuk atau folder spam Anda.`);
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Terjadi kesalahan saat memproses pemulihan kata sandi.');
+      setErrorMsg('Terjadi kendala saat memproses permintaan pemulihan kata sandi.');
     } finally {
       setLoading(false);
     }
@@ -75,6 +128,16 @@ export const AuthView = () => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
+
+    if (mode === 'login' && loginCountdown > 0) {
+      setErrorMsg(`Akses masuk sementara dikunci demi keamanan. Silakan tunggu ${loginCountdown} detik.`);
+      return;
+    }
+
+    if (mode === 'register' && registerCountdown > 0) {
+      setErrorMsg(`Harap tunggu ${registerCountdown} detik sebelum mendaftarkan akun baru.`);
+      return;
+    }
 
     if (!email.trim() || !password) {
       setErrorMsg('Harap isi alamat email dan kata sandi.');
@@ -91,13 +154,39 @@ export const AuthView = () => {
       if (mode === 'login') {
         const res = await login(email, password);
         if (!res.success) {
-          setErrorMsg(res.error || 'Gagal masuk. Periksa kembali email dan kata sandi Anda.');
+          const nextAttempts = loginAttempts + 1;
+          setLoginAttempts(nextAttempts);
+          sessionStorage.setItem('mkl_auth_login_attempts', nextAttempts.toString());
+
+          if (nextAttempts >= 5) {
+            const lockoutUntil = Date.now() + 60000;
+            setLoginLockoutUntil(lockoutUntil);
+            sessionStorage.setItem('mkl_auth_login_lockout', lockoutUntil.toString());
+            setErrorMsg('Terlalu banyak percobaan masuk yang gagal. Formulir masuk dikunci selama 60 detik demi keamanan akun.');
+          } else {
+            const remaining = 5 - nextAttempts;
+            setErrorMsg(
+              (res.error || 'Gagal masuk. Periksa kembali email dan kata sandi Anda.') +
+              ` (Tersisa ${remaining} kesempatan sebelum dikunci 60 detik)`
+            );
+          }
+        } else {
+          // Berhasil login: reset percobaan
+          setLoginAttempts(0);
+          setLoginLockoutUntil(0);
+          sessionStorage.removeItem('mkl_auth_login_attempts');
+          sessionStorage.removeItem('mkl_auth_login_lockout');
         }
       } else {
         const res = await register(email, password, { full_name: fullName.trim() || 'Mahasiswa' });
         if (!res.success) {
           setErrorMsg(res.error || 'Gagal mendaftar. Silakan coba lagi.');
         } else {
+          // Cooldown 30 detik setelah pendaftaran
+          const cooldownTime = Date.now() + 30000;
+          setRegisterCooldownUntil(cooldownTime);
+          sessionStorage.setItem('mkl_auth_register_cooldown', cooldownTime.toString());
+
           if (res.data?.user && !res.data?.session) {
             setSuccessMsg('Pendaftaran berhasil! Cek kotak masuk email Anda untuk konfirmasi, atau langsung login jika konfirmasi email dinonaktifkan.');
             setMode('login');
@@ -139,27 +228,6 @@ export const AuthView = () => {
               <AlertCircle size={16} className="alert-icon" />
               <span>{errorMsg}</span>
             </div>
-          )}
-
-          {isEmailUnregistered && (
-            <button
-              type="button"
-              className="auth-primary-submit-btn"
-              onClick={() => {
-                setMode('register');
-                setErrorMsg('');
-                setSuccessMsg('');
-                setIsEmailUnregistered(false);
-              }}
-              style={{
-                marginBottom: '16px',
-                background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
-                boxShadow: '0 6px 18px -4px rgba(16, 185, 129, 0.4)'
-              }}
-            >
-              <span>Daftar Akun Baru Sekarang</span>
-              <ArrowRight size={17} />
-            </button>
           )}
 
           {successMsg && (
@@ -218,7 +286,7 @@ export const AuthView = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      disabled={loading}
+                      disabled={loading || forgotCountdown > 0}
                     />
                   </div>
                 </div>
@@ -226,13 +294,15 @@ export const AuthView = () => {
                 <button
                   type="submit"
                   className="auth-primary-submit-btn"
-                  disabled={loading}
+                  disabled={loading || forgotCountdown > 0}
                 >
                   {loading ? (
                     <span className="auth-btn-spinner-wrap">
                       <span className="auth-btn-spinner" />
                       <span>Mengirim Tautan...</span>
                     </span>
+                  ) : forgotCountdown > 0 ? (
+                    <span>Kirim Ulang ({forgotCountdown}s)</span>
                   ) : (
                     <>
                       <span>Kirim Tautan Pemulihan</span>
@@ -249,7 +319,7 @@ export const AuthView = () => {
                 type="button"
                 className="auth-google-btn"
                 onClick={handleGoogleSignIn}
-                disabled={isGoogleLoading || loading}
+                disabled={isGoogleLoading || loading || (mode === 'login' && loginCountdown > 0)}
               >
                 {isGoogleLoading ? (
                   <span className="google-spinner-wrap">
@@ -312,7 +382,7 @@ export const AuthView = () => {
                         placeholder="Contoh: Farhan Rizki"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        disabled={loading || isGoogleLoading}
+                        disabled={loading || isGoogleLoading || (mode === 'register' && registerCountdown > 0)}
                       />
                     </div>
                   </div>
@@ -329,7 +399,7 @@ export const AuthView = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      disabled={loading || isGoogleLoading}
+                      disabled={loading || isGoogleLoading || (mode === 'login' && loginCountdown > 0) || (mode === 'register' && registerCountdown > 0)}
                     />
                   </div>
                 </div>
@@ -369,7 +439,7 @@ export const AuthView = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      disabled={loading || isGoogleLoading}
+                      disabled={loading || isGoogleLoading || (mode === 'login' && loginCountdown > 0) || (mode === 'register' && registerCountdown > 0)}
                     />
                     <button
                       type="button"
@@ -386,13 +456,17 @@ export const AuthView = () => {
                 <button
                   type="submit"
                   className="auth-primary-submit-btn"
-                  disabled={loading || isGoogleLoading}
+                  disabled={loading || isGoogleLoading || (mode === 'login' && loginCountdown > 0) || (mode === 'register' && registerCountdown > 0)}
                 >
                   {loading ? (
                     <span className="auth-btn-spinner-wrap">
                       <span className="auth-btn-spinner" />
                       <span>Memverifikasi Akun...</span>
                     </span>
+                  ) : mode === 'login' && loginCountdown > 0 ? (
+                    <span>Terkunci ({loginCountdown}s)</span>
+                  ) : mode === 'register' && registerCountdown > 0 ? (
+                    <span>Tunggu ({registerCountdown}s)</span>
                   ) : (
                     <>
                       <span>{mode === 'login' ? 'Masuk ke Dashboard' : 'Mulai Sekarang'}</span>
