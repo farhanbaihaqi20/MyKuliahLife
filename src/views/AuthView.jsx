@@ -754,6 +754,11 @@ export const AuthView = () => {
             <ShieldCheck size={14} className="trust-icon" />
             <span>Keamanan data terproteksi dengan enkripsi cloud 256-bit</span>
           </div>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '12px', fontSize: '11.5px', color: '#94A3B8' }}>
+            <a href="/terms.html" target="_blank" rel="noopener noreferrer" style={{ color: '#64748B', textDecoration: 'none' }}>Ketentuan Layanan</a>
+            <span>•</span>
+            <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: '#64748B', textDecoration: 'none' }}>Kebijakan Privasi</a>
+          </div>
         </footer>
       </div>
     </div>

@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Syarat dan Ketentuan Layanan (Terms of Service) resmi aplikasi MyKuliahLife - Student Financial & Academic OS." />
+    <meta name="robots" content="index, follow" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Ketentuan Layanan - MyKuliahLife</title>
+    <style>
+      :root {
+        --primary: #1665D8;
+        --primary-dark: #0F4CB0;
+        --slate-900: #0F172A;
+        --slate-800: #1E293B;
+        --slate-700: #334155;
+        --slate-600: #475569;
+        --slate-500: #64748B;
+        --slate-200: #E2E8F0;
+        --slate-100: #F1F5F9;
+        --slate-50: #F8FAFC;
+        --amber-600: #D97706;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background-color: var(--slate-50);
+        color: var(--slate-700);
+        line-height: 1.7;
+        font-size: 15px;
+      }
+
+      /* Header Bar */
+      .top-navbar {
+        position: sticky;
+        top: 0;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--slate-200);
+        z-index: 50;
+      }
+
+      .navbar-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .brand-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: var(--slate-900);
+      }
+
+      .brand-logo-img {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(22, 101, 216, 0.2);
+        object-fit: contain;
+      }
+
+      .brand-title {
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.4px;
+        color: var(--slate-900);
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .nav-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--primary);
+        color: white;
+        text-decoration: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13.5px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+      }
+
+      .nav-btn:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+      }
+
+      .nav-secondary {
+        color: var(--slate-600);
+        text-decoration: none;
+        font-size: 13.5px;
+        font-weight: 600;
+        padding: 6px 10px;
+        border-radius: 6px;
+        transition: color 0.15s;
+      }
+
+      .nav-secondary:hover {
+        color: var(--primary);
+      }
+
+      /* Main Article Layout */
+      .page-wrapper {
+        max-width: 860px;
+        margin: 36px auto 72px;
+        padding: 0 20px;
+      }
+
+      .doc-card {
+        background: white;
+        border: 1px solid var(--slate-200);
+        border-radius: 20px;
+        padding: 44px 48px;
+        box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.04);
+      }
+
+      @media (max-width: 640px) {
+        .doc-card {
+          padding: 26px 20px;
+          border-radius: 16px;
+        }
+      }
+
+      .doc-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #EFF6FF;
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 20px;
+        margin-bottom: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      h1.doc-title {
+        font-size: 30px;
+        font-weight: 800;
+        color: var(--slate-900);
+        letter-spacing: -0.6px;
+        margin-bottom: 8px;
+      }
+
+      .doc-meta {
+        font-size: 13.5px;
+        color: var(--slate-500);
+        margin-bottom: 32px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: center;
+      }
+
+      /* Notice Callout Box */
+      .callout-box {
+        background: #FFFBEB;
+        border-left: 4px solid var(--amber-600);
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin: 24px 0 32px;
+      }
+
+      .callout-title {
+        font-weight: 700;
+        color: #92400E;
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+
+      .callout-desc {
+        color: #78350F;
+        font-size: 13.5px;
+        line-height: 1.5;
+      }
+
+      h2.section-heading {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--slate-900);
+        margin: 36px 0 14px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--slate-100);
+        letter-spacing: -0.3px;
+      }
+
+      h3.sub-heading {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--slate-800);
+        margin: 20px 0 8px;
+      }
+
+      p {
+        margin-bottom: 14px;
+        color: var(--slate-700);
+      }
+
+      ul, ol {
+        margin: 12px 0 18px 24px;
+        color: var(--slate-700);
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      strong {
+        color: var(--slate-900);
+      }
+
+      .footer-section {
+        margin-top: 48px;
+        padding-top: 24px;
+        border-top: 1px solid var(--slate-200);
+        font-size: 13px;
+        color: var(--slate-500);
+        text-align: center;
+      }
+
+      a {
+        color: var(--primary);
+        text-decoration: underline;
+      }
+
+      a:hover {
+        color: var(--primary-dark);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Top Navigation -->
+    <header class="top-navbar">
+      <div class="navbar-container">
+        <a href="/" class="brand-link" title="Beranda MyKuliahLife">
+          <img src="/logo.png" alt="MyKuliahLife Logo" class="brand-logo-img" />
+          <span class="brand-title">MyKuliahLife</span>
+        </a>
+        <div class="nav-links">
+          <a href="/privacy.html" class="nav-secondary">Kebijakan Privasi</a>
+          <a href="/" class="nav-btn">Buka Aplikasi &rarr;</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Document -->
+    <main class="page-wrapper">
+      <article class="doc-card">
+        <div class="doc-badge">Syarat & Ketentuan</div>
+        <h1 class="doc-title">Ketentuan Layanan (Terms of Service)</h1>
+        <div class="doc-meta">
+          <span><strong>Aplikasi:</strong> MyKuliahLife - Student Financial & Academic OS</span>
+          <span>&bull;</span>
+          <span><strong>Terakhir Diperbarui:</strong> 29 September 2026</span>
+          <span>&bull;</span>
+          <span><strong>Status:</strong> Berlaku</span>
+        </div>
+
+        <div class="callout-box">
+          <div class="callout-title">⚠️ Pernyataan Sifat Layanan Finansial & Akademik</div>
+          <div class="callout-desc">
+            <strong>MyKuliahLife</strong> adalah perangkat lunak produktivitas mandiri untuk pencatatan keuangan dan jadwal perkuliahan mahasiswa. Kami <strong>bukan lembaga perbankan, bukan penerbit uang elektronik, dan bukan penasihat keuangan berlisensi</strong>. Dokumen rekening koran (*e-Statement*) yang dihasilkan merupakan ringkasan pencatatan mandiri pengguna.
+          </div>
+        </div>
+
+        <h2 class="section-heading">1. Penerimaan Ketentuan</h2>
+        <p>
+          Selamat datang di <strong>MyKuliahLife</strong>. Dengan mendaftar, mengakses, atau menggunakan layanan kami, Anda menyepakati untuk terikat secara hukum oleh Syarat dan Ketentuan Layanan ini ("Ketentuan"). Apabila Anda tidak menyetujui sebagian atau seluruh ketentuan ini, mohon untuk tidak menggunakan layanan kami.
+        </p>
+
+        <h2 class="section-heading">2. Deskripsi Layanan</h2>
+        <p>
+          MyKuliahLife adalah aplikasi web progresif (*Progressive Web App*) terpadu yang dirancang untuk mendukung produktivitas mahasiswa, mencakup modul-modul berikut:
+        </p>
+        <ul>
+          <li><strong>Manajemen Akademik:</strong> Pencatatan mata kuliah, jadwal kuliah, presensi 16 pertemuan, tugas kuliah beserta tenggat waktu, dan kalkulator IPK.</li>
+          <li><strong>Manajemen Finansial:</strong> Pembukuan arus kas harian/bulanan, pengelolaan saldo dompet/rekening, pelacak target tabungan, dan simulasi batas belanja harian.</li>
+          <li><strong>Sinkronisasi Cloud:</strong> Fasilitas penyimpanan dan penyelarasan data lintas perangkat yang ditenagai oleh Supabase Authentication & Database.</li>
+        </ul>
+
+        <h2 class="section-heading">3. Akun dan Tanggung Jawab Pengguna</h2>
+        <ol>
+          <li><strong>Keakuratan Informasi:</strong> Anda bertanggung jawab atas kebenaran data yang Anda masukkan ke dalam aplikasi.</li>
+          <li><strong>Keamanan Kredensial:</strong> Anda bertanggung jawab penuh untuk menjaga kerahasiaan kata sandi akun Anda dan akses akun Google yang Anda gunakan untuk masuk.</li>
+          <li><strong>Aktivitas Akun:</strong> Anda bertanggung jawab atas semua aktivitas yang dilakukan di bawah akun Anda. Apabila terjadi akses tidak sah, segera hubungi tim kami.</li>
+        </ol>
+
+        <h2 class="section-heading">4. Penggunaan yang Dilarang (Acceptable Use Policy)</h2>
+        <p>Dalam menggunakan MyKuliahLife, Anda dilarang keras untuk:</p>
+        <ul>
+          <li>Melakukan upaya peretasan, penetrasi keamanan, atau mengganggu integritas server database Supabase kami.</li>
+          <li>Melakukan *reverse engineering*, membongkar kode sumber, atau membuat salinan tiruan tanpa izin tertulis dari pengembang.</li>
+          <li>Memasukkan data atau muatan berbahaya seperti skrip injeksi SQL, malware, atau eksploitasi lainnya.</li>
+          <li>Menyalahgunakan layanan untuk tindakan penipuan, pemalsuan identitas akademik atau manipulasi keuangan ilegal.</li>
+        </ul>
+
+        <h2 class="section-heading">5. Penafian Jaminan (Disclaimer of Warranties)</h2>
+        <p>
+          Layanan MyKuliahLife disediakan atas dasar <strong>"sebagaimana adanya" (*as-is*)</strong> dan <strong>"sebagaimana tersedia" (*as-available*)</strong> tanpa jaminan tersurat maupun tersirat dalam bentuk apa pun.
+        </p>
+        <p>
+          Meskipun kami berupaya keras memastikan keandalan kalkulasi saldo dan algoritma prediktif (misalnya rekomendasi IPK dan sisa anggaran belanja), kami tidak bertanggung jawab atas kerugian finansial, kesalahan pencatatan pribadi, maupun sanksi akademis yang diakibatkan oleh kelalaian pengguna dalam mencatat atau mengelola data.
+        </p>
+
+        <h2 class="section-heading">6. Batasan Tanggung Jawab (Limitation of Liability)</h2>
+        <p>
+          Sepanjang diperbolehkan oleh hukum yang berlaku di Indonesia, tim pengembang MyKuliahLife tidak bertanggung jawab atas kerugian langsung, tidak langsung, insidental, khusus, atau konsekuensial, termasuk hilangnya data, hilangnya keuntungan, atau kegagalan perangkat yang timbul dari penggunaan atau ketidakmampuan menggunakan layanan kami.
+        </p>
+
+        <h2 class="section-heading">7. Hak Kekayaan Intelektual</h2>
+        <p>
+          Seluruh elemen desain, tata letak, antarmuka pengguna, ikon, grafik, logo, dan kode pemrograman MyKuliahLife merupakan hak kekayaan intelektual sah dari pengembang aplikasi dan dilindungi oleh undang-undang hak cipta yang berlaku.
+        </p>
+
+        <h2 class="section-heading">8. Perubahan Layanan dan Ketentuan</h2>
+        <p>
+          Kami berhak sewaktu-waktu memperbarui, menambah, atau memodifikasi fitur layanan serta Ketentuan Layanan ini. Setiap perubahan substansial akan dicantumkan dengan memperbarui tanggal "Terakhir Diperbarui" pada dokumen ini. Penggunaan berkelanjutan atas layanan setelah perubahan tersebut dianggap sebagai persetujuan Anda atas ketentuan yang baru.
+        </p>
+
+        <h2 class="section-heading">9. Hukum yang Mengatur (Governing Law)</h2>
+        <p>
+          Ketentuan Layanan ini diatur dan ditafsirkan sesuai dengan hukum yang berlaku di <strong>Negara Kesatuan Republik Indonesia</strong>. Segala perselisihan yang timbul dari atau sehubungan dengan ketentuan ini akan diselesaikan terlebih dahulu melalui musyawarah untuk mufakat.
+        </p>
+
+        <h2 class="section-heading">10. Kontak Pengembang</h2>
+        <p>Jika Anda memiliki pertanyaan seputar Ketentuan Layanan ini, silakan hubungi kami:</p>
+        <div style="background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 10px; padding: 16px 20px; margin-top: 10px;">
+          <p style="margin-bottom: 6px;"><strong>MyKuliahLife Support Team</strong></p>
+          <p style="margin-bottom: 6px;">📧 Email: <a href="mailto:sinyalterpercayaid@gmail.com">sinyalterpercayaid@gmail.com</a></p>
+          <p style="margin-bottom: 0;">🌐 Repositori: <a href="https://github.com/farhanbaihaqi20/MyKuliahLife" target="_blank" rel="noopener noreferrer">github.com/farhanbaihaqi20/MyKuliahLife</a></p>
+        </div>
+
+        <div class="footer-section">
+          &copy; 2026 MyKuliahLife. Hak Cipta Dilindungi Undang-Undang.<br />
+          Student Financial & Academic Operating System
+        </div>
+      </article>
+    </main>
+  </body>
+</html>

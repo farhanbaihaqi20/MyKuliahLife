@@ -937,6 +937,22 @@ export const ProfileSyncView = () => {
           <LogOut size={16} />
           <span>Keluar Akun (Sign Out)</span>
         </button>
+
+        {/* LEGAL LINKS & BRAND INFO */}
+        <div style={{ textAlign: 'center', marginTop: '24px', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '14px', fontSize: '12px' }}>
+            <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: '#64748B', textDecoration: 'none', fontWeight: 600 }}>
+              Kebijakan Privasi
+            </a>
+            <span style={{ color: '#CBD5E1' }}>•</span>
+            <a href="/terms.html" target="_blank" rel="noopener noreferrer" style={{ color: '#64748B', textDecoration: 'none', fontWeight: 600 }}>
+              Ketentuan Layanan
+            </a>
+          </div>
+          <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '6px' }}>
+            MyKuliahLife v1.0.0 &bull; Student Financial & Academic OS
+          </div>
+        </div>
       </div>
 
       {/* 6. MODAL EDIT PROFIL TERPADU (TERMASUK GANTI SEMESTER) */}
