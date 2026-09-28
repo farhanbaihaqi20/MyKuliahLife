@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import GoogleIcon from '../components/auth/GoogleIcon';
 import confetti from 'canvas-confetti';
+import { sanitizeImageUrl } from '../utils/security';
 
 export const ProfileSyncView = () => {
   const {
@@ -192,17 +193,48 @@ export const ProfileSyncView = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate size (< 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Ukuran file maksimal 10MB.');
+    // Strict MIME-type checking (Only JPG, PNG, and WebP raster images)
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!file.type || !allowedTypes.includes(file.type.toLowerCase())) {
+      setPhotoMessage({
+        type: 'error',
+        text: 'Format file tidak diizinkan. Hanya file foto bertipe JPG, PNG, atau WebP yang diperbolehkan demi keamanan.'
+      });
+      e.target.value = '';
+      return;
+    }
+
+    // Validate size (< 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoMessage({
+        type: 'error',
+        text: 'Ukuran file foto maksimal 5MB.'
+      });
+      e.target.value = '';
       return;
     }
 
     setIsUploadingPhoto(true);
 
     const reader = new FileReader();
+    reader.onerror = () => {
+      setIsUploadingPhoto(false);
+      setPhotoMessage({
+        type: 'error',
+        text: 'Gagal membaca file gambar.'
+      });
+    };
+
     reader.onload = (event) => {
       const img = new Image();
+      img.onerror = () => {
+        setIsUploadingPhoto(false);
+        setPhotoMessage({
+          type: 'error',
+          text: 'File gambar rusak atau tidak valid.'
+        });
+      };
+
       img.onload = () => {
         // Crop & scale to square 256x256 via canvas for ultra lightweight storage (~20KB)
         const canvas = document.createElement('canvas');
@@ -331,9 +363,9 @@ export const ProfileSyncView = () => {
               >
                 <RefreshCw size={20} className="spin" style={{ color: '#2563EB' }} />
               </div>
-            ) : localAvatar ? (
+            ) : sanitizeImageUrl(localAvatar) ? (
               <img
-                src={localAvatar}
+                src={sanitizeImageUrl(localAvatar)}
                 alt="Foto Profil Mahasiswa"
                 className="ktm-avatar-img"
                 onError={() => {

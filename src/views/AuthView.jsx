@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Eye, EyeOff, Lock, Mail, User, ArrowRight, Sparkles, ShieldCheck, Compass, CheckCircle2, AlertCircle, ArrowLeft, KeyRound } from 'lucide-react';
 import GoogleIcon from '../components/auth/GoogleIcon';
-import { validateStrongPassword, formatAuthError } from '../utils/security';
+import { validateStrongPassword, formatAuthError, isValidEmail, sanitizeText } from '../utils/security';
 
 export const AuthView = () => {
   const { login, loginWithGoogle, register, resetPassword, enterGuestMode, verifySignupOtp, resendSignupOtp } = useApp();
@@ -187,15 +187,20 @@ export const AuthView = () => {
     setErrorMsg('');
     setSuccessMsg('');
 
-    if (!email.trim()) {
+    const cleanEmail = email ? email.trim() : '';
+    if (!cleanEmail) {
       setErrorMsg('Harap masukkan alamat email mahasiswa Anda.');
+      return;
+    }
+    if (!isValidEmail(cleanEmail)) {
+      setErrorMsg('Format alamat email tidak valid.');
       return;
     }
 
     setLoading(true);
     try {
       // Panggil reset password langsung tanpa ekspos RPC publik (mencegah email enumeration)
-      const res = await resetPassword(email);
+      const res = await resetPassword(cleanEmail);
 
       // Cooldown 60 detik setelah setiap pengiriman pemulihan kata sandi
       const cooldownTime = Date.now() + 60000;
@@ -207,10 +212,10 @@ export const AuthView = () => {
           setErrorMsg('Batas pengiriman email keamanan tercapai. Harap tunggu beberapa saat sebelum mencoba lagi.');
         } else {
           // Respon netral demi mencegah email enumeration (OWASP recommendation)
-          setSuccessMsg(`Jika email ${email} terdaftar di MyKuliahLife, instruksi dan tautan pemulihan kata sandi telah dikirim. Silakan periksa kotak masuk atau folder spam Anda.`);
+          setSuccessMsg(`Jika email ${cleanEmail} terdaftar di MyKuliahLife, instruksi dan tautan pemulihan kata sandi telah dikirim. Silakan periksa kotak masuk atau folder spam Anda.`);
         }
       } else {
-        setSuccessMsg(`Jika email ${email} terdaftar di MyKuliahLife, instruksi dan tautan pemulihan kata sandi telah dikirim. Silakan periksa kotak masuk atau folder spam Anda.`);
+        setSuccessMsg(`Jika email ${cleanEmail} terdaftar di MyKuliahLife, instruksi dan tautan pemulihan kata sandi telah dikirim. Silakan periksa kotak masuk atau folder spam Anda.`);
       }
     } catch (err) {
       setErrorMsg('Terjadi kendala saat memproses permintaan pemulihan kata sandi.');
@@ -234,8 +239,19 @@ export const AuthView = () => {
       return;
     }
 
-    if (!email.trim() || !password) {
+    const cleanEmail = email ? email.trim() : '';
+    if (!cleanEmail || !password) {
       setErrorMsg('Harap isi alamat email dan kata sandi.');
+      return;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      setErrorMsg('Format alamat email tidak valid.');
+      return;
+    }
+
+    if (password.length > 128) {
+      setErrorMsg('Kata sandi maksimal 128 karakter.');
       return;
     }
 
@@ -253,7 +269,7 @@ export const AuthView = () => {
     setLoading(true);
     try {
       if (mode === 'login') {
-        const res = await login(email, password);
+        const res = await login(cleanEmail, password);
         if (!res.success) {
           if (res.error?.toLowerCase().includes('not confirmed') || res.error?.toLowerCase().includes('confirm')) {
             setPendingEmail(email.trim());
@@ -287,7 +303,7 @@ export const AuthView = () => {
           sessionStorage.removeItem('mkl_auth_login_lockout');
         }
       } else {
-        const res = await register(email, password, { full_name: fullName.trim() || 'Mahasiswa' });
+        const res = await register(cleanEmail, password, { full_name: sanitizeText(fullName.trim() || 'Mahasiswa', 150) });
         if (!res.success) {
           setErrorMsg(formatAuthError(res.error || 'Gagal mendaftar. Silakan coba lagi.'));
         } else {
@@ -297,10 +313,10 @@ export const AuthView = () => {
           sessionStorage.setItem('mkl_auth_register_cooldown', cooldownTime.toString());
 
           if (res.data?.user && !res.data?.session) {
-            setPendingEmail(email.trim());
+            setPendingEmail(cleanEmail);
             setMode('verify_otp');
             setOtpDigits(['', '', '', '', '', '']);
-            setSuccessMsg(`Pendaftaran berhasil! Kode verifikasi 6 digit telah dikirim ke ${email.trim()}. Masukkan kode di bawah ini atau klik tautan di email kamu.`);
+            setSuccessMsg(`Pendaftaran berhasil! Kode verifikasi 6 digit telah dikirim ke ${cleanEmail}. Masukkan kode di bawah ini atau klik tautan di email kamu.`);
           }
         }
       }

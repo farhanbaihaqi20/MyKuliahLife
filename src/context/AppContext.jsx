@@ -4,7 +4,7 @@ import { isSupabaseConfigured, supabase } from '../services/supabase';
 import { authService, profileService, dataSyncService, cloudService, storageService, generateUUID } from '../services/supabaseService';
 import { INITIAL_DATA, CLEAN_DATA } from '../constants/initialData';
 import { getFinancialCycle } from '../utils/dateCycle';
-import { sanitizeSlug } from '../utils/security';
+import { sanitizeSlug, sanitizeImageUrl } from '../utils/security';
 
 const FUEL_API_BASE = 'https://nasgunawann.github.io/bensin-api/v1/provinsi';
 const FUEL_PRODUCT_MAP = {
@@ -277,6 +277,15 @@ export const AppProvider = ({ children }) => {
         setIsResetPasswordModalOpen(true);
       }
 
+      // Purge sensitive auth tokens from address bar to prevent token leakage via Referrer or shoulder surfing
+      if (typeof window !== 'undefined' && (window.location.hash.includes('access_token') || window.location.hash.includes('type=recovery') || window.location.search.includes('code='))) {
+        try {
+          window.history.replaceState(null, document.title, window.location.pathname);
+        } catch {
+          // ignore
+        }
+      }
+
       if (newUser && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
         setSyncStatus({
           mode: 'online',
@@ -458,18 +467,20 @@ export const AppProvider = ({ children }) => {
   // Local Avatar (Stored in browser localStorage & synced to Cloud Supabase)
   const [localAvatar, setLocalAvatarState] = useState(() => {
     try {
-      return localStorage.getItem('mykuliahlife_local_avatar') || localStorage.getItem('myuang_local_avatar') || '';
+      const raw = localStorage.getItem('mykuliahlife_local_avatar') || localStorage.getItem('myuang_local_avatar') || '';
+      return sanitizeImageUrl(raw);
     } catch {
       return '';
     }
   });
 
-  const saveLocalAvatar = (base64) => {
+  const saveLocalAvatar = (val) => {
     try {
-      if (base64) {
-        localStorage.setItem('mykuliahlife_local_avatar', base64);
+      const safe = sanitizeImageUrl(val);
+      if (safe) {
+        localStorage.setItem('mykuliahlife_local_avatar', safe);
         localStorage.removeItem('myuang_local_avatar');
-        setLocalAvatarState(base64);
+        setLocalAvatarState(safe);
       } else {
         localStorage.removeItem('mykuliahlife_local_avatar');
         localStorage.removeItem('myuang_local_avatar');

@@ -225,80 +225,74 @@ export const FinancialStatementModal = ({
 
     const doc = iframe.contentWindow.document;
     doc.open();
-
-    // Collect all stylesheets from main window
-    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-      .map(el => el.outerHTML)
-      .join('\n');
-
-    doc.write(`
-      <!DOCTYPE html>
-      <html lang="id">
-        <head>
-          <meta charset="utf-8" />
-          <title>Rekening_Koran_${statementId}</title>
-          ${styles}
-          <style>
-            @page {
-              size: A4 portrait;
-              margin: 10mm 10mm 12mm 10mm;
-            }
-            *, *::before, *::after {
-              box-sizing: border-box;
-            }
-            html, body {
-              margin: 0 !important;
-              padding: 0 !important;
-              background: #FFFFFF !important;
-              color: #0F172A !important;
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-            .statement-paper-sheet {
-              box-shadow: none !important;
-              border: none !important;
-              border-radius: 0 !important;
-              padding: 0 !important;
-              margin: 0 !important;
-              max-width: 100% !important;
-              width: 100% !important;
-              min-height: 0 !important;
-            }
-            .statement-watermark {
-              display: none !important;
-            }
-            .no-print {
-              display: none !important;
-            }
-            tr {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-            .statement-section,
-            .statement-section-card,
-            .statement-summary-cards,
-            .statement-accounts-grid,
-            .statement-footer-section {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-            thead {
-              display: table-header-group !important;
-            }
-            tfoot {
-              display: table-footer-group !important;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="statement-paper-sheet">
-            ${printContent.innerHTML}
-          </div>
-        </body>
-      </html>
-    `);
+    doc.write('<!DOCTYPE html><html lang="id"><head><meta charset="utf-8" /><title>Rekening_Koran</title></head><body><div class="statement-paper-sheet" id="print-sheet-root"></div></body></html>');
     doc.close();
+
+    // Safely copy stylesheets using DOM elements
+    document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
+      doc.head.appendChild(el.cloneNode(true));
+    });
+
+    const printStyle = doc.createElement('style');
+    printStyle.textContent = `
+      @page {
+        size: A4 portrait;
+        margin: 10mm 10mm 12mm 10mm;
+      }
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #FFFFFF !important;
+        color: #0F172A !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .statement-paper-sheet {
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        min-height: 0 !important;
+      }
+      .statement-watermark {
+        display: none !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .statement-section,
+      .statement-section-card,
+      .statement-summary-cards,
+      .statement-accounts-grid,
+      .statement-footer-section {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      thead {
+        display: table-header-group !important;
+      }
+      tfoot {
+        display: table-footer-group !important;
+      }
+    `;
+    doc.head.appendChild(printStyle);
+
+    // Safely clone DOM nodes - completely eliminates innerHTML parsing & execution
+    const sheetRoot = doc.getElementById('print-sheet-root');
+    if (sheetRoot) {
+      sheetRoot.appendChild(printContent.cloneNode(true));
+    }
 
     // Trigger print after iframe renders
     setTimeout(() => {
@@ -326,7 +320,7 @@ export const FinancialStatementModal = ({
     // Bank Header
     csv += 'MYKULIAHLIFE FINANCIAL OPERATING SYSTEM\r\n';
     csv += 'REKENING KORAN RESMI (OFFICIAL FINANCIAL STATEMENT)\r\n';
-    csv += `Nomor Dokumen,${statementId}\r\n`;
+    csv += `Nomor Dokumen,${sanitizeCsvCell(statementId)}\r\n`;
     csv += `Tanggal Cetak,${sanitizeCsvCell(printTimestamp)}\r\n`;
     csv += `Periode Laporan,${sanitizeCsvCell(periodLabel)}\r\n`;
     csv += `Status Verifikasi,TERVERIFIKASI SISTEM (DIGITALLY ENCRYPTED)\r\n`;
@@ -343,12 +337,12 @@ export const FinancialStatementModal = ({
 
     // Executive Summary
     csv += 'RINGKASAN EKSEKUTIF ARUS KAS (IDR)\r\n';
-    csv += `Saldo Awal Periode,${summary.beginningBalance}\r\n`;
-    csv += `Total Pemasukan (Kredit +),${summary.totalInflow}\r\n`;
-    csv += `Total Pengeluaran (Debit -),${summary.totalOutflow}\r\n`;
-    csv += `Arus Kas Bersih (Net Cash Flow),${summary.netCashflow}\r\n`;
-    csv += `Saldo Akhir Periode,${summary.endingBalance}\r\n`;
-    csv += `Total Transaksi,${summary.transactionCount}\r\n`;
+    csv += `Saldo Awal Periode,${sanitizeCsvCell(summary.beginningBalance)}\r\n`;
+    csv += `Total Pemasukan (Kredit +),${sanitizeCsvCell(summary.totalInflow)}\r\n`;
+    csv += `Total Pengeluaran (Debit -),${sanitizeCsvCell(summary.totalOutflow)}\r\n`;
+    csv += `Arus Kas Bersih (Net Cash Flow),${sanitizeCsvCell(summary.netCashflow)}\r\n`;
+    csv += `Saldo Akhir Periode,${sanitizeCsvCell(summary.endingBalance)}\r\n`;
+    csv += `Total Transaksi,${sanitizeCsvCell(summary.transactionCount)}\r\n`;
     csv += '\r\n';
 
     // Transaction Details
@@ -361,10 +355,11 @@ export const FinancialStatementModal = ({
       const cat = sanitizeCsvCell(tx.category || '-');
       const acc = sanitizeCsvCell(tx.accountName || '-');
       const dk = sanitizeCsvCell(tx.type === 'income' ? 'Kredit (CR)' : 'Debit (DB)');
-      const amount = tx.amount || 0;
-      const runBal = tx.runningBalance || 0;
+      const amount = sanitizeCsvCell(tx.amount || 0);
+      const runBal = sanitizeCsvCell(tx.runningBalance || 0);
+      const rowNum = sanitizeCsvCell(tx.rowNumber);
 
-      csv += `${tx.rowNumber},${sanitizeCsvCell(tx.date)},${escapedDesc},${cat},${acc},${dk},${amount},${runBal}\r\n`;
+      csv += `${rowNum},${sanitizeCsvCell(tx.date)},${escapedDesc},${cat},${acc},${dk},${amount},${runBal}\r\n`;
     });
 
     csv += '\r\n';

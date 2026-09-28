@@ -23,9 +23,18 @@ export const loadLocalData = (userId = null) => {
     }
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed?.budget && Array.isArray(parsed.budget.categories)) {
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        return CLEAN_DATA;
+      }
+
+      // Eliminate prototype pollution threats
+      delete parsed.__proto__;
+      delete parsed.constructor;
+      delete parsed.prototype;
+
+      if (parsed.budget && Array.isArray(parsed.budget.categories)) {
         const hasPersonalCare = parsed.budget.categories.some(c =>
-          c.name?.toLowerCase().includes('skincare') || c.name?.toLowerCase().includes('pribadi')
+          c?.name?.toLowerCase().includes('skincare') || c?.name?.toLowerCase().includes('pribadi')
         );
         if (!hasPersonalCare) {
           parsed.budget.categories.push({
@@ -38,9 +47,9 @@ export const loadLocalData = (userId = null) => {
         }
       }
       // Ensure consistency for activeSemester and unlockedSemesters
-      const safeActiveSemester = Number(parsed.activeSemester || parsed.profile?.semester || 1);
+      const safeActiveSemester = Math.min(Math.max(Number(parsed.activeSemester || parsed.profile?.semester || 1), 1), 14);
       parsed.activeSemester = safeActiveSemester;
-      if (parsed.profile) {
+      if (parsed.profile && typeof parsed.profile === 'object') {
         parsed.profile.semester = safeActiveSemester;
       }
       if (!Array.isArray(parsed.unlockedSemesters) || parsed.unlockedSemesters.length === 0) {
@@ -61,9 +70,16 @@ export const loadLocalData = (userId = null) => {
       return {
         ...CLEAN_DATA,
         ...parsed,
+        accounts: Array.isArray(parsed.accounts) ? parsed.accounts : CLEAN_DATA.accounts,
+        transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
+        courses: Array.isArray(parsed.courses) ? parsed.courses : [],
+        assignments: Array.isArray(parsed.assignments) ? parsed.assignments : [],
+        courseNotes: Array.isArray(parsed.courseNotes) ? parsed.courseNotes : [],
+        bills: Array.isArray(parsed.bills) ? parsed.bills : [],
+        savingsTargets: Array.isArray(parsed.savingsTargets) ? parsed.savingsTargets : [],
         profile: {
           ...CLEAN_DATA.profile,
-          ...(parsed.profile || {})
+          ...(typeof parsed.profile === 'object' && parsed.profile !== null ? parsed.profile : {})
         }
       };
     }

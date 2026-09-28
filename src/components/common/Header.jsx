@@ -16,6 +16,7 @@ import {
   Layers
 } from 'lucide-react';
 import { AccountDetailModal } from '../finance/AccountDetailModal';
+import { sanitizeImageUrl } from '../../utils/security';
 
 export const Header = () => {
   const {
@@ -139,9 +140,9 @@ export const Header = () => {
           title="Buka Pengaturan & Akun"
           style={{ overflow: 'hidden', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          {localAvatar ? (
+          {sanitizeImageUrl(localAvatar) ? (
             <img
-              src={localAvatar}
+              src={sanitizeImageUrl(localAvatar)}
               alt="Foto Profil"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={() => {

@@ -22,7 +22,9 @@ if (isSupabaseConfigured()) {
     client = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,
-        autoRefreshToken: true
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce'
       }
     });
   } catch (err) {

@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase';
+import { isValidUUID, isValidEmail, sanitizeText } from '../utils/security';
 
 /**
  * Supabase Service Layer: Menangani Otentikasi dan Sinkronisasi Database
@@ -28,8 +29,12 @@ export const authService = {
     if (!isSupabaseConfigured() || !supabase) {
       throw new Error('Koneksi Supabase belum aktif. Pastikan environment variables sudah diset dan lakukan Re-Deploy di Netlify.');
     }
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!isValidEmail(cleanEmail)) {
+      throw new Error('Format alamat email tidak valid.');
+    }
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: cleanEmail,
       password
     });
     if (error) throw error;
@@ -41,11 +46,19 @@ export const authService = {
     if (!isSupabaseConfigured() || !supabase) {
       throw new Error('Koneksi Supabase belum aktif. Pastikan environment variables sudah diset dan lakukan Re-Deploy di Netlify.');
     }
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!isValidEmail(cleanEmail)) {
+      throw new Error('Format alamat email tidak valid.');
+    }
+    const cleanMetadata = {
+      ...metadata,
+      full_name: sanitizeText(metadata?.full_name || 'Mahasiswa', 150)
+    };
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: cleanEmail,
       password,
       options: {
-        data: metadata
+        data: cleanMetadata
       }
     });
     if (error) throw error;
@@ -156,7 +169,11 @@ export const authService = {
     if (!isSupabaseConfigured() || !supabase) {
       throw new Error('Koneksi Supabase belum aktif. Pastikan environment variables sudah diset.');
     }
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!isValidEmail(cleanEmail)) {
+      throw new Error('Format alamat email tidak valid.');
+    }
+    const { data, error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
       redirectTo: `${window.location.origin}`
     });
     if (error) throw error;
@@ -214,6 +231,9 @@ export const storageService = {
     if (!isSupabaseConfigured() || !supabase || !userId) {
       throw new Error('Koneksi Supabase belum aktif.');
     }
+    if (!isValidUUID(userId)) {
+      throw new Error('Format ID pengguna tidak valid.');
+    }
     const filePath = `${userId}/avatar.jpg`;
     const { data, error } = await supabase.storage
       .from('avatars')
@@ -235,7 +255,7 @@ export const storageService = {
 
   // Ambil URL publik avatar pengguna
   getAvatarUrl(userId) {
-    if (!isSupabaseConfigured() || !supabase || !userId) return null;
+    if (!isSupabaseConfigured() || !supabase || !userId || !isValidUUID(userId)) return null;
     try {
       const filePath = `${userId}/avatar.jpg`;
       const { data } = supabase.storage
@@ -249,7 +269,7 @@ export const storageService = {
 
   // Cek apakah file avatar ada di Supabase Storage via HEAD request cepat (tanpa butuh SELECT policy)
   async checkAvatarExists(userId) {
-    if (!isSupabaseConfigured() || !supabase || !userId) return null;
+    if (!isSupabaseConfigured() || !supabase || !userId || !isValidUUID(userId)) return null;
     try {
       const filePath = `${userId}/avatar.jpg`;
       const { data } = supabase.storage
@@ -269,7 +289,7 @@ export const storageService = {
 
   // Hapus avatar dari storage
   async removeAvatar(userId) {
-    if (!isSupabaseConfigured() || !supabase || !userId) return;
+    if (!isSupabaseConfigured() || !supabase || !userId || !isValidUUID(userId)) return;
     try {
       const filePath = `${userId}/avatar.jpg`;
       await supabase.storage.from('avatars').remove([filePath]);

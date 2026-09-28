@@ -86,8 +86,8 @@ const COMMON_WEAK_PASSWORDS = new Set([
 ]);
 
 /**
- * Validates password strength to prevent weak credentials
- * Enforces minimum 8 characters, must have letter and number, and blocks common passwords.
+ * Validates password strength to prevent weak credentials and algorithmic hash DoS attacks.
+ * Enforces minimum 8 characters, maximum 128 characters, requires letters & numbers, and blocks common passwords.
  * 
  * @param {string} password
  * @returns {{ valid: boolean, message: string }}
@@ -99,6 +99,9 @@ export const validateStrongPassword = (password) => {
   if (password.length < 8) {
     return { valid: false, message: 'Kata sandi minimal harus 8 karakter.' };
   }
+  if (password.length > 128) {
+    return { valid: false, message: 'Kata sandi maksimal 128 karakter demi keamanan komputasi hash.' };
+  }
   if (COMMON_WEAK_PASSWORDS.has(password.toLowerCase().trim())) {
     return { valid: false, message: 'Kata sandi terlalu umum dan mudah ditebak. Harap gunakan kata sandi yang lebih unik.' };
   }
@@ -106,6 +109,94 @@ export const validateStrongPassword = (password) => {
     return { valid: false, message: 'Kata sandi harus mengandung kombinasi huruf dan angka.' };
   }
   return { valid: true, message: '' };
+};
+
+/**
+ * Validates email address format strictly based on RFC 5322 specifications.
+ * Prevents input tampering, header injection, and malformed auth payloads.
+ * 
+ * @param {string} email
+ * @returns {boolean}
+ */
+export const isValidEmail = (email) => {
+  if (!email || typeof email !== 'string') return false;
+  const trimmed = email.trim();
+  if (trimmed.length === 0 || trimmed.length > 254) return false;
+  // RFC 5322 compliant regex for web applications
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  return emailRegex.test(trimmed);
+};
+
+/**
+ * Validates a UUID (v4 format).
+ * Protects storage file paths and database query parameters from path traversal or injection.
+ * 
+ * @param {string} id
+ * @returns {boolean}
+ */
+export const isValidUUID = (id) => {
+  if (!id || typeof id !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id.trim());
+};
+
+/**
+ * Sanitizes image URLs to prevent DOM XSS and unsafe data schemes.
+ * Only permits valid HTTP, HTTPS, or safe raster image base64 URIs.
+ * 
+ * @param {string} url
+ * @param {string} fallback
+ * @returns {string}
+ */
+export const sanitizeImageUrl = (url, fallback = '') => {
+  if (!url || typeof url !== 'string') return fallback;
+  const trimmed = url.trim();
+
+  // Explicitly disallow dangerous schemes
+  if (/^(javascript|vbscript|file|about):/i.test(trimmed)) {
+    return fallback;
+  }
+
+  // Permit HTTP / HTTPS
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Permit only safe image base64 data URIs (jpg, png, webp, gif)
+  if (/^data:image\/(jpeg|jpg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return fallback;
+};
+
+/**
+ * Sanitizes plain text input by stripping control characters and enforcing max length.
+ * 
+ * @param {string} str
+ * @param {number} maxLength
+ * @returns {string}
+ */
+export const sanitizeText = (str, maxLength = 250) => {
+  if (str === null || str === undefined) return '';
+  const cleaned = String(str)
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+    .trim();
+  return cleaned.slice(0, maxLength);
+};
+
+/**
+ * Sanitizes and clamps numeric inputs into safe boundaries.
+ * 
+ * @param {any} val
+ * @param {number} min
+ * @param {number} max
+ * @param {number} defaultVal
+ * @returns {number}
+ */
+export const sanitizeNumber = (val, min = 0, max = 1000000000000, defaultVal = 0) => {
+  const num = Number(val);
+  if (Number.isNaN(num) || !Number.isFinite(num)) return defaultVal;
+  return Math.min(Math.max(num, min), max);
 };
 
 /**
