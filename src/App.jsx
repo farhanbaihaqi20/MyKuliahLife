@@ -13,7 +13,7 @@ import { ProfileSyncView } from './views/ProfileSyncView';
 import { AuthView } from './views/AuthView';
 import { ExtrasView } from './views/ExtrasView';
 import { ResetPasswordView } from './views/ResetPasswordView';
-import { ArrowLeft, GraduationCap, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import './styles/app.css';
 
 const MainScreen = () => {
@@ -106,7 +106,7 @@ const AppContent = () => {
       <div className="mobile-device-frame app-splash-frame">
         <div className="app-splash-container">
           <div className="app-splash-icon-box">
-            <GraduationCap size={32} className="app-splash-cap-icon" />
+            <img src="/logo.png" alt="MyKuliahLife Logo" className="app-splash-logo-img" />
           </div>
 
           <div className="app-splash-brand">

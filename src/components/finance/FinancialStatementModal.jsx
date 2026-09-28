@@ -547,7 +547,7 @@ export const FinancialStatementModal = ({
               <div className="statement-header-left">
                 <div className="statement-logo-wrap">
                   <div className="statement-logo-emblem">
-                    <span className="statement-logo-icon">🎓</span>
+                    <img src="/logo.png" alt="MyKuliahLife Logo" className="statement-logo-img" />
                   </div>
                   <div>
                     <div className="statement-company-name">

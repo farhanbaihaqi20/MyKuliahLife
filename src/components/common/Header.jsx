@@ -120,7 +120,18 @@ export const Header = () => {
       {/* Top Bar: User Greeting, Semester Badge & Avatar */}
       <div className="header-top-row">
         <div className="user-greeting" style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
-          <span style={{ fontSize: '24px', flexShrink: 0 }}>🤖</span>
+          <img
+            src="/logo.png"
+            alt="MyKuliahLife Mascot"
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '9px',
+              flexShrink: 0,
+              objectFit: 'contain',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)'
+            }}
+          />
           <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
             <div className="greeting-text">
               Hai {data.profile?.fullName ? data.profile.fullName.split(' ')[0] : 'Mahasiswa'}!

@@ -85,7 +85,7 @@ export const ResetPasswordView = () => {
         {/* Brand Header */}
         <header className="auth-modern-header">
           <div className="auth-modern-brand-badge">
-            <span className="brand-emoji">🎓</span>
+            <img src="/logo.png" alt="MyKuliahLife Logo" className="brand-logo-img" />
             <div className="brand-dot-pulse" />
           </div>
           <h1 className="auth-modern-title">MyKuliahLife</h1>

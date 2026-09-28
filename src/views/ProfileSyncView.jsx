@@ -373,7 +373,11 @@ export const ProfileSyncView = () => {
                 }}
               />
             ) : (
-              <div style={{ fontSize: '26px' }}>🎓</div>
+              <img
+                src="/logo.png"
+                alt="MyKuliahLife Mascot"
+                className="ktm-avatar-img"
+              />
             )}
 
             {/* Quick Camera Upload Button */}

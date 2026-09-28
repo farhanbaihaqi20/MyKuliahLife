@@ -2563,6 +2563,18 @@ html, body {
   transform: translateY(-1px);
 }
 
+.brand-logo-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(37, 99, 235, 0.28));
+  transition: transform 0.2s ease;
+}
+
+.auth-modern-brand-badge:hover .brand-logo-img {
+  transform: scale(1.05);
+}
+
 .brand-dot-pulse {
   position: absolute;
   top: -2px;
@@ -7173,15 +7185,22 @@ html, body, #root, .app-viewport, .mobile-device-frame {
 }
 
 .statement-logo-emblem {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #0B192C 0%, #1E3E62 100%);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid #F59E0B;
-  box-shadow: 0 3px 8px rgba(11, 25, 44, 0.2);
+  box-shadow: 0 3px 10px rgba(22, 101, 216, 0.22);
+  overflow: hidden;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.statement-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .statement-logo-icon {
@@ -9970,15 +9989,12 @@ html, body, #root, .app-viewport, .mobile-device-frame {
 }
 
 .app-splash-icon-box {
-  width: 68px;
-  height: 68px;
-  border-radius: 20px;
-  background: linear-gradient(145deg, #1E40AF 0%, #1D4ED8 100%);
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #FFFFFF;
-  box-shadow: 0 12px 28px -4px rgba(29, 78, 216, 0.38);
   margin-bottom: 18px;
   position: relative;
 }
@@ -9986,10 +10002,23 @@ html, body, #root, .app-viewport, .mobile-device-frame {
 .app-splash-icon-box::after {
   content: '';
   position: absolute;
-  inset: -3px;
-  border-radius: 23px;
-  border: 1.5px solid rgba(37, 99, 235, 0.25);
+  inset: -4px;
+  border-radius: 26px;
+  border: 1.5px solid rgba(37, 99, 235, 0.28);
   animation: pulseGlow 2.2s infinite ease-in-out;
+}
+
+.app-splash-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 24px rgba(29, 78, 216, 0.38));
+  animation: splashFloat 2.6s ease-in-out infinite alternate;
+}
+
+@keyframes splashFloat {
+  0% { transform: translateY(0) scale(1); }
+  100% { transform: translateY(-5px) scale(1.02); }
 }
 
 .app-splash-cap-icon {

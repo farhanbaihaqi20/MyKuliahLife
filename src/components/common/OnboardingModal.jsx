@@ -646,7 +646,9 @@ export const OnboardingModal = () => {
                 </div>
 
                 <div className="ktm-card-middle">
-                  <div className="ktm-avatar-circle">🎓</div>
+                  <div className="ktm-avatar-circle" style={{ overflow: 'hidden', padding: 0 }}>
+                    <img src="/logo.png" alt="Mascot" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
                   <div className="ktm-user-info">
                     <div className="ktm-name">{fullName.trim() || 'Mahasiswa'}</div>
                     <div className="ktm-major">{major.trim() || 'Program Studi'}</div>
