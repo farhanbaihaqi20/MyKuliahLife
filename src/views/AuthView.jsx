@@ -170,7 +170,7 @@ export const AuthView = () => {
     try {
       const res = await loginWithGoogle();
       if (!res.success) {
-        setErrorMsg(res.error || 'Gagal memulai autentikasi Google. Silakan periksa kembali konfigurasi Supabase.');
+        setErrorMsg(res.error || 'Gagal memulai autentikasi Google. Silakan coba beberapa saat lagi.');
         setIsGoogleLoading(false);
       }
       // On success, window redirects automatically to Google
@@ -321,7 +321,7 @@ export const AuthView = () => {
         }
       }
     } catch (err) {
-      setErrorMsg(formatAuthError(err.message || 'Terjadi kendala saat menghubungi server Supabase.'));
+      setErrorMsg(formatAuthError(err.message || 'Terjadi kendala saat menghubungi server autentikasi.'));
     } finally {
       setLoading(false);
     }
@@ -752,7 +752,7 @@ export const AuthView = () => {
         <footer className="auth-modern-footer">
           <div className="auth-trust-badge">
             <ShieldCheck size={14} className="trust-icon" />
-            <span>Keamanan data terlindungi dengan enkripsi Supabase & Google Cloud</span>
+            <span>Keamanan data terproteksi dengan enkripsi cloud 256-bit</span>
           </div>
         </footer>
       </div>

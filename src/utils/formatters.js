@@ -30,6 +30,24 @@ export const maskMoney = (amount, isVisible = true, prefix = 'Rp ') => {
 };
 
 /**
+ * Formats a number to a compact Indonesian Rupiah format (e.g. 500000 -> "Rp 500rb", 1500000 -> "Rp 1,5jt")
+ */
+export const formatCompactRupiah = (val, isVisible = true) => {
+  if (!isVisible) return 'Rp •••';
+  const num = Number(val) || 0;
+  if (Math.abs(num) >= 1_000_000_000) {
+    return `Rp ${(num / 1_000_000_000).toFixed(1).replace('.0', '')}M`;
+  }
+  if (Math.abs(num) >= 1_000_000) {
+    return `Rp ${(num / 1_000_000).toFixed(1).replace('.0', '')}jt`;
+  }
+  if (Math.abs(num) >= 1_000) {
+    return `Rp ${(num / 1_000).toFixed(0)}rb`;
+  }
+  return `Rp ${num}`;
+};
+
+/**
  * Returns relative date information for transactions (Hari Ini, Kemarin, Besok, or formatted date)
  * Safely parses YYYY-MM-DD components to avoid timezone shifting issues.
  */

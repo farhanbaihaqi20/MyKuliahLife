@@ -6,9 +6,7 @@ import {
   Trash2,
   Calendar,
   AlertCircle,
-  TrendingDown,
-  ShoppingBag,
-  ArrowRight
+  Sliders
 } from 'lucide-react';
 import { maskMoney, formatRupiahNumber } from '../../utils/formatters';
 
@@ -83,246 +81,232 @@ export const CategoryDetailModal = ({
       <div
         className="modal-bottom-sheet category-detail-sheet"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
       >
         <div className="sheet-handle-bar" />
 
         {/* Modal Header */}
-        <div className="category-modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="cat-modal-header">
+          <div className="cat-modal-header-left">
             <div
-              className="category-modal-icon-badge"
+              className="cat-modal-avatar"
               style={{
-                backgroundColor: `${categoryColor}18`,
+                backgroundColor: `${categoryColor}14`,
                 color: categoryColor,
-                border: `1.5px solid ${categoryColor}35`
+                border: `1.5px solid ${categoryColor}28`
               }}
             >
               <span>{category.icon || '🏷️'}</span>
             </div>
             <div>
-              <h3 className="category-modal-title">{category.name}</h3>
-              <div className="category-modal-cycle-badge">
-                <Calendar size={11} style={{ display: 'inline', marginRight: '4px' }} />
-                <span>{financialCycle?.periodLabel || 'Siklus Aktif'}</span>
+              <h3 className="cat-modal-title">{category.name}</h3>
+              <div className="cat-modal-cycle">
+                <Calendar size={11} />
+                <span>{financialCycle?.periodLabel || 'Siklus Ini'}</span>
               </div>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="category-modal-close-btn"
+            className="cat-modal-close"
             aria-label="Tutup"
           >
-            <X size={18} />
+            <X size={17} />
           </button>
         </div>
 
         {/* Scrollable Content Body */}
-        <div className="category-modal-body">
-          {/* Summary Card */}
-          <div className="category-modal-summary-card">
-            <div className="category-modal-summary-grid">
-              <div className="summary-stat-item">
-                <span className="summary-stat-label">Sisa Budget</span>
-                <span
-                  className="summary-stat-val"
-                  style={{ color: stats.isOver ? '#EF4444' : '#10B981' }}
-                >
-                  {maskMoney(stats.remaining, isBalanceVisible)}
-                </span>
-              </div>
-              <div className="summary-stat-item">
-                <span className="summary-stat-label">Terpakai</span>
-                <span className="summary-stat-val" style={{ color: '#0F172A' }}>
-                  {maskMoney(stats.spentCycle, isBalanceVisible)}
-                </span>
-              </div>
-              <div
-                className="summary-stat-item"
-                style={{ textAlign: 'right', cursor: onOpenBudgetSettings ? 'pointer' : 'default' }}
-                onClick={() => onOpenBudgetSettings && onOpenBudgetSettings()}
-                title={onOpenBudgetSettings ? 'Klik untuk atur alokasi (%)' : undefined}
-              >
-                <span className="summary-stat-label">
-                  Alokasi {onOpenBudgetSettings && <span style={{ fontSize: '9px', color: '#1665D8' }}>⚙️</span>}
-                </span>
-                <span className="summary-stat-val" style={{ color: '#475569' }}>
-                  {maskMoney(budget, isBalanceVisible)}
-                </span>
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div style={{ marginTop: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>
-                  Realisasi Pengeluaran
-                </span>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: '9999px',
-                    background: stats.isOver ? '#FEE2E2' : stats.percentUsed > 80 ? '#FEF3C7' : '#ECFDF5',
-                    color: stats.isOver ? '#B91C1C' : stats.percentUsed > 80 ? '#B45309' : '#047857'
-                  }}
-                >
-                  {isBalanceVisible ? `${stats.percentUsed}%` : '••%'} terpakai
-                </span>
+        <div className="cat-modal-scroll-body">
+          {/* Minimalist Summary Card */}
+          <div className="cat-summary-card">
+            <div className="cat-summary-top">
+              <div>
+                <span className="cat-summary-label">SISA BUDGET</span>
+                <div className={`cat-summary-amount ${stats.isOver ? 'over' : ''}`}>
+                  {stats.isOver
+                    ? `Over ${maskMoney(stats.overAmount, isBalanceVisible)}`
+                    : maskMoney(stats.remaining, isBalanceVisible)}
+                </div>
               </div>
 
-              <div className="progress-bar-container" style={{ height: '7px', background: '#F1F5F9' }}>
-                <div
-                  className="progress-bar-fill"
-                  style={{
-                    width: `${Math.min(100, stats.percentUsed)}%`,
-                    background: stats.isOver ? '#EF4444' : stats.percentUsed > 80 ? '#F59E0B' : '#10B981'
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Over Budget Notice */}
-            {stats.isOver && (
-              <div className="category-overbudget-alert">
-                <AlertCircle size={15} style={{ flexShrink: 0, marginTop: '1px' }} />
-                <span>
-                  Budget kategori ini terlampaui sebesar <strong>{maskMoney(stats.overAmount, isBalanceVisible)}</strong>.
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Section: Transaction Filter Switcher */}
-          <div style={{ marginTop: '18px', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Riwayat Transaksi
-              </h4>
-              <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600 }}>
-                {categoryTransactions.length} transaksi
+              <span className={`cat-summary-health-pill ${stats.isOver ? 'over' : stats.percentUsed > 80 ? 'warning' : 'safe'}`}>
+                {stats.isOver
+                  ? 'Melebihi Budget'
+                  : isBalanceVisible
+                  ? `${stats.percentUsed}% terpakai`
+                  : '••%'}
               </span>
             </div>
 
-            {/* Switcher Pills */}
-            <div className="category-filter-switcher">
+            {/* Sleek Progress Track */}
+            <div className="cat-summary-track">
+              <div
+                className="cat-summary-fill"
+                style={{
+                  width: `${Math.min(100, stats.percentUsed)}%`,
+                  background: stats.isOver
+                    ? '#EF4444'
+                    : stats.percentUsed > 80
+                    ? '#F59E0B'
+                    : '#10B981'
+                }}
+              />
+            </div>
+
+            {/* Bottom Metrics Bar */}
+            <div className="cat-summary-bottom">
+              <div className="cat-metric-item">
+                <span className="cat-metric-label">Terpakai:</span>
+                <strong className="cat-metric-val">{maskMoney(stats.spentCycle, isBalanceVisible)}</strong>
+              </div>
+              <div className="cat-metric-item align-right">
+                <span className="cat-metric-label">Plafon:</span>
+                <strong className="cat-metric-val">{maskMoney(budget, isBalanceVisible)}</strong>
+                {onOpenBudgetSettings && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenBudgetSettings();
+                    }}
+                    className="cat-metric-edit-btn"
+                    title="Ubah Alokasi"
+                  >
+                    <Sliders size={10} /> Ubah
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Over Budget Notice */}
+          {stats.isOver && (
+            <div className="cat-overbudget-alert">
+              <AlertCircle size={14} style={{ flexShrink: 0 }} />
+              <span>Budget kategori ini terlampaui sebesar <strong>{maskMoney(stats.overAmount, isBalanceVisible)}</strong>.</span>
+            </div>
+          )}
+
+          {/* Section: Riwayat Transaksi */}
+          <div className="cat-tx-section-header">
+            <span className="cat-tx-section-title">
+              Riwayat Pengeluaran
+            </span>
+            {/* Filter Pills */}
+            <div className="cat-filter-pills">
               <button
                 type="button"
-                className={`category-filter-btn ${filterPeriod === 'cycle' ? 'active' : ''}`}
+                className={`cat-filter-pill-btn ${filterPeriod === 'cycle' ? 'active' : ''}`}
                 onClick={() => setFilterPeriod('cycle')}
               >
                 Siklus Ini
               </button>
               <button
                 type="button"
-                className={`category-filter-btn ${filterPeriod === 'all' ? 'active' : ''}`}
+                className={`cat-filter-pill-btn ${filterPeriod === 'all' ? 'active' : ''}`}
                 onClick={() => setFilterPeriod('all')}
               >
-                Semua Waktu
+                Semua
               </button>
             </div>
           </div>
 
           {/* Transaction List */}
           {categoryTransactions.length === 0 ? (
-            <div className="category-empty-state">
-              <div className="category-empty-icon">
+            <div className="cat-empty-state">
+              <div className="cat-empty-icon">
                 {category.icon || '🛍️'}
               </div>
-              <p className="category-empty-title">
+              <p className="cat-empty-title">
                 {filterPeriod === 'cycle'
                   ? 'Belum ada pengeluaran di siklus ini'
                   : 'Belum ada riwayat transaksi'}
               </p>
-              <p className="category-empty-desc">
+              <p className="cat-empty-desc">
                 {filterPeriod === 'cycle'
-                  ? `Belanja untuk kategori ${category.name} pada periode ${financialCycle?.periodLabel || 'ini'} akan muncul di sini.`
-                  : `Setiap transaksi bertipe ${category.name} akan tercatat rapi di sini.`}
+                  ? `Pengeluaran untuk ${category.name} pada siklus ini akan tercatat otomatis di sini.`
+                  : `Setiap transaksi ${category.name} akan tersimpan rapi di sini.`}
               </p>
               <button
                 type="button"
-                className="category-empty-action-btn"
+                className="cat-empty-cta"
                 onClick={() => onAddTransactionForCategory(category.name)}
               >
-                <Plus size={14} style={{ marginRight: '6px' }} />
-                Catat Pengeluaran Sekarang
+                <Plus size={14} />
+                <span>Catat Pengeluaran</span>
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+            <div className="cat-tx-list">
               {categoryTransactions.map((tx) => {
                 const formattedDate = new Date(tx.date).toLocaleDateString('id-ID', {
                   day: 'numeric',
-                  month: 'short',
-                  year: 'numeric'
+                  month: 'short'
                 });
+
+                const txTitle = tx.merchant || tx.note || category.name;
 
                 return (
                   <div
                     key={tx.id}
-                    className="category-tx-item"
+                    className="cat-tx-card"
                     onClick={() => onEditTransaction && onEditTransaction(tx)}
+                    role="button"
+                    tabIndex={0}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-                      <div className="category-tx-icon-wrap">
-                        {tx.icon || category.icon || '💸'}
+                    <div className="cat-tx-left">
+                      <div className="cat-tx-icon-box">
+                        <span>{tx.icon || category.icon || '🍜'}</span>
                       </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div className="category-tx-title">
-                          {tx.merchant || tx.note || category.name}
-                        </div>
-                        <div className="category-tx-meta">
+                      <div className="cat-tx-content">
+                        <span className="cat-tx-name" title={txTitle}>
+                          {txTitle}
+                        </span>
+                        <div className="cat-tx-meta-line">
                           <span>{formattedDate}</span>
                           {tx.accountName && (
                             <>
-                              <span className="meta-dot">•</span>
-                              <span className="pocket-tag">{tx.accountName}</span>
+                              <span className="meta-sep">•</span>
+                              <span className="meta-acc">{tx.accountName}</span>
                             </>
                           )}
-                          {tx.note && tx.merchant && (
+                          {tx.note && tx.note !== txTitle && (
                             <>
-                              <span className="meta-dot">•</span>
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {tx.note}
-                              </span>
+                              <span className="meta-sep">•</span>
+                              <span className="meta-note" title={tx.note}>{tx.note}</span>
                             </>
                           )}
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ textAlign: 'right' }}>
-                        <div className="category-tx-amount">
-                          -{maskMoney(tx.amount, isBalanceVisible)}
-                        </div>
-                      </div>
-
-                      <div className="category-tx-actions" onClick={(e) => e.stopPropagation()}>
+                    <div className="cat-tx-right">
+                      <span className="cat-tx-nominal">
+                        -{maskMoney(tx.amount, isBalanceVisible)}
+                      </span>
+                      <div className="cat-tx-actions" onClick={(e) => e.stopPropagation()}>
                         {onEditTransaction && (
                           <button
                             type="button"
-                            className="category-tx-icon-btn edit"
+                            className="cat-tx-action-btn edit"
                             onClick={() => onEditTransaction(tx)}
                             title="Edit Transaksi"
                           >
-                            <Edit2 size={13} />
+                            <Edit2 size={11} />
                           </button>
                         )}
                         {onDeleteTransaction && (
                           <button
                             type="button"
-                            className="category-tx-icon-btn delete"
+                            className="cat-tx-action-btn delete"
                             onClick={() => {
-                              if (window.confirm(`Hapus transaksi "${tx.merchant || tx.note || category.name}" senilai ${formatRupiahNumber(tx.amount)}?`)) {
+                              if (window.confirm(`Hapus transaksi "${txTitle}" senilai ${formatRupiahNumber(tx.amount)}?`)) {
                                 onDeleteTransaction(tx.id);
                               }
                             }}
                             title="Hapus Transaksi"
                           >
-                            <Trash2 size={13} />
+                            <Trash2 size={11} />
                           </button>
                         )}
                       </div>
@@ -335,14 +319,14 @@ export const CategoryDetailModal = ({
         </div>
 
         {/* Modal Bottom Sticky Action */}
-        <div className="category-modal-footer">
+        <div className="cat-modal-footer">
           <button
             type="button"
-            className="category-add-tx-btn"
+            className="cat-add-btn"
             onClick={() => onAddTransactionForCategory(category.name)}
           >
-            <Plus size={16} style={{ marginRight: '6px' }} />
-            Tambah Transaksi {category.name}
+            <Plus size={15} />
+            <span>Tambah Pengeluaran {category.name}</span>
           </button>
         </div>
       </div>

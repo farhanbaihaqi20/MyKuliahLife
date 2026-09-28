@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { FinanceReportView } from '../components/finance/FinanceReportView';
-import { formatRupiahNumber, parseRupiahNumber, maskMoney, getRelativeDateInfo } from '../utils/formatters';
+import { formatRupiahNumber, parseRupiahNumber, maskMoney, formatCompactRupiah, getRelativeDateInfo } from '../utils/formatters';
 import SwipeableItem from '../components/common/SwipeableItem';
 import EditTransactionModal from '../components/finance/EditTransactionModal';
 import { AccountDetailModal } from '../components/finance/AccountDetailModal';
@@ -361,70 +361,96 @@ export const FinanceView = () => {
 
       {/* 1. BUDGET BULANAN (Dinamis sesuai siklus gajian) */}
       {financeSubtab === 'budget' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Card Sisa Budget */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Card Sisa Budget (Luxury Midnight Minimalist) */}
           <div className="budget-hero-card">
             <div className="budget-hero-header">
-              <span className="budget-hero-subtitle">
-                Sisa Budget Periode Ini
-              </span>
+              <div className="budget-hero-tag">
+                <span className="live-sync-dot" />
+                <span>Sisa Budget Periode Ini</span>
+              </div>
               <button
                 onClick={() => setIsCycleModalOpen(true)}
                 className="budget-hero-date-pill"
                 title="Ubah tanggal siklus anggaran"
               >
-                <Calendar size={12} />
+                <Calendar size={11} />
                 <span>{financialCycle.periodLabel || financialCycle.label}</span>
               </button>
             </div>
 
-            <div className="budget-hero-amount">
-              {maskMoney(remainingBudget, isBalanceVisible)}
+            <div className="budget-hero-amount-wrap">
+              <div className="budget-hero-amount">
+                {maskMoney(remainingBudget, isBalanceVisible)}
+              </div>
+              <span className={`budget-hero-health-pill ${percentUsed > 90 ? 'danger' : percentUsed > 75 ? 'warning' : 'safe'}`}>
+                {isBalanceVisible ? `${Math.max(0, 100 - percentUsed)}% tersisa` : '••% sisa'}
+              </span>
             </div>
 
+            {/* Sleek Dynamic Progress Track */}
             <div className="budget-hero-track">
               <div
                 className="budget-hero-fill"
                 style={{
-                  width: `${percentUsed}%`,
-                  background: percentUsed > 90 ? '#EF4444' : '#10B981'
+                  width: `${Math.min(100, percentUsed)}%`,
+                  background: percentUsed > 90
+                    ? 'linear-gradient(90deg, #EF4444 0%, #F87171 100%)'
+                    : percentUsed > 75
+                    ? 'linear-gradient(90deg, #F59E0B 0%, #FBBF24 100%)'
+                    : 'linear-gradient(90deg, #10B981 0%, #34D399 100%)'
                 }}
               />
             </div>
 
-            <div className="budget-hero-footer">
-              <span>Terpakai {maskMoney(cycleExpenses, isBalanceVisible)}</span>
-              <span>Total {maskMoney(totalBudget, isBalanceVisible)} ({isBalanceVisible ? `${percentUsed}%` : '••%'})</span>
+            <div className="budget-hero-metrics">
+              <div className="budget-metric-item">
+                <span className="budget-metric-label">Terpakai ({isBalanceVisible ? `${percentUsed}%` : '••%'})</span>
+                <span className="budget-metric-val">{maskMoney(cycleExpenses, isBalanceVisible)}</span>
+              </div>
+              <div className="budget-metric-divider" />
+              <div className="budget-metric-item align-right">
+                <span className="budget-metric-label">Total Plafon</span>
+                <span className="budget-metric-val">{maskMoney(totalBudget, isBalanceVisible)}</span>
+              </div>
             </div>
           </div>
 
-          {/* Smart Daily Tip Box */}
-          <div className="smart-tip-card">
-            <span style={{ fontSize: '28px' }}>💡</span>
-            <div>
-              <div className="smart-tip-title">Alokasi Harian Direkomendasikan</div>
-              <div className="smart-tip-desc">
-                Tersisa <strong>{financialCycle.daysRemaining} hari</strong> dalam siklus ini. Batasi belanja harianmu maksimal <strong>{maskMoney(dailyAllowance, isBalanceVisible)} / hari</strong>.
+          {/* Smart Daily Allowance Insight - Minimalist & Compact */}
+          <div className="smart-daily-insight-card">
+            <div className="smart-insight-icon-box">
+              <Sparkles size={16} strokeWidth={2.4} />
+            </div>
+            <div className="smart-insight-content">
+              <div className="smart-insight-top">
+                <span className="smart-insight-title">Rekomendasi Harian</span>
+                <span className="smart-insight-days-badge">{financialCycle.daysRemaining} hari tersisa</span>
+              </div>
+              <div className="smart-insight-desc">
+                Maksimal belanja <strong className="smart-insight-highlight">{maskMoney(dailyAllowance, isBalanceVisible)}</strong> <span className="smart-insight-perday">/ hari</span> agar budget aman.
               </div>
             </div>
           </div>
 
           {/* Kategori Budget */}
           <div>
-            <div className="section-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 className="section-title">Kategori Budget</h3>
+            <div className="section-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 className="section-title" style={{ margin: 0 }}>Kategori Budget</h3>
+                <span className="budget-count-chip">{data.budget.categories.length}</span>
+              </div>
               <button
                 type="button"
                 className="budget-manage-btn"
                 onClick={() => setIsBudgetSettingsOpen(true)}
                 title="Atur persentase & alokasi budget"
               >
-                <Sliders size={12} style={{ marginRight: '5px' }} />
-                Atur Alokasi (%)
+                <Sliders size={12} strokeWidth={2} />
+                <span>Atur Alokasi (%)</span>
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="budget-categories-list">
               {data.budget.categories.map(cat => {
                 const spentInCat = data.transactions
                   .filter(t => t.type === 'expense' && t.category?.toLowerCase() === cat.name?.toLowerCase() && financialCycle.isDateInCycle(t.date))
@@ -449,60 +475,45 @@ export const FinanceView = () => {
                       }
                     }}
                   >
-                    <div className="budget-cat-top-row">
+                    {/* Top Row: Identity & Status Badge */}
+                    <div className="budget-cat-header-row">
                       <div className="budget-cat-identity">
                         <div
                           className="budget-cat-icon-box"
                           style={{
-                            backgroundColor: `${cat.color || '#1665D8'}18`,
+                            backgroundColor: `${cat.color || '#1665D8'}14`,
                             color: cat.color || '#1665D8'
                           }}
                         >
                           <span>{cat.icon || '🏷️'}</span>
                         </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div className="budget-cat-name-wrap">
-                            <span className="budget-cat-name">{cat.name}</span>
-                          </div>
-                          <div className="budget-cat-subtext">
-                            {isOver ? (
-                              <span style={{ color: '#EF4444', fontWeight: 600 }}>
-                                Over budget {maskMoney(spentInCat - catBudget, isBalanceVisible)}
-                              </span>
-                            ) : (
-                              <span>
-                                Sisa <strong style={{ color: '#0F172A' }}>{maskMoney(catRemaining, isBalanceVisible)}</strong>
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                        <span className="budget-cat-name" title={cat.name}>
+                          {cat.name}
+                        </span>
                       </div>
 
-                      <div className="budget-cat-right-stats">
-                        <div className="budget-cat-amounts">
-                          <span className="budget-cat-spent">{maskMoney(spentInCat, isBalanceVisible)}</span>
-                          <span className="budget-cat-divider">/</span>
-                          <span className="budget-cat-total">{maskMoney(catBudget, isBalanceVisible)}</span>
-                        </div>
-                        <div className="budget-cat-meta-row">
-                          <span
-                            className={`budget-cat-percent-badge ${
-                              isOver ? 'over' : catPercent > 80 ? 'warning' : 'safe'
-                            }`}
-                          >
-                            {isBalanceVisible ? `${catPercent}%` : '••%'}
-                          </span>
-                          <ChevronRight size={14} className="budget-cat-chevron" />
-                        </div>
+                      <div className="budget-cat-status-wrap">
+                        <span
+                          className={`budget-cat-pill ${
+                            isOver ? 'over' : catPercent > 80 ? 'warning' : 'safe'
+                          }`}
+                        >
+                          {isOver
+                            ? 'Over Budget'
+                            : isBalanceVisible
+                            ? `${catPercent}%`
+                            : '••%'}
+                        </span>
+                        <ChevronRight size={14} className="budget-cat-chevron" />
                       </div>
                     </div>
 
-                    {/* Minimalist Progress Track */}
+                    {/* Middle Row: Progress Bar */}
                     <div className="budget-cat-progress-track">
                       <div
                         className="budget-cat-progress-bar"
                         style={{
-                          width: `${Math.min(100, catPercent)}%`,
+                          width: `${Math.min(100, catBudget > 0 ? catPercent : 0)}%`,
                           background: isOver
                             ? '#EF4444'
                             : catPercent > 80
@@ -510,6 +521,33 @@ export const FinanceView = () => {
                             : '#10B981'
                         }}
                       />
+                    </div>
+
+                    {/* Bottom Row: Clear, dense financial figures */}
+                    <div className="budget-cat-footer-row">
+                      <div className="budget-cat-figure-col">
+                        <span className="figure-label">Terpakai:</span>
+                        <span className="figure-value spent">{maskMoney(spentInCat, isBalanceVisible)}</span>
+                      </div>
+
+                      <div className="budget-cat-figure-col align-right">
+                        {isOver ? (
+                          <>
+                            <span className="figure-label over">Lebih:</span>
+                            <span className="figure-value over">
+                              +{maskMoney(spentInCat - catBudget, isBalanceVisible)}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="figure-label">Sisa:</span>
+                            <span className="figure-value remaining">
+                              {maskMoney(catRemaining, isBalanceVisible)}
+                            </span>
+                            <span className="figure-subtotal">/ {maskMoney(catBudget, isBalanceVisible)}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -1018,379 +1056,290 @@ export const FinanceView = () => {
         </div>
       )}
 
-      {/* 6. DAFTAR SEMUA AKUN / DOMPET (ROMBAK TOTAL: MINIMALIS, MODERN & KEREN) */}
+      {/* 6. DAFTAR SEMUA AKUN / DOMPET (MINIMALIST & ELEGAN) */}
       {financeSubtab === 'accounts' && (
         <div className="accounts-management-view">
-          {/* Hero Wealth Overview Banner */}
-            <div className="accounts-hero-banner">
-              <div className="accounts-hero-header">
-                <div className="accounts-hero-tag">
-                  <Sparkles size={13} style={{ color: '#FCD34D' }} />
-                  <span>TOTAL AKUMULASI SELURUH ASET</span>
-                </div>
-                <div className="accounts-sync-pill">
-                  <span>● Terhubung Cloud</span>
-                </div>
-              </div>
-
-              <div className="accounts-hero-amount">
-                {maskMoney(totalBalance, isBalanceVisible)}
-              </div>
-
-              <div className="accounts-hero-subtitle">
-                {accountTypeFilter === 'bank'
-                  ? `Menampilkan ${bankAccounts.length} rekening Bank • ${pctBank}% dari total aset`
-                  : accountTypeFilter === 'ewallet'
-                  ? `Menampilkan ${ewalletAccounts.length} akun E-Wallet • ${pctEwallet}% dari total aset`
-                  : accountTypeFilter === 'cash'
-                  ? `Menampilkan ${cashAccounts.length} uang Tunai • ${pctCash}% dari total aset`
-                  : accountTypeFilter === 'other'
-                  ? `Menampilkan ${otherAccounts.length} akun lainnya • ${pctOther}% dari total aset`
-                  : `Portofolio gabungan dari ${(data.accounts || []).length} dompet & rekening aktif`}
-              </div>
-
-              {/* Dynamic Asset Allocation Bar & Grid (No Horizontal Scroll, 100% Responsive) */}
-              <div className="accounts-dynamic-allocation">
-                {/* Multi-Segment Allocation Bar */}
-                <div className="dynamic-bar-track">
-                  {pctBank > 0 && (
-                    <div
-                      className={`dynamic-bar-seg seg-bank ${accountTypeFilter === 'bank' ? 'active' : ''}`}
-                      style={{ width: `${pctBank}%` }}
-                      onClick={() => setAccountTypeFilter(prev => prev === 'bank' ? 'all' : 'bank')}
-                      title={`Bank: ${maskMoney(bankTotal, isBalanceVisible)} (${pctBank}%)`}
-                    />
-                  )}
-                  {pctEwallet > 0 && (
-                    <div
-                      className={`dynamic-bar-seg seg-ewallet ${accountTypeFilter === 'ewallet' ? 'active' : ''}`}
-                      style={{ width: `${pctEwallet}%` }}
-                      onClick={() => setAccountTypeFilter(prev => prev === 'ewallet' ? 'all' : 'ewallet')}
-                      title={`E-Wallet: ${maskMoney(ewalletTotal, isBalanceVisible)} (${pctEwallet}%)`}
-                    />
-                  )}
-                  {pctCash > 0 && (
-                    <div
-                      className={`dynamic-bar-seg seg-cash ${accountTypeFilter === 'cash' ? 'active' : ''}`}
-                      style={{ width: `${pctCash}%` }}
-                      onClick={() => setAccountTypeFilter(prev => prev === 'cash' ? 'all' : 'cash')}
-                      title={`Tunai: ${maskMoney(cashTotal, isBalanceVisible)} (${pctCash}%)`}
-                    />
-                  )}
-                  {pctOther > 0 && (
-                    <div
-                      className={`dynamic-bar-seg seg-other ${accountTypeFilter === 'other' ? 'active' : ''}`}
-                      style={{ width: `${pctOther}%` }}
-                      onClick={() => setAccountTypeFilter(prev => prev === 'other' ? 'all' : 'other')}
-                      title={`Lainnya: ${maskMoney(otherTotal, isBalanceVisible)} (${pctOther}%)`}
-                    />
-                  )}
-                </div>
-
-                {/* Dynamic Category Cards Grid (Fits 100%, NO horizontal scroll) */}
-                <div className={`dynamic-categories-grid ${otherTotal > 0 ? 'cols-4' : 'cols-3'}`}>
-                  <button
-                    type="button"
-                    className={`dynamic-cat-card ${accountTypeFilter === 'bank' ? 'active' : ''}`}
-                    onClick={() => setAccountTypeFilter(prev => prev === 'bank' ? 'all' : 'bank')}
-                    title={accountTypeFilter === 'bank' ? 'Tampilkan semua dompet' : 'Filter rekening Bank'}
-                  >
-                    <div className="dynamic-cat-top">
-                      <span className="dynamic-cat-dot bank-dot" />
-                      <span className="dynamic-cat-name">Bank</span>
-                      <span className="dynamic-cat-pct">{pctBank}%</span>
-                    </div>
-                    <div className="dynamic-cat-val">{maskMoney(bankTotal, isBalanceVisible)}</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`dynamic-cat-card ${accountTypeFilter === 'ewallet' ? 'active' : ''}`}
-                    onClick={() => setAccountTypeFilter(prev => prev === 'ewallet' ? 'all' : 'ewallet')}
-                    title={accountTypeFilter === 'ewallet' ? 'Tampilkan semua dompet' : 'Filter E-Wallet'}
-                  >
-                    <div className="dynamic-cat-top">
-                      <span className="dynamic-cat-dot ewallet-dot" />
-                      <span className="dynamic-cat-name">E-Wallet</span>
-                      <span className="dynamic-cat-pct">{pctEwallet}%</span>
-                    </div>
-                    <div className="dynamic-cat-val">{maskMoney(ewalletTotal, isBalanceVisible)}</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`dynamic-cat-card ${accountTypeFilter === 'cash' ? 'active' : ''}`}
-                    onClick={() => setAccountTypeFilter(prev => prev === 'cash' ? 'all' : 'cash')}
-                    title={accountTypeFilter === 'cash' ? 'Tampilkan semua dompet' : 'Filter Tunai'}
-                  >
-                    <div className="dynamic-cat-top">
-                      <span className="dynamic-cat-dot cash-dot" />
-                      <span className="dynamic-cat-name">Tunai</span>
-                      <span className="dynamic-cat-pct">{pctCash}%</span>
-                    </div>
-                    <div className="dynamic-cat-val">{maskMoney(cashTotal, isBalanceVisible)}</div>
-                  </button>
-
-                  {otherTotal > 0 && (
-                    <button
-                      type="button"
-                      className={`dynamic-cat-card ${accountTypeFilter === 'other' ? 'active' : ''}`}
-                      onClick={() => setAccountTypeFilter(prev => prev === 'other' ? 'all' : 'other')}
-                      title={accountTypeFilter === 'other' ? 'Tampilkan semua dompet' : 'Filter Lainnya'}
-                    >
-                      <div className="dynamic-cat-top">
-                        <span className="dynamic-cat-dot other-dot" />
-                        <span className="dynamic-cat-name">Lainnya</span>
-                        <span className="dynamic-cat-pct">{pctOther}%</span>
-                      </div>
-                      <div className="dynamic-cat-val">{maskMoney(otherTotal, isBalanceVisible)}</div>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Section Header & Add Account CTA */}
-            <div className="accounts-section-header">
-              <div className="accounts-header-text">
-                <div className="accounts-title-row">
-                  <h3 className="section-title">
-                    <Wallet size={17} style={{ color: '#2563EB', flexShrink: 0 }} />
-                    <span>
-                      {accountTypeFilter === 'bank'
-                        ? 'Rekening Bank'
-                        : accountTypeFilter === 'ewallet'
-                        ? 'Akun E-Wallet'
-                        : accountTypeFilter === 'cash'
-                        ? 'Uang Tunai'
-                        : accountTypeFilter === 'other'
-                        ? 'Aset Lainnya'
-                        : 'Dompet & Rekening'}
-                    </span>
-                  </h3>
-                  <span className="accounts-count-pill">{filteredAccounts.length}</span>
-                  {accountTypeFilter !== 'all' && (
-                    <button
-                      type="button"
-                      onClick={() => setAccountTypeFilter('all')}
-                      className="reset-filter-tag"
-                      title="Reset dan tampilkan semua dompet"
-                    >
-                      <span>Reset</span>
-                      <X size={11} />
-                    </button>
-                  )}
-                </div>
-                <p className="section-subtitle">
-                  {accountTypeFilter !== 'all'
-                    ? `Menampilkan ${filteredAccounts.length} akun ${accountTypeFilter === 'bank' ? 'Bank' : accountTypeFilter === 'ewallet' ? 'E-Wallet' : accountTypeFilter === 'cash' ? 'Tunai' : 'Lainnya'}`
-                    : `${(data.accounts || []).length} akun aktif terhubung`}
-                </p>
+          {/* Minimalist Hero Wealth Banner */}
+          <div className="accounts-hero-banner">
+            <div className="accounts-hero-header">
+              <div className="accounts-hero-tag">
+                <span className="live-sync-dot" />
+                <span>TOTAL ASET & DOMPET</span>
               </div>
               <button
                 type="button"
+                className="hero-add-wallet-btn"
                 onClick={() => {
                   if (accountTypeFilter !== 'all' && ['bank', 'ewallet', 'cash'].includes(accountTypeFilter)) {
                     setNewAccType(accountTypeFilter);
                   }
                   setIsAddAccountOpen(true);
                 }}
-                className="add-account-btn"
+                title="Tambah dompet baru"
               >
-                <Plus size={14} strokeWidth={2.5} />
-                <span>Tambah Dompet</span>
+                <Plus size={13} strokeWidth={2.5} />
+                <span>Tambah</span>
               </button>
             </div>
 
-            {/* Quick Filter Pill Bar */}
-            <div className="accounts-filter-bar">
-              <button
-                type="button"
-                className={`accounts-filter-pill ${accountTypeFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setAccountTypeFilter('all')}
-              >
-                <span>Semua Dompet</span>
-                <span className="pill-badge">{data.accounts.length}</span>
-              </button>
-              <button
-                type="button"
-                className={`accounts-filter-pill ${accountTypeFilter === 'bank' ? 'active' : ''}`}
-                onClick={() => setAccountTypeFilter(prev => prev === 'bank' ? 'all' : 'bank')}
-              >
-                <span>🏦 Bank</span>
-                <span className="pill-badge">{bankAccounts.length}</span>
-              </button>
-              <button
-                type="button"
-                className={`accounts-filter-pill ${accountTypeFilter === 'ewallet' ? 'active' : ''}`}
-                onClick={() => setAccountTypeFilter(prev => prev === 'ewallet' ? 'all' : 'ewallet')}
-              >
-                <span>📱 E-Wallet</span>
-                <span className="pill-badge">{ewalletAccounts.length}</span>
-              </button>
-              <button
-                type="button"
-                className={`accounts-filter-pill ${accountTypeFilter === 'cash' ? 'active' : ''}`}
-                onClick={() => setAccountTypeFilter(prev => prev === 'cash' ? 'all' : 'cash')}
-              >
-                <span>💵 Tunai</span>
-                <span className="pill-badge">{cashAccounts.length}</span>
-              </button>
-              {otherAccounts.length > 0 && (
+            <div className="accounts-hero-amount">
+              {maskMoney(totalBalance, isBalanceVisible)}
+            </div>
+
+            <div className="accounts-hero-subtitle">
+              {accountTypeFilter !== 'all'
+                ? `Menampilkan ${filteredAccounts.length} akun ${accountTypeFilter === 'bank' ? 'Bank' : accountTypeFilter === 'ewallet' ? 'E-Wallet' : accountTypeFilter === 'cash' ? 'Tunai' : 'Lainnya'}`
+                : `${(data.accounts || []).length} akun aktif terhubung`}
+            </div>
+
+            {/* Dynamic Minimalist Allocation Strip */}
+            <div className="accounts-dynamic-allocation">
+              {/* Thin Multi-Segment Allocation Bar */}
+              <div className="dynamic-bar-track">
+                {pctBank > 0 && (
+                  <div
+                    className={`dynamic-bar-seg seg-bank ${accountTypeFilter === 'bank' ? 'active' : ''}`}
+                    style={{ width: `${pctBank}%` }}
+                    onClick={() => setAccountTypeFilter(prev => prev === 'bank' ? 'all' : 'bank')}
+                    title={`Bank: ${maskMoney(bankTotal, isBalanceVisible)} (${pctBank}%)`}
+                  />
+                )}
+                {pctEwallet > 0 && (
+                  <div
+                    className={`dynamic-bar-seg seg-ewallet ${accountTypeFilter === 'ewallet' ? 'active' : ''}`}
+                    style={{ width: `${pctEwallet}%` }}
+                    onClick={() => setAccountTypeFilter(prev => prev === 'ewallet' ? 'all' : 'ewallet')}
+                    title={`E-Wallet: ${maskMoney(ewalletTotal, isBalanceVisible)} (${pctEwallet}%)`}
+                  />
+                )}
+                {pctCash > 0 && (
+                  <div
+                    className={`dynamic-bar-seg seg-cash ${accountTypeFilter === 'cash' ? 'active' : ''}`}
+                    style={{ width: `${pctCash}%` }}
+                    onClick={() => setAccountTypeFilter(prev => prev === 'cash' ? 'all' : 'cash')}
+                    title={`Tunai: ${maskMoney(cashTotal, isBalanceVisible)} (${pctCash}%)`}
+                  />
+                )}
+                {pctOther > 0 && (
+                  <div
+                    className={`dynamic-bar-seg seg-other ${accountTypeFilter === 'other' ? 'active' : ''}`}
+                    style={{ width: `${pctOther}%` }}
+                    onClick={() => setAccountTypeFilter(prev => prev === 'other' ? 'all' : 'other')}
+                    title={`Lainnya: ${maskMoney(otherTotal, isBalanceVisible)} (${pctOther}%)`}
+                  />
+                )}
+              </div>
+
+              {/* Clean Category Allocation Pills */}
+              <div className="allocation-tags-row">
                 <button
                   type="button"
-                  className={`accounts-filter-pill ${accountTypeFilter === 'other' ? 'active' : ''}`}
-                  onClick={() => setAccountTypeFilter(prev => prev === 'other' ? 'all' : 'other')}
+                  className={`allocation-tag-item ${accountTypeFilter === 'bank' ? 'active' : ''}`}
+                  onClick={() => setAccountTypeFilter(prev => prev === 'bank' ? 'all' : 'bank')}
+                  title="Filter Bank"
                 >
-                  <span>📈 Lainnya</span>
-                  <span className="pill-badge">{otherAccounts.length}</span>
+                  <span className="allocation-tag-dot bank-dot" />
+                  <span className="allocation-tag-name">Bank {pctBank}%</span>
+                  <span className="allocation-tag-amount">{formatCompactRupiah(bankTotal, isBalanceVisible)}</span>
                 </button>
-              )}
+
+                <button
+                  type="button"
+                  className={`allocation-tag-item ${accountTypeFilter === 'ewallet' ? 'active' : ''}`}
+                  onClick={() => setAccountTypeFilter(prev => prev === 'ewallet' ? 'all' : 'ewallet')}
+                  title="Filter E-Wallet"
+                >
+                  <span className="allocation-tag-dot ewallet-dot" />
+                  <span className="allocation-tag-name">E-Wallet {pctEwallet}%</span>
+                  <span className="allocation-tag-amount">{formatCompactRupiah(ewalletTotal, isBalanceVisible)}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`allocation-tag-item ${accountTypeFilter === 'cash' ? 'active' : ''}`}
+                  onClick={() => setAccountTypeFilter(prev => prev === 'cash' ? 'all' : 'cash')}
+                  title="Filter Tunai"
+                >
+                  <span className="allocation-tag-dot cash-dot" />
+                  <span className="allocation-tag-name">Tunai {pctCash}%</span>
+                  <span className="allocation-tag-amount">{formatCompactRupiah(cashTotal, isBalanceVisible)}</span>
+                </button>
+
+                {otherTotal > 0 && (
+                  <button
+                    type="button"
+                    className={`allocation-tag-item ${accountTypeFilter === 'other' ? 'active' : ''}`}
+                    onClick={() => setAccountTypeFilter(prev => prev === 'other' ? 'all' : 'other')}
+                    title="Filter Lainnya"
+                  >
+                    <span className="allocation-tag-dot other-dot" />
+                    <span className="allocation-tag-name">Lainnya {pctOther}%</span>
+                    <span className="allocation-tag-amount">{formatCompactRupiah(otherTotal, isBalanceVisible)}</span>
+                  </button>
+                )}
+              </div>
             </div>
+          </div>
 
-            {/* Smart Pocket Cards Grid */}
-            <div className="smart-pocket-grid">
-              {filteredAccounts.length === 0 ? (
-                <div className="empty-state-card" style={{ gridColumn: '1 / -1', padding: '36px 20px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '36px', marginBottom: '8px' }}>💳</div>
-                  <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>
-                    {accountTypeFilter !== 'all'
-                      ? `Belum Ada ${accountTypeFilter === 'bank' ? 'Rekening Bank' : accountTypeFilter === 'ewallet' ? 'E-Wallet' : 'Uang Tunai'}`
-                      : 'Belum Ada Dompet'}
-                  </h4>
-                  <p style={{ fontSize: '13px', color: '#64748B', maxWidth: '320px', margin: '4px auto 16px' }}>
-                    {accountTypeFilter !== 'all'
-                      ? `Kamu belum memiliki dompet atau rekening di kategori ini.`
-                      : 'Tambahkan rekening bank, e-wallet, atau uang tunai untuk mulai mencatat keuangan Anda.'}
-                  </p>
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                    {accountTypeFilter !== 'all' && (
-                      <button
-                        type="button"
-                        onClick={() => setAccountTypeFilter('all')}
-                        className="btn-secondary"
-                        style={{ padding: '8px 14px', borderRadius: '10px', fontSize: '12px' }}
-                      >
-                        Lihat Semua Dompet
-                      </button>
-                    )}
+          {/* Clean Segmented Filter Bar */}
+          <div className="accounts-filter-bar">
+            <button
+              type="button"
+              className={`accounts-filter-pill ${accountTypeFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setAccountTypeFilter('all')}
+            >
+              <span>Semua</span>
+              <span className="pill-badge">{data.accounts.length}</span>
+            </button>
+            <button
+              type="button"
+              className={`accounts-filter-pill ${accountTypeFilter === 'bank' ? 'active' : ''}`}
+              onClick={() => setAccountTypeFilter(prev => prev === 'bank' ? 'all' : 'bank')}
+            >
+              <span>🏦 Bank</span>
+              <span className="pill-badge">{bankAccounts.length}</span>
+            </button>
+            <button
+              type="button"
+              className={`accounts-filter-pill ${accountTypeFilter === 'ewallet' ? 'active' : ''}`}
+              onClick={() => setAccountTypeFilter(prev => prev === 'ewallet' ? 'all' : 'ewallet')}
+            >
+              <span>📱 E-Wallet</span>
+              <span className="pill-badge">{ewalletAccounts.length}</span>
+            </button>
+            <button
+              type="button"
+              className={`accounts-filter-pill ${accountTypeFilter === 'cash' ? 'active' : ''}`}
+              onClick={() => setAccountTypeFilter(prev => prev === 'cash' ? 'all' : 'cash')}
+            >
+              <span>💵 Tunai</span>
+              <span className="pill-badge">{cashAccounts.length}</span>
+            </button>
+            {otherAccounts.length > 0 && (
+              <button
+                type="button"
+                className={`accounts-filter-pill ${accountTypeFilter === 'other' ? 'active' : ''}`}
+                onClick={() => setAccountTypeFilter(prev => prev === 'other' ? 'all' : 'other')}
+              >
+                <span>📈 Lainnya</span>
+                <span className="pill-badge">{otherAccounts.length}</span>
+              </button>
+            )}
+          </div>
+
+          {/* Minimalist Smart Pocket Cards Grid */}
+          <div className="smart-pocket-grid">
+            {filteredAccounts.length === 0 ? (
+              <div className="empty-state-card" style={{ gridColumn: '1 / -1', padding: '36px 20px', textAlign: 'center' }}>
+                <div style={{ fontSize: '36px', marginBottom: '8px' }}>💳</div>
+                <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>
+                  {accountTypeFilter !== 'all'
+                    ? `Belum Ada ${accountTypeFilter === 'bank' ? 'Rekening Bank' : accountTypeFilter === 'ewallet' ? 'E-Wallet' : 'Uang Tunai'}`
+                    : 'Belum Ada Dompet'}
+                </h4>
+                <p style={{ fontSize: '12.5px', color: '#64748B', maxWidth: '320px', margin: '4px auto 16px' }}>
+                  {accountTypeFilter !== 'all'
+                    ? `Kamu belum memiliki dompet atau rekening di kategori ini.`
+                    : 'Tambahkan rekening bank, e-wallet, atau uang tunai untuk mulai mencatat keuangan.'}
+                </p>
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                  {accountTypeFilter !== 'all' && (
                     <button
-                      onClick={() => {
-                        if (accountTypeFilter !== 'all' && ['bank', 'ewallet', 'cash'].includes(accountTypeFilter)) {
-                          setNewAccType(accountTypeFilter);
-                        }
-                        setIsAddAccountOpen(true);
-                      }}
-                      className="btn-primary"
-                      style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '12px' }}
+                      type="button"
+                      onClick={() => setAccountTypeFilter('all')}
+                      className="btn-secondary"
+                      style={{ padding: '8px 14px', borderRadius: '10px', fontSize: '12px' }}
                     >
-                      <Plus size={14} style={{ marginRight: '6px' }} /> Tambah Dompet
+                      Lihat Semua
                     </button>
-                  </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (accountTypeFilter !== 'all' && ['bank', 'ewallet', 'cash'].includes(accountTypeFilter)) {
+                        setNewAccType(accountTypeFilter);
+                      }
+                      setIsAddAccountOpen(true);
+                    }}
+                    className="btn-primary"
+                    style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '12px' }}
+                  >
+                    <Plus size={14} style={{ marginRight: '6px' }} /> Tambah Dompet
+                  </button>
                 </div>
-              ) : (
-                filteredAccounts.map(acc => {
-                  const pct = totalBalance > 0 ? Math.max(0, Math.round((acc.balance / totalBalance) * 100)) : 0;
-                  const isBank = acc.type === 'bank';
-                  const isEwallet = acc.type === 'ewallet';
-                  const isCash = acc.type === 'cash';
+              </div>
+            ) : (
+              filteredAccounts.map(acc => {
+                const pct = totalBalance > 0 ? Math.max(0, Math.round((acc.balance / totalBalance) * 100)) : 0;
+                const isBank = acc.type === 'bank';
+                const isEwallet = acc.type === 'ewallet';
+                const isCash = acc.type === 'cash';
 
-                  const themeClass = isBank ? 'theme-bank' : isEwallet ? 'theme-ewallet' : isCash ? 'theme-cash' : 'theme-other';
-                  const accentColor = isBank ? '#2563EB' : isEwallet ? '#8B5CF6' : isCash ? '#059669' : '#64748B';
+                const themeClass = isBank ? 'theme-bank' : isEwallet ? 'theme-ewallet' : isCash ? 'theme-cash' : 'theme-other';
+                const accentColor = isBank ? '#2563EB' : isEwallet ? '#8B5CF6' : isCash ? '#059669' : '#64748B';
 
-                  return (
-                    <div
-                      key={acc.id}
-                      className={`smart-pocket-card ${themeClass}`}
-                      onClick={() => setSelectedAccountDetail(acc)}
-                      style={{ cursor: 'pointer' }}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      {/* Top Header Row: Identity & Actions */}
-                      <div className="pocket-card-header">
-                        <div className="pocket-card-identity">
-                          <div
-                            className="pocket-avatar"
-                            style={{
-                              backgroundColor: `${acc.color || accentColor}18`,
-                              color: acc.color || accentColor
-                            }}
-                          >
-                            {acc.icon || (isBank ? '🏦' : isEwallet ? '📱' : '💵')}
-                          </div>
-                          <div className="pocket-info">
-                            <div className="pocket-name-row">
-                              <span className="pocket-name">{acc.name}</span>
-                              {acc.isPrimary && <span className="primary-pill">Utama</span>}
-                            </div>
-                            <div className="pocket-meta-row">
-                              <span className="pocket-type-badge">
-                                {isBank ? 'Bank' : isEwallet ? 'E-Wallet' : isCash ? 'Tunai' : 'Lainnya'}
-                              </span>
-                              {acc.accountNumber && (
-                                <span className="pocket-acc-number">
-                                  • {acc.accountNumber}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="pocket-card-actions">
-                          <button
-                            type="button"
-                            className="pocket-action-btn edit"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEditModal(acc);
-                            }}
-                            title="Edit Dompet"
-                          >
-                            <Edit2 size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            className="pocket-action-btn delete"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteAccount(acc.id, acc.name);
-                            }}
-                            title="Hapus Dompet"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
+                return (
+                  <div
+                    key={acc.id}
+                    className={`smart-pocket-card ${themeClass}`}
+                    onClick={() => setSelectedAccountDetail(acc)}
+                    style={{ cursor: 'pointer' }}
+                    role="button"
+                    tabIndex={0}
+                    title="Klik untuk lihat detail & transaksi dompet"
+                  >
+                    {/* Left: Avatar & Identity */}
+                    <div className="pocket-left-section">
+                      <div
+                        className="pocket-avatar"
+                        style={{
+                          backgroundColor: `${acc.color || accentColor}14`,
+                          color: acc.color || accentColor
+                        }}
+                      >
+                        {acc.icon || (isBank ? '🏦' : isEwallet ? '📱' : '💵')}
                       </div>
 
-                      {/* Prominent Balance Value */}
+                      <div className="pocket-info">
+                        <div className="pocket-name-row">
+                          <span className="pocket-name">{acc.name}</span>
+                          {acc.isPrimary && <span className="primary-pill">Utama</span>}
+                        </div>
+                        <div className="pocket-meta-row">
+                          <span className="pocket-type-badge">
+                            {isBank ? 'Bank' : isEwallet ? 'E-Wallet' : isCash ? 'Tunai' : 'Lainnya'}
+                          </span>
+                          {acc.accountNumber && (
+                            <span className="pocket-acc-number">
+                              • {acc.accountNumber}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Balance, Allocation & Chevron */}
+                    <div className="pocket-right-section">
                       <div className="pocket-balance-value">
                         {maskMoney(acc.balance, isBalanceVisible)}
                       </div>
-
-                      {/* Minimalist Micro Progress Bar */}
-                      <div className="pocket-progress-wrap">
-                        <div className="pocket-progress-track">
-                          <div
-                            className="pocket-progress-fill"
-                            style={{ width: `${pct}%`, backgroundColor: acc.color || accentColor }}
-                          />
-                        </div>
-                        <span className="pocket-progress-pct">{pct}% portofolio</span>
+                      <div className="pocket-sub-info">
+                        <span className="pocket-pct-badge">{pct}% aset</span>
+                        <ChevronRight size={15} className="pocket-chevron" />
                       </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
 
-            {/* Minimalist Advice / Tip Strip */}
-            <div className="accounts-tip-card">
-              <ShieldCheck size={18} style={{ color: '#2563EB', flexShrink: 0 }} />
-              <div>
-                <strong>Tips Manajemen Dompet:</strong> Saldo dompet Anda otomatis disinkronkan ke Supabase Cloud dan langsung terpotong saat mencatat pengeluaran atau bertambah saat pemasukan.
-              </div>
+          {/* Minimalist Advice / Tip Strip */}
+          <div className="accounts-tip-card">
+            <ShieldCheck size={16} style={{ color: '#2563EB', flexShrink: 0 }} />
+            <div>
+              <strong>Sinkron Cloud Otomatis:</strong> Saldo dompet terhubung aman & diperbarui secara real-time saat transaksi dicatat.
             </div>
+          </div>
 
             {/* Modal Tambah Dompet Baru */}
           {isAddAccountOpen && (

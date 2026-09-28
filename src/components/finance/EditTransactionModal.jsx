@@ -292,13 +292,15 @@ export default function EditTransactionModal({ transaction, isOpen, onClose }) {
               </div>
             ) : (
               <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label">Tempat / Merchant</label>
+                <label className="input-label">
+                  {type === 'expense' ? 'Nama Pengeluaran / Transaksi' : 'Sumber / Keterangan'}
+                </label>
                 <input
                   type="text"
                   className="input-field"
                   value={merchant}
                   onChange={(e) => setMerchant(e.target.value)}
-                  placeholder="Kantin, Indomaret, dll"
+                  placeholder={type === 'expense' ? 'cth: Cilok, Kantin Rektorat, Alfamart...' : 'cth: Gaji, Kiriman, dll...'}
                 />
               </div>
             )}

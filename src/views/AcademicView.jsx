@@ -352,62 +352,42 @@ export const AcademicView = () => {
       {/* 1. JADWAL KULIAH */}
       {academicTab === 'schedule' && (
         <div>
-          {/* Header row with Add Course button */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <div>
-              <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>
-                Jadwal Kuliah Semester {viewSemester}
+          {/* Header row with Add Course button (Proportional & Minimalist) */}
+          <div className="academic-schedule-header">
+            <div className="academic-schedule-title-wrap">
+              <h3 className="academic-schedule-title">
+                Jadwal Kuliah
               </h3>
-              <div style={{ fontSize: '11px', color: '#64748B' }}>
-                {semesterCourses.length} Mata Kuliah Terdaftar
+              <div className="academic-schedule-subtitle">
+                Semester {viewSemester} • {semesterCourses.length} mata kuliah
               </div>
             </div>
             <button
               type="button"
-              className="btn-primary"
+              className="academic-add-course-btn"
               onClick={handleOpenAddCourse}
-              style={{ width: 'auto', padding: '8px 14px', fontSize: '12px', borderRadius: '12px', margin: 0 }}
+              title="Tambah Matakuliah Baru"
             >
-              <Plus size={15} /> Tambah Matakuliah
+              <Plus size={14} strokeWidth={2.5} />
+              <span>Tambah Matkul</span>
             </button>
           </div>
 
           {/* Day pills */}
-          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '12px' }}>
+          <div className="academic-day-pills-bar">
             {days.map(d => {
               const isSelected = selectedDay === d;
               const isToday = d === todayDayName;
               return (
                 <button
                   key={d}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '16px',
-                    border: 'none',
-                    background: isSelected ? '#1665D8' : '#E2E8F0',
-                    color: isSelected ? '#FFFFFF' : '#475569',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
+                  type="button"
+                  className={`academic-day-pill ${isSelected ? 'active' : ''}`}
                   onClick={() => setSelectedDay(d)}
                 >
                   <span>{d}</span>
                   {isToday && (
-                    <span
-                      style={{
-                        fontSize: '9px',
-                        padding: '1px 5px',
-                        borderRadius: '6px',
-                        background: isSelected ? 'rgba(255,255,255,0.25)' : '#CBD5E1',
-                        color: isSelected ? '#FFFFFF' : '#334155',
-                        fontWeight: 800
-                      }}
-                    >
+                    <span className="academic-day-today-tag">
                       Hari Ini
                     </span>
                   )}
@@ -538,26 +518,6 @@ export const AcademicView = () => {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* Interaction Hint Banner */}
-              <div
-                style={{
-                  background: '#F0FDF4',
-                  border: '1px solid #BBF7D0',
-                  borderRadius: '12px',
-                  padding: '8px 12px',
-                  fontSize: '11px',
-                  color: '#166534',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <span>💡</span>
-                <span>
-                  <strong>Tips:</strong> Ketuk matkul untuk buka <strong>Hub Presensi, Tugas, Catatan & Nilai</strong>. Geser kanan untuk <strong>Hapus</strong>, geser kiri untuk <strong>Edit</strong>.
-                </span>
-              </div>
-
               {filteredCourses.map(course => {
                 const stats = getAttendanceStats(course);
                 const semRecord = data.semesters?.find(s => s.semesterNumber === course.semester);

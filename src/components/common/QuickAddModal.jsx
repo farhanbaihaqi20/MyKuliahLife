@@ -124,7 +124,7 @@ export const QuickAddModal = () => {
       amount: rawAmount,
       accountName: currentAcc.name,
       category: txType === 'income' ? 'Pemasukan' : txCategory,
-      merchant: txMerchant || (txType === 'expense' ? 'Kantin / Toko' : 'Sumber Dana'),
+      merchant: txMerchant.trim() || txNote.trim() || (txType === 'expense' ? txCategory : (txType === 'transfer' ? 'Transfer Saldo' : 'Pemasukan')),
       note: txNote,
       icon: txType === 'income' ? '💰' : (txType === 'transfer' ? '🔁' : '🍜')
     });
@@ -357,12 +357,20 @@ export const QuickAddModal = () => {
               </div>
             )}
 
-            {/* Merchant / Lokasi */}
+            {/* Nama Pengeluaran / Transaksi */}
             <div className="input-group">
-              <label className="input-label">Tempat / Merchant (Opsional)</label>
+              <label className="input-label">
+                {txType === 'expense' ? 'Nama Pengeluaran / Transaksi' : txType === 'income' ? 'Sumber Pemasukan' : 'Nama Transaksi'}
+              </label>
               <input
                 type="text"
-                placeholder="cth: Kantin Rektorat, Bu Yayuk, Alfamart"
+                placeholder={
+                  txType === 'expense'
+                    ? 'cth: Cilok, Kantin Rektorat, Kopi, Alfamart'
+                    : txType === 'income'
+                    ? 'cth: Kiriman Ortu, Gaji, Beasiswa, Freelance'
+                    : 'cth: Tarik Tunai, Top up E-Wallet'
+                }
                 className="input-field"
                 value={txMerchant}
                 onChange={(e) => setTxMerchant(e.target.value)}

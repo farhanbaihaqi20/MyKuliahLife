@@ -12,7 +12,8 @@ import {
   MoreVertical,
   Edit2,
   X,
-  AlertCircle
+  AlertCircle,
+  GraduationCap
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import EditCourseModal from '../components/academic/EditCourseModal';
@@ -137,13 +138,33 @@ export const GradesView = () => {
           boxShadow: '0 10px 25px rgba(22, 101, 216, 0.25)'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>
-            Indeks Prestasi Kumulatif (IPK)
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.88)', letterSpacing: '0.2px' }}>
+            Indeks Prestasi Kumulatif
           </span>
-          <span style={{ fontSize: '12px', background: 'rgba(255,255,255,0.2)', padding: '3px 10px', borderRadius: '12px' }}>
-            {predikat.badge} {data.profile?.major || 'Mahasiswa'}
-          </span>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '3px 9px',
+              borderRadius: '999px',
+              background: 'rgba(255, 255, 255, 0.16)',
+              border: '1px solid rgba(255, 255, 255, 0.22)',
+              backdropFilter: 'blur(8px)',
+              fontSize: '11px',
+              fontWeight: 600,
+              color: '#FFFFFF',
+              whiteSpace: 'nowrap',
+              maxWidth: '160px',
+              flexShrink: 0
+            }}
+          >
+            <GraduationCap size={12} strokeWidth={2.2} style={{ flexShrink: 0, opacity: 0.95 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {data.profile?.major || 'Mahasiswa'}
+            </span>
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', margin: '12px 0 6px' }}>
@@ -155,8 +176,9 @@ export const GradesView = () => {
           </span>
         </div>
 
-        <div style={{ fontSize: '12px', color: '#FDE68A', fontWeight: 700 }}>
-          {predikat.title}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#FDE68A', fontWeight: 700 }}>
+          <span>{predikat.badge}</span>
+          <span>{predikat.title}</span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.18)', paddingTop: '12px' }}>

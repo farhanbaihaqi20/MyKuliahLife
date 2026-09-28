@@ -1,23 +1,20 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { maskMoney, formatRupiahNumber } from '../../utils/formatters';
+import { maskMoney } from '../../utils/formatters';
 import {
   X,
   Copy,
   Check,
   Plus,
-  Edit2,
+  Edit3,
   Trash2,
-  ArrowDown,
-  ArrowUp,
-  Sparkles,
-  ShieldCheck,
-  CreditCard,
-  Wallet,
-  Calendar,
-  ExternalLink,
-  ChevronRight,
-  TrendingUp
+  ArrowDownLeft,
+  ArrowUpRight,
+  ArrowLeftRight,
+  TrendingUp,
+  TrendingDown,
+  Wifi,
+  FileText
 } from 'lucide-react';
 
 export const AccountDetailModal = ({
@@ -31,6 +28,13 @@ export const AccountDetailModal = ({
   const { data, isBalanceVisible, totalBalance } = useApp();
   const [copied, setCopied] = useState(false);
   const [txFilter, setTxFilter] = useState('all'); // 'all' | 'expense' | 'income'
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [isOpen, account?.id]);
 
   // Filter transactions for this specific account
   const accountTransactions = useMemo(() => {
@@ -77,66 +81,97 @@ export const AccountDetailModal = ({
   const isEwallet = account.type === 'ewallet';
   const isCash = account.type === 'cash';
 
-  const cardThemeClass = isBank ? 'digital-card-bank' : isEwallet ? 'digital-card-ewallet' : isCash ? 'digital-card-cash' : 'digital-card-other';
+  const cardThemeClass = isBank
+    ? 'digital-card-bank'
+    : isEwallet
+    ? 'digital-card-ewallet'
+    : isCash
+    ? 'digital-card-cash'
+    : 'digital-card-other';
+
+  const typeLabel = isBank
+    ? 'DEBIT CARD'
+    : isEwallet
+    ? 'E-WALLET PASS'
+    : isCash
+    ? 'DOMPET TUNAI'
+    : 'PORTOFOLIO';
 
   return (
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1200 }}>
       <div className="account-hub-sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="sheet-handle-bar" />
-
-        {/* Modal Header */}
-        <div className="account-hub-header">
-          <div className="account-hub-title-box">
-            <div className="hub-header-icon" style={{ backgroundColor: `${account.color || '#1665D8'}20`, color: account.color || '#1665D8' }}>
-              {account.icon || '💳'}
+        {/* Handle Bar & Sticky Modal Header */}
+        <div className="account-hub-top-header">
+          <div className="sheet-handle-bar" />
+          <div className="account-hub-header">
+            <div className="account-hub-title-box">
+              <div
+                className="hub-header-icon"
+                style={{
+                  backgroundColor: `${account.color || '#2563EB'}15`,
+                  color: account.color || '#2563EB'
+                }}
+              >
+                {account.icon || '💳'}
+              </div>
+              <div>
+                <h3 className="account-hub-title">{account.name}</h3>
+                <p className="account-hub-subtitle">
+                  {isBank ? 'Rekening Bank' : isEwallet ? 'Akun E-Wallet' : isCash ? 'Uang Tunai' : 'Dompet Digital'}
+                  {stats.portfolioPct > 0 ? ` • ${stats.portfolioPct}% dari total aset` : ''}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="account-hub-title">Detail & Hub Dompet</h3>
-              <p className="account-hub-subtitle">Info saldo, mutasi, dan nomor rekening</p>
-            </div>
+            <button
+              type="button"
+              className="account-hub-close-btn"
+              onClick={onClose}
+              title="Tutup"
+              aria-label="Tutup Detail"
+            >
+              <X size={18} />
+            </button>
           </div>
-          <button type="button" className="account-hub-close-btn" onClick={onClose} title="Tutup">
-            <X size={18} />
-          </button>
         </div>
 
-        {/* 1. ATM / DIGITAL WALLET HERO CARD */}
-        <div className={`digital-wallet-card ${cardThemeClass}`}>
-          {/* Card Top Row: EMV Chip & Type Badge */}
-          <div className="digital-card-top">
-            <div className="digital-emv-chip">
-              <div className="emv-line" />
-              <div className="emv-line" />
-              <span className="contactless-icon">📶</span>
-            </div>
-            <div className="digital-card-type-pill">
-              <span>{isBank ? 'DEBIT CARD' : isEwallet ? 'E-WALLET PASS' : isCash ? 'DOMPET FISIK' : 'INVESTASI'}</span>
-            </div>
-          </div>
+        {/* Scrollable Modal Content */}
+        <div className="account-hub-body" ref={scrollRef}>
+          {/* 1. ULTRA-SLEEK LUXURY MINIMALIST CARD */}
+          <div className={`digital-wallet-card ${cardThemeClass}`}>
+            {/* Ambient Sheen Overlay */}
+            <div className="digital-card-sheen" />
 
-          {/* Card Middle: Account Name & Number */}
-          <div className="digital-card-middle">
-            <div className="digital-card-name">{account.name}</div>
-            
-            {/* Account / Phone Number with Copy Feature */}
-            <div className="digital-card-number-row">
+            {/* Card Top: Type & Contactless Emblem */}
+            <div className="digital-card-top">
+              <div className="digital-card-brand">
+                <span className="digital-card-symbol">{account.icon || '💳'}</span>
+                <span className="digital-card-inst">{account.name}</span>
+              </div>
+              <div className="digital-card-top-right">
+                <span className="digital-card-type-badge">{typeLabel}</span>
+                <Wifi size={16} className="contactless-svg" />
+              </div>
+            </div>
+
+            {/* Card Center: Clean Account / Phone Number with 1-Tap Copy */}
+            <div className="digital-card-center">
               {account.accountNumber ? (
-                <div className="card-number-wrapper">
-                  <span className="card-number-text">{account.accountNumber}</span>
+                <div className="card-number-glass-box">
+                  <span className="card-number-code">{account.accountNumber}</span>
                   <button
                     type="button"
-                    className="card-copy-btn"
+                    className={`card-copy-pill ${copied ? 'copied' : ''}`}
                     onClick={handleCopyNumber}
                     title="Salin Nomor Rekening / HP"
                   >
                     {copied ? (
                       <>
-                        <Check size={12} style={{ color: '#6EE7B7' }} />
-                        <span style={{ color: '#6EE7B7' }}>Tersalin!</span>
+                        <Check size={11} strokeWidth={2.5} />
+                        <span>Tersalin</span>
                       </>
                     ) : (
                       <>
-                        <Copy size={12} />
+                        <Copy size={11} />
                         <span>Salin</span>
                       </>
                     )}
@@ -145,194 +180,228 @@ export const AccountDetailModal = ({
               ) : (
                 <button
                   type="button"
-                  className="card-add-number-btn"
-                  onClick={() => onEdit(account)}
-                  title="Tambah Nomor Rekening / HP"
+                  className="card-add-number-pill"
+                  onClick={() => {
+                    onClose();
+                    onEdit(account);
+                  }}
+                  title="Tambah nomor rekening atau HP"
                 >
-                  <Plus size={12} />
-                  <span>+ Tambah No. Rekening / No. HP</span>
+                  <Plus size={12} strokeWidth={2.5} />
+                  <span>Tambah No. Rekening / HP</span>
                 </button>
               )}
             </div>
-          </div>
 
-          {/* Card Bottom: Holder Name, Balance, and Primary Badge */}
-          <div className="digital-card-bottom">
-            <div>
-              <div className="card-label">PEMILIK DOMPET</div>
-              <div className="card-holder-name">
-                {data.profile.fullName ? data.profile.fullName.toUpperCase() : 'MAHASISWA'}
+            {/* Card Bottom: Holder Name & Balance */}
+            <div className="digital-card-bottom">
+              <div className="card-col-left">
+                <span className="card-meta-label">PEMILIK DOMPET</span>
+                <span className="card-holder-name">
+                  {data?.profile?.fullName ? data.profile.fullName.toUpperCase() : 'MAHASISWA'}
+                </span>
               </div>
-            </div>
-
-            <div className="card-balance-right">
-              <div className="card-label">SALDO AKTIF</div>
-              <div className="card-balance-amount">
-                {maskMoney(account.balance, isBalanceVisible)}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 2. NOTES & PERUNTUKAN (JIKA ADA) */}
-        {account.notes && (
-          <div className="account-notes-box">
-            <div className="notes-header">
-              <span>📝 Catatan / Peruntukan Dompet</span>
-            </div>
-            <div className="notes-content">{account.notes}</div>
-          </div>
-        )}
-
-        {/* 3. QUICK ACTION BAR */}
-        <div className="account-quick-actions-row">
-          <button
-            type="button"
-            className="hub-action-btn primary"
-            onClick={() => {
-              onClose();
-              if (onQuickAdd) onQuickAdd('expense', account.name);
-            }}
-            title="Catat transaksi dari dompet ini"
-          >
-            <Plus size={15} />
-            <span>Catat Transaksi</span>
-          </button>
-
-          <button
-            type="button"
-            className="hub-action-btn secondary"
-            onClick={() => {
-              onClose();
-              onEdit(account);
-            }}
-            title="Edit Detail & Saldo Dompet"
-          >
-            <Edit2 size={14} />
-            <span>Edit Dompet</span>
-          </button>
-
-          <button
-            type="button"
-            className="hub-action-btn danger"
-            onClick={() => {
-              onDelete(account.id, account.name);
-              onClose();
-            }}
-            title="Hapus Dompet Ini"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-
-        {/* 4. CASHFLOW STATISTICS */}
-        <div className="account-stats-section">
-          <div className="stats-section-title">
-            <span>RINGKASAN ARUS KAS DOMPET</span>
-            <span className="stats-portfolio-badge">{stats.portfolioPct}% Portofolio</span>
-          </div>
-
-          <div className="account-stats-grid">
-            <div className="account-stat-item income">
-              <div className="stat-item-header">
-                <span className="stat-dot income" />
-                <span>Pemasukan</span>
-              </div>
-              <div className="stat-item-amount">
-                +{maskMoney(stats.totalIncome, isBalanceVisible)}
-              </div>
-            </div>
-
-            <div className="account-stat-item expense">
-              <div className="stat-item-header">
-                <span className="stat-dot expense" />
-                <span>Pengeluaran</span>
-              </div>
-              <div className="stat-item-amount">
-                -{maskMoney(stats.totalExpense, isBalanceVisible)}
-              </div>
-            </div>
-
-            <div className="account-stat-item net">
-              <div className="stat-item-header">
-                <TrendingUp size={12} style={{ color: stats.netFlow >= 0 ? '#10B981' : '#EF4444' }} />
-                <span>Arus Kas Bersih</span>
-              </div>
-              <div className="stat-item-amount" style={{ color: stats.netFlow >= 0 ? '#10B981' : '#EF4444' }}>
-                {stats.netFlow >= 0 ? '+' : ''}{maskMoney(stats.netFlow, isBalanceVisible)}
+              <div className="card-col-right">
+                <span className="card-meta-label">SALDO AKTIF</span>
+                <span className="card-balance-val">
+                  {maskMoney(account.balance, isBalanceVisible)}
+                </span>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* 5. FILTERED TRANSACTIONS HISTORY */}
-        <div className="account-history-section">
-          <div className="history-section-header">
-            <span className="history-title">Riwayat Mutasi Dompet</span>
-            <div className="history-filter-tabs">
-              <button
-                type="button"
-                className={`history-tab-btn ${txFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setTxFilter('all')}
-              >
-                Semua
-              </button>
-              <button
-                type="button"
-                className={`history-tab-btn ${txFilter === 'expense' ? 'active' : ''}`}
-                onClick={() => setTxFilter('expense')}
-              >
-                Keluar
-              </button>
-              <button
-                type="button"
-                className={`history-tab-btn ${txFilter === 'income' ? 'active' : ''}`}
-                onClick={() => setTxFilter('income')}
-              >
-                Masuk
-              </button>
+          {/* 2. REFINED MINIMALIST ACTIONS ROW */}
+          <div className="account-quick-actions-row">
+            <button
+              type="button"
+              className="hub-action-pill primary"
+              onClick={() => {
+                onClose();
+                if (onQuickAdd) onQuickAdd('expense', account.name);
+              }}
+              title="Catat transaksi pengeluaran/pemasukan dari dompet ini"
+            >
+              <Plus size={15} strokeWidth={2.5} />
+              <span>Catat Transaksi</span>
+            </button>
+
+            <button
+              type="button"
+              className="hub-action-pill secondary"
+              onClick={() => {
+                onClose();
+                onEdit(account);
+              }}
+              title="Edit detail, nama, atau saldo dompet"
+            >
+              <Edit3 size={14} />
+              <span>Edit</span>
+            </button>
+
+            <button
+              type="button"
+              className="hub-action-pill danger"
+              onClick={() => {
+                onClose();
+                onDelete(account.id, account.name);
+              }}
+              title="Hapus dompet ini"
+              aria-label="Hapus Dompet"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+
+          {/* 3. OPTIONAL NOTES / PERUNTUKAN */}
+          {account.notes && (
+            <div className="account-notes-card">
+              <div className="notes-card-title">
+                <FileText size={13} style={{ color: '#2563EB' }} />
+                <span>Catatan / Peruntukan Dompet</span>
+              </div>
+              <p className="notes-card-desc">{account.notes}</p>
+            </div>
+          )}
+
+          {/* 4. CASHFLOW SUMMARY (CLEAN & MINIMALIST METRICS, NO BOX-IN-A-BOX) */}
+          <div className="account-cashflow-card">
+            <div className="cashflow-card-head">
+              <span className="cashflow-head-title">Ringkasan Arus Kas Dompet</span>
+              <span className="cashflow-portfolio-tag">{stats.portfolioPct}% Portofolio</span>
+            </div>
+
+            <div className="cashflow-metrics-row">
+              <div className="cashflow-metric-item">
+                <span className="metric-label">
+                  <span className="metric-dot income" /> Masuk
+                </span>
+                <span className="metric-number income">
+                  +{maskMoney(stats.totalIncome, isBalanceVisible)}
+                </span>
+              </div>
+
+              <div className="cashflow-metric-divider" />
+
+              <div className="cashflow-metric-item">
+                <span className="metric-label">
+                  <span className="metric-dot expense" /> Keluar
+                </span>
+                <span className="metric-number expense">
+                  -{maskMoney(stats.totalExpense, isBalanceVisible)}
+                </span>
+              </div>
+
+              <div className="cashflow-metric-divider" />
+
+              <div className="cashflow-metric-item">
+                <span className="metric-label">
+                  {stats.netFlow >= 0 ? (
+                    <TrendingUp size={12} style={{ color: '#10B981' }} />
+                  ) : (
+                    <TrendingDown size={12} style={{ color: '#EF4444' }} />
+                  )}
+                  <span>Arus Bersih</span>
+                </span>
+                <span className={`metric-number ${stats.netFlow >= 0 ? 'income' : 'expense'}`}>
+                  {stats.netFlow >= 0 ? '+' : ''}{maskMoney(stats.netFlow, isBalanceVisible)}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="account-tx-list">
-            {accountTransactions.length === 0 ? (
-              <div className="empty-tx-box">
-                <p>Belum ada transaksi tercatat untuk dompet ini.</p>
+          {/* 5. TRANSACTION MUTATION HISTORY */}
+          <div className="account-history-container">
+            <div className="history-header-row">
+              <h4 className="history-section-title">Riwayat Mutasi</h4>
+              <div className="history-segmented-tabs">
+                <button
+                  type="button"
+                  className={`history-tab ${txFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setTxFilter('all')}
+                >
+                  Semua
+                </button>
+                <button
+                  type="button"
+                  className={`history-tab ${txFilter === 'expense' ? 'active' : ''}`}
+                  onClick={() => setTxFilter('expense')}
+                >
+                  Keluar
+                </button>
+                <button
+                  type="button"
+                  className={`history-tab ${txFilter === 'income' ? 'active' : ''}`}
+                  onClick={() => setTxFilter('income')}
+                >
+                  Masuk
+                </button>
               </div>
-            ) : (
-              accountTransactions.slice(0, 10).map((tx) => {
-                const isExpense = tx.type === 'expense';
-                const isIncome = tx.type === 'income';
-                return (
-                  <div key={tx.id} className="account-tx-item">
-                    <div className="tx-item-left">
-                      <div className={`tx-item-icon-circle ${tx.type}`}>
-                        {isExpense ? <ArrowUp size={14} /> : isIncome ? <ArrowDown size={14} /> : '🔄'}
-                      </div>
-                      <div>
-                        <div className="tx-item-merchant">{tx.merchant || tx.category || 'Transaksi'}</div>
-                        <div className="tx-item-date">{tx.date} • {tx.category}</div>
-                      </div>
-                    </div>
-                    <div className={`tx-item-amount ${tx.type}`}>
-                      {isExpense ? '-' : '+'}{maskMoney(tx.amount, isBalanceVisible)}
-                    </div>
+            </div>
+
+            <div className="account-tx-scroll-list">
+              {accountTransactions.length === 0 ? (
+                <div className="empty-account-tx">
+                  <div className="empty-tx-icon">☕</div>
+                  <div className="empty-tx-text">
+                    Belum ada transaksi tercatat untuk dompet ini.
                   </div>
-                );
-              })
-            )}
+                  <button
+                    type="button"
+                    className="empty-tx-add-btn"
+                    onClick={() => {
+                      onClose();
+                      if (onQuickAdd) onQuickAdd('expense', account.name);
+                    }}
+                  >
+                    + Catat Transaksi Baru
+                  </button>
+                </div>
+              ) : (
+                accountTransactions.map((tx) => {
+                  const isExpense = tx.type === 'expense';
+                  const isIncome = tx.type === 'income';
+
+                  return (
+                    <div key={tx.id} className="modern-tx-row">
+                      <div className="modern-tx-left">
+                        <div className={`modern-tx-circle ${tx.type}`}>
+                          {isExpense ? (
+                            <ArrowUpRight size={14} />
+                          ) : isIncome ? (
+                            <ArrowDownLeft size={14} />
+                          ) : (
+                            <ArrowLeftRight size={14} />
+                          )}
+                        </div>
+                        <div className="modern-tx-meta">
+                          <span className="modern-tx-merchant">
+                            {tx.merchant || tx.category || 'Transaksi'}
+                          </span>
+                          <span className="modern-tx-subtitle">
+                            {tx.date} • {tx.category || (isExpense ? 'Pengeluaran' : 'Pemasukan')}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className={`modern-tx-amount ${tx.type}`}>
+                        {isExpense ? '-' : '+'}{maskMoney(tx.amount, isBalanceVisible)}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Modal Close CTA */}
+        {/* Modal Clean Footer */}
         <div className="account-hub-footer">
           <button
             type="button"
-            className="btn-primary w-full"
-            style={{ padding: '12px', borderRadius: '14px', fontWeight: 700 }}
+            className="hub-footer-close-btn"
             onClick={onClose}
           >
-            Selesai
+            Tutup
           </button>
         </div>
       </div>

@@ -13,7 +13,7 @@ import { ProfileSyncView } from './views/ProfileSyncView';
 import { AuthView } from './views/AuthView';
 import { ExtrasView } from './views/ExtrasView';
 import { ResetPasswordView } from './views/ResetPasswordView';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, GraduationCap, ShieldCheck } from 'lucide-react';
 import './styles/app.css';
 
 const MainScreen = () => {
@@ -103,11 +103,28 @@ const AppContent = () => {
 
   if (isAuthLoading) {
     return (
-      <div className="mobile-device-frame" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '620px' }}>
-        <div style={{ textAlign: 'center', padding: '30px' }}>
-          <div style={{ fontSize: '38px', marginBottom: '12px' }}>🎓</div>
-          <div style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>MyKuliahLife</div>
-          <div style={{ fontSize: '12px', color: '#64748B', marginTop: '6px' }}>Menghubungkan ke Supabase Cloud...</div>
+      <div className="mobile-device-frame app-splash-frame">
+        <div className="app-splash-container">
+          <div className="app-splash-icon-box">
+            <GraduationCap size={32} className="app-splash-cap-icon" />
+          </div>
+
+          <div className="app-splash-brand">
+            <h1 className="app-splash-title">MyKuliahLife</h1>
+            <p className="app-splash-tagline">Student Financial & Academic OS</p>
+          </div>
+
+          <div className="app-splash-loader-wrap">
+            <div className="app-splash-bar-track">
+              <div className="app-splash-bar-fill" />
+            </div>
+            <span className="app-splash-status">Menyiapkan ruang kerja Anda...</span>
+          </div>
+
+          <div className="app-splash-security-tag">
+            <ShieldCheck size={12} strokeWidth={2.4} />
+            <span>Sesi Terenkripsi & Terproteksi Cloud</span>
+          </div>
         </div>
       </div>
     );

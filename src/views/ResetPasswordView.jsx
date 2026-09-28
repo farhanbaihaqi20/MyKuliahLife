@@ -249,7 +249,7 @@ export const ResetPasswordView = () => {
         {/* Security badge footer */}
         <div className="auth-modern-security-badge" style={{ marginTop: '16px' }}>
           <ShieldCheck size={14} />
-          <span>Dilindungi oleh Enkripsi Supabase Auth</span>
+          <span>Dilindungi oleh Enkripsi End-to-End 256-Bit</span>
         </div>
       </div>
     </div>

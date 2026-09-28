@@ -27,7 +27,7 @@ export const authService = {
   // Masuk / Sign In
   async signIn(email, password) {
     if (!isSupabaseConfigured() || !supabase) {
-      throw new Error('Koneksi Supabase belum aktif. Pastikan environment variables sudah diset dan lakukan Re-Deploy di Netlify.');
+      throw new Error('Layanan cloud saat ini belum aktif atau sedang dalam pemeliharaan.');
     }
     const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     if (!isValidEmail(cleanEmail)) {
@@ -44,7 +44,7 @@ export const authService = {
   // Daftar / Sign Up
   async signUp(email, password, metadata = {}) {
     if (!isSupabaseConfigured() || !supabase) {
-      throw new Error('Koneksi Supabase belum aktif. Pastikan environment variables sudah diset dan lakukan Re-Deploy di Netlify.');
+      throw new Error('Layanan cloud saat ini belum aktif atau sedang dalam pemeliharaan.');
     }
     const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     if (!isValidEmail(cleanEmail)) {
@@ -68,7 +68,7 @@ export const authService = {
   // Verifikasi Kode OTP (Pendaftaran / Konfirmasi Email)
   async verifyOtp(email, token, type = 'signup') {
     if (!isSupabaseConfigured() || !supabase) {
-      throw new Error('Koneksi Supabase belum aktif.');
+      throw new Error('Layanan cloud saat ini belum aktif.');
     }
     const { data, error } = await supabase.auth.verifyOtp({
       email: email.trim().toLowerCase(),
@@ -82,7 +82,7 @@ export const authService = {
   // Kirim ulang OTP / Tautan Konfirmasi Pendaftaran
   async resendSignupOtp(email) {
     if (!isSupabaseConfigured() || !supabase) {
-      throw new Error('Koneksi Supabase belum aktif.');
+      throw new Error('Layanan cloud saat ini belum aktif.');
     }
     const { data, error } = await supabase.auth.resend({
       type: 'signup',
@@ -111,7 +111,7 @@ export const authService = {
   // Masuk dengan Google OAuth
   async signInWithGoogle() {
     if (!isSupabaseConfigured() || !supabase) {
-      throw new Error('Koneksi Supabase belum aktif. Pastikan environment variables sudah diset.');
+      throw new Error('Layanan cloud saat ini belum aktif.');
     }
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -130,7 +130,7 @@ export const authService = {
   // Link akun Google ke user yang sudah login (misal email+pw)
   async linkGoogleIdentity() {
     if (!isSupabaseConfigured() || !supabase) {
-      throw new Error('Koneksi Supabase belum aktif.');
+      throw new Error('Layanan cloud saat ini belum aktif.');
     }
     const { data, error } = await supabase.auth.linkIdentity({
       provider: 'google',
@@ -145,7 +145,7 @@ export const authService = {
   // Unlink identitas dari user
   async unlinkGoogleIdentity(identity) {
     if (!isSupabaseConfigured() || !supabase) {
-      throw new Error('Koneksi Supabase belum aktif.');
+      throw new Error('Layanan cloud saat ini belum aktif.');
     }
     const { data, error } = await supabase.auth.unlinkIdentity(identity);
     if (error) throw error;
@@ -167,7 +167,7 @@ export const authService = {
   // Kirim email pemulihan / reset kata sandi
   async resetPasswordForEmail(email) {
     if (!isSupabaseConfigured() || !supabase) {
-      throw new Error('Koneksi Supabase belum aktif. Pastikan environment variables sudah diset.');
+      throw new Error('Layanan cloud saat ini belum aktif.');
     }
     const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     if (!isValidEmail(cleanEmail)) {
@@ -183,7 +183,7 @@ export const authService = {
   // Perbarui kata sandi pengguna (dipanggil setelah user buka recovery link)
   async updateUserPassword(newPassword) {
     if (!isSupabaseConfigured() || !supabase) {
-      throw new Error('Koneksi Supabase belum aktif.');
+      throw new Error('Layanan cloud saat ini belum aktif.');
     }
     const { data, error } = await supabase.auth.updateUser({
       password: newPassword
@@ -229,7 +229,7 @@ export const storageService = {
   // Upload avatar image blob to Supabase Storage bucket 'avatars'
   async uploadAvatar(userId, fileBlob) {
     if (!isSupabaseConfigured() || !supabase || !userId) {
-      throw new Error('Koneksi Supabase belum aktif.');
+      throw new Error('Layanan cloud saat ini belum aktif.');
     }
     if (!isValidUUID(userId)) {
       throw new Error('Format ID pengguna tidak valid.');

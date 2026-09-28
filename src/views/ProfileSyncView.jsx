@@ -257,12 +257,12 @@ export const ProfileSyncView = () => {
             if (res.cloudError) {
               setPhotoMessage({
                 type: 'warning',
-                text: 'Foto tersimpan di browser ini. Periksa izin Supabase Storage bucket "avatars" untuk sinkronisasi antar-browser.'
+                text: 'Foto tersimpan secara lokal di perangkat ini. Terjadi kendala sinkronisasi cloud saat mengunggah foto profil.'
               });
             } else {
               setPhotoMessage({
                 type: 'success',
-                text: 'Foto profil berhasil diunggah ke Cloud Supabase & tersinkronisasi antar-browser!'
+                text: 'Foto profil berhasil diperbarui & tersinkronisasi ke seluruh perangkat!'
               });
             }
             confetti({ particleCount: 30, spread: 60, origin: { y: 0.5 } });
@@ -724,7 +724,7 @@ export const ProfileSyncView = () => {
           <div style={{ padding: '12px 14px', backgroundColor: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Mode Tamu (Guest Mode)</div>
             <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px', lineHeight: 1.4 }}>
-              Anda saat ini sedang menggunakan akun tamu lokal. Keluar untuk masuk atau membuat akun Supabase resmi agar dapat menghubungkan Google.
+              Anda saat ini sedang menggunakan akun tamu lokal. Keluar untuk masuk atau mendaftar akun resmi agar dapat menghubungkan Google.
             </div>
           </div>
         ) : (

@@ -288,5 +288,10 @@ export const formatAuthError = (error) => {
     return 'Gagal terhubung ke server. Periksa koneksi internet Anda dan coba lagi.';
   }
 
+  // 9. Backend database / provider errors
+  if (lower.includes('supabase') || lower.includes('database error') || lower.includes('postgres')) {
+    return 'Terjadi kendala pada layanan cloud. Silakan coba kembali dalam beberapa saat.';
+  }
+
   return raw;
 };

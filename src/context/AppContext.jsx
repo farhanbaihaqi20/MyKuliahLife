@@ -176,7 +176,7 @@ export const AppProvider = ({ children }) => {
 
   const [syncStatus, setSyncStatus] = useState({
     mode: isSupabaseConfigured() ? 'online' : 'offline',
-    message: isSupabaseConfigured() ? '⚡ Auto-Sync Supabase Aktif' : 'Mode Offline Lokal',
+    message: isSupabaseConfigured() ? '⚡ Sinkronisasi Cloud Aktif' : 'Mode Offline Lokal',
     lastSynced: null
   });
 
@@ -202,7 +202,7 @@ export const AppProvider = ({ children }) => {
         if (currUser) {
           setSyncStatus({
             mode: 'online',
-            message: 'Tersinkron Cloud Supabase',
+            message: 'Tersinkron Aman ke Cloud',
             lastSynced: new Date().toLocaleTimeString('id-ID')
           });
 
@@ -289,7 +289,7 @@ export const AppProvider = ({ children }) => {
       if (newUser && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
         setSyncStatus({
           mode: 'online',
-          message: 'Tersinkron Cloud Supabase',
+          message: 'Tersinkron Aman ke Cloud',
           lastSynced: new Date().toLocaleTimeString('id-ID')
         });
 
@@ -940,7 +940,7 @@ export const AppProvider = ({ children }) => {
       await cloudService.insertTransaction(user.id, newTx, finalAccounts);
       setSyncStatus({
         mode: 'online',
-        message: 'Tersinkron Cloud Supabase',
+        message: 'Tersinkron Aman ke Cloud',
         lastSynced: new Date().toLocaleTimeString('id-ID')
       });
     }
@@ -994,7 +994,7 @@ export const AppProvider = ({ children }) => {
       await cloudService.deleteTransaction(user.id, txId, finalAccounts);
       setSyncStatus({
         mode: 'online',
-        message: 'Tersinkron Cloud Supabase',
+        message: 'Tersinkron Aman ke Cloud',
         lastSynced: new Date().toLocaleTimeString('id-ID')
       });
     }
@@ -1067,7 +1067,7 @@ export const AppProvider = ({ children }) => {
       await cloudService.updateTransaction(user.id, txId, savedNewTx, finalAccounts);
       setSyncStatus({
         mode: 'online',
-        message: 'Tersinkron Cloud Supabase',
+        message: 'Tersinkron Aman ke Cloud',
         lastSynced: new Date().toLocaleTimeString('id-ID')
       });
     }
@@ -1109,7 +1109,7 @@ export const AppProvider = ({ children }) => {
         });
         setSyncStatus({
           mode: 'online',
-          message: 'Tersinkron Cloud Supabase',
+          message: 'Tersinkron Aman ke Cloud',
           lastSynced: new Date().toLocaleTimeString('id-ID')
         });
       } catch (err) {
