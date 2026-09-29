@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { maskMoney, getRelativeDateInfo } from '../utils/formatters';
+import { SmartBudgetTipCard } from '../components/finance/SmartBudgetTipCard';
 import {
   PieChart,
   Calendar,
@@ -162,16 +163,8 @@ export const HomeView = () => {
         </button>
       </div>
 
-      {/* 2. Smart Daily Budget Tip Card (Sesuai Budget.jpg) */}
-      <div className="smart-tip-card">
-        <div className="smart-tip-icon">🤑</div>
-        <div>
-          <div className="smart-tip-title">Masih aman banget, bro!</div>
-          <div className="smart-tip-desc">
-            Kamu bisa belanja rata-rata <strong>{maskMoney(dailyAllowance, isBalanceVisible)} / hari</strong> sampai akhir periode ini.
-          </div>
-        </div>
-      </div>
+      {/* 2. Smart Daily Budget Mascot Tip Card */}
+      <SmartBudgetTipCard />
 
       {/* 3. Jadwal Kuliah Hari Ini */}
       <div className="card-standard">

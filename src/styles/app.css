@@ -939,23 +939,112 @@ html, body {
   box-shadow: var(--shadow-md);
 }
 
-/* Smart Daily Budget Tip Card */
+/* Smart Daily Budget Tip Card with Mascot */
 .smart-tip-card {
   background: var(--bg-card, #FFFFFF);
   border: 1px solid #E2E8F0;
-  border-radius: 16px;
-  padding: 12px 14px;
+  border-radius: 20px;
+  padding: 15px 18px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.04);
+  gap: 15px;
+  box-shadow: 0 4px 14px -3px rgba(15, 23, 42, 0.05);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.22s ease;
 }
 
+.smart-tip-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.09);
+}
+
+.smart-tip-card:active {
+  transform: translateY(0) scale(0.995);
+}
+
+/* Card Status Themes */
+.smart-tip-card.smart-tip-safe {
+  background: linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 60%);
+  border-color: #BBF7D0;
+}
+.smart-tip-card.smart-tip-safe:hover {
+  border-color: #86EFAC;
+  box-shadow: 0 10px 25px -4px rgba(16, 185, 129, 0.16);
+}
+
+.smart-tip-card.smart-tip-warning {
+  background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 60%);
+  border-color: #FDE68A;
+}
+.smart-tip-card.smart-tip-warning:hover {
+  border-color: #FCD34D;
+  box-shadow: 0 10px 25px -4px rgba(245, 158, 11, 0.16);
+}
+
+.smart-tip-card.smart-tip-danger {
+  background: linear-gradient(135deg, #FFF1F2 0%, #FFFFFF 60%);
+  border-color: #FECDD3;
+}
+.smart-tip-card.smart-tip-danger:hover {
+  border-color: #FDA4AF;
+  box-shadow: 0 10px 25px -4px rgba(239, 68, 68, 0.16);
+}
+
+/* Mascot Avatar Container */
+.smart-tip-avatar-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.smart-tip-avatar-safe {
+  background: radial-gradient(circle at 35% 35%, #DCFCE7 0%, #BBF7D0 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  box-shadow: 0 4px 10px -2px rgba(16, 185, 129, 0.18);
+}
+
+.smart-tip-avatar-warning {
+  background: radial-gradient(circle at 35% 35%, #FEF3C7 0%, #FDE68A 100%);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  box-shadow: 0 4px 10px -2px rgba(245, 158, 11, 0.18);
+}
+
+.smart-tip-avatar-danger {
+  background: radial-gradient(circle at 35% 35%, #FEE2E2 0%, #FECDD3 100%);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  box-shadow: 0 4px 10px -2px rgba(239, 68, 68, 0.18);
+}
+
+.smart-tip-mascot-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.08));
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: block;
+}
+
+.smart-tip-card:hover .smart-tip-mascot-img {
+  transform: scale(1.08) translateY(-2px);
+}
+
+/* Fallback generic icon box */
 .smart-tip-icon {
   font-size: 20px;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   background: #ECFDF5;
   display: flex;
   align-items: center;
@@ -963,19 +1052,195 @@ html, body {
   flex-shrink: 0;
 }
 
+/* Card Content */
+.smart-tip-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.smart-tip-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .smart-tip-title {
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.smart-tip-safe .smart-tip-title {
   color: #065F46;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+}
+
+.smart-tip-warning .smart-tip-title {
+  color: #92400E;
+}
+
+.smart-tip-danger .smart-tip-title {
+  color: #9F1239;
+}
+
+/* Status Pill Badge */
+.smart-tip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  flex-shrink: 0;
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.smart-tip-badge.status-safe {
+  background: #DCFCE7;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+}
+.smart-tip-badge.status-safe .badge-dot {
+  background: #10B981;
+}
+
+.smart-tip-badge.status-warning {
+  background: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+.smart-tip-badge.status-warning .badge-dot {
+  background: #F59E0B;
+}
+
+.smart-tip-badge.status-danger {
+  background: #FEE2E2;
+  color: #BE123C;
+  border: 1px solid #FECDD3;
+}
+.smart-tip-badge.status-danger .badge-dot {
+  background: #EF4444;
 }
 
 .smart-tip-desc {
   font-size: 12.5px;
-  color: #334155;
-  margin-top: 2px;
-  line-height: 1.35;
+  color: #475569;
+  line-height: 1.5;
+  letter-spacing: 0.05px;
+}
+
+/* Amount Pill (Prevents /hari dangling) */
+.smart-tip-amount-pill {
+  display: inline;
+  white-space: nowrap;
+}
+
+.smart-tip-highlight {
+  color: #0F172A;
+  font-weight: 700;
+}
+
+.smart-tip-unit {
+  font-weight: 600;
+  color: #64748B;
+  font-size: 11.5px;
+  margin-left: 2px;
+}
+
+/* Action Chevron Button */
+.smart-tip-action-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.04);
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 2px;
+  transition: all 0.2s ease;
+}
+
+.smart-tip-card:hover .smart-tip-action-circle {
+  background: rgba(22, 101, 216, 0.09);
+  color: #1665D8;
+  transform: translateX(2px);
+}
+
+/* Dark Mode Support for Smart Tip Card */
+.dark .smart-tip-card {
+  background: #1E293B;
+  border-color: #334155;
+  box-shadow: 0 4px 14px -3px rgba(0, 0, 0, 0.35);
+}
+
+.dark .smart-tip-card.smart-tip-safe {
+  background: linear-gradient(135deg, rgba(6, 78, 59, 0.25) 0%, #1E293B 65%);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+.dark .smart-tip-card.smart-tip-safe .smart-tip-title {
+  color: #34D399;
+}
+.dark .smart-tip-card.smart-tip-safe:hover {
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 10px 25px -4px rgba(16, 185, 129, 0.2);
+}
+
+.dark .smart-tip-card.smart-tip-warning {
+  background: linear-gradient(135deg, rgba(146, 64, 14, 0.25) 0%, #1E293B 65%);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+.dark .smart-tip-card.smart-tip-warning .smart-tip-title {
+  color: #FBBF24;
+}
+.dark .smart-tip-card.smart-tip-warning:hover {
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow: 0 10px 25px -4px rgba(245, 158, 11, 0.2);
+}
+
+.dark .smart-tip-card.smart-tip-danger {
+  background: linear-gradient(135deg, rgba(159, 18, 57, 0.25) 0%, #1E293B 65%);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+.dark .smart-tip-card.smart-tip-danger .smart-tip-title {
+  color: #FB7185;
+}
+.dark .smart-tip-card.smart-tip-danger:hover {
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 10px 25px -4px rgba(239, 68, 68, 0.2);
+}
+
+.dark .smart-tip-desc {
+  color: #94A3B8;
+}
+
+.dark .smart-tip-highlight {
+  color: #F8FAFC;
+}
+
+.dark .smart-tip-unit {
+  color: #CBD5E1;
+}
+
+.dark .smart-tip-action-circle {
+  background: rgba(255, 255, 255, 0.05);
+  color: #64748B;
+}
+
+.dark .smart-tip-card:hover .smart-tip-action-circle {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38BDF8;
 }
 
 /* Smart Daily Allowance Insight - Minimalist Fintech Card */
@@ -997,9 +1262,9 @@ html, body {
 }
 
 .smart-insight-icon-box {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   background: #ECFDF5;
   border: 1px solid #A7F3D0;
   color: #059669;
@@ -1007,6 +1272,33 @@ html, body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.smart-insight-avatar-safe {
+  background: radial-gradient(circle at 35% 35%, #DCFCE7 0%, #BBF7D0 100%);
+  border-color: #A7F3D0;
+}
+
+.smart-insight-avatar-warning {
+  background: radial-gradient(circle at 35% 35%, #FEF3C7 0%, #FDE68A 100%);
+  border-color: #FDE68A;
+}
+
+.smart-insight-avatar-danger {
+  background: radial-gradient(circle at 35% 35%, #FEE2E2 0%, #FECDD3 100%);
+  border-color: #FECDD3;
+}
+
+.smart-insight-mascot-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+}
+
+.smart-daily-insight-card:hover .smart-insight-mascot-img {
+  transform: scale(1.08) translateY(-1px);
 }
 
 .smart-insight-content {
@@ -5355,13 +5647,44 @@ html, body, #root, .app-viewport, .mobile-device-frame {
   }
 
   .smart-tip-card {
-    padding: 10px 12px;
+    padding: 13px 14px;
+    border-radius: 18px;
+    gap: 13px;
+  }
+
+  .smart-tip-avatar-box {
+    width: 48px;
+    height: 48px;
     border-radius: 14px;
-    gap: 8px;
+  }
+
+  .smart-tip-mascot-img {
+    width: 40px;
+    height: 40px;
   }
 
   .smart-tip-icon {
-    font-size: 22px;
+    font-size: 20px;
+  }
+
+  .smart-tip-title {
+    font-size: 13px;
+    letter-spacing: -0.01em;
+  }
+
+  .smart-tip-desc {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .smart-tip-badge {
+    padding: 2px 7px;
+    font-size: 10px;
+  }
+
+  .smart-tip-action-circle {
+    width: 26px;
+    height: 26px;
   }
 
   .subtab-btn {

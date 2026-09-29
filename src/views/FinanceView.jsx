@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { FinanceReportView } from '../components/finance/FinanceReportView';
 import { formatRupiahNumber, parseRupiahNumber, maskMoney, formatCompactRupiah, getRelativeDateInfo } from '../utils/formatters';
+import { getBudgetMascotState } from '../utils/budgetMascot';
 import SwipeableItem from '../components/common/SwipeableItem';
 import EditTransactionModal from '../components/finance/EditTransactionModal';
 import { AccountDetailModal } from '../components/finance/AccountDetailModal';
@@ -65,6 +66,16 @@ export const FinanceView = () => {
     updateBudget
   } = useApp();
 
+  const mascotState = useMemo(() => {
+    return getBudgetMascotState({
+      totalBudget,
+      remainingBudget,
+      cycleExpenses,
+      percentUsed,
+      dailyAllowance,
+      financialCycle
+    });
+  }, [totalBudget, remainingBudget, cycleExpenses, percentUsed, dailyAllowance, financialCycle]);
 
   // Edit transaction modal state
   const [editingTransaction, setEditingTransaction] = useState(null);
@@ -416,18 +427,30 @@ export const FinanceView = () => {
             </div>
           </div>
 
-          {/* Smart Daily Allowance Insight - Minimalist & Compact */}
-          <div className="smart-daily-insight-card">
-            <div className="smart-insight-icon-box">
-              <Sparkles size={16} strokeWidth={2.4} />
+          {/* Smart Daily Allowance Insight - Minimalist & Compact with Mascot */}
+          <div className={`smart-daily-insight-card smart-insight-${mascotState.status}`}>
+            <div className={`smart-insight-icon-box smart-insight-avatar-${mascotState.status}`}>
+              <img
+                src={mascotState.mascotSrc}
+                alt={mascotState.mascotAlt}
+                className="smart-insight-mascot-img"
+              />
             </div>
             <div className="smart-insight-content">
               <div className="smart-insight-top">
-                <span className="smart-insight-title">Rekomendasi Harian</span>
-                <span className="smart-insight-days-badge">{financialCycle.daysRemaining} hari tersisa</span>
+                <span className="smart-insight-title">{mascotState.title}</span>
+                <span className={`smart-insight-days-badge badge-${mascotState.status}`}>
+                  {financialCycle.daysRemaining} hari tersisa
+                </span>
               </div>
               <div className="smart-insight-desc">
-                Maksimal belanja <strong className="smart-insight-highlight">{maskMoney(dailyAllowance, isBalanceVisible)}</strong> <span className="smart-insight-perday">/ hari</span> agar budget aman.
+                {mascotState.isExceeded ? (
+                  mascotState.descPrefix
+                ) : (
+                  <>
+                    Alokasi belanja <strong className="smart-insight-highlight">{maskMoney(dailyAllowance, isBalanceVisible)}</strong> <span className="smart-insight-perday">/ hari</span> agar budget aman.
+                  </>
+                )}
               </div>
             </div>
           </div>
