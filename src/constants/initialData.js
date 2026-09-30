@@ -1,3 +1,99 @@
+export const DEFAULT_BUDGET_CATEGORIES = [
+  { id: 'cat-1', name: 'Makanan & minuman', icon: '🍜', percentage: 35, color: '#F97316' },
+  { id: 'cat-2', name: 'Tagihan & utilitas', icon: '⚡', percentage: 25, color: '#3B82F6' },
+  { id: 'cat-3', name: 'Kebutuhan Pribadi & Skincare', icon: '🧴', percentage: 15, color: '#EC4899' },
+  { id: 'cat-4', name: 'Transport & Bensin', icon: '🛵', percentage: 12, color: '#10B981' },
+  { id: 'cat-5', name: 'Kebutuhan Kuliah & Print', icon: '📚', percentage: 8, color: '#8B5CF6' },
+  { id: 'cat-6', name: 'Hiburan & Jajan', icon: '☕', percentage: 5, color: '#F43F5E' }
+];
+
+export const normalizeCategoryName = (catName) => {
+  if (!catName || typeof catName !== 'string') return catName || 'Makanan & minuman';
+  const lower = catName.trim().toLowerCase();
+  if (lower === 'transportasi') return 'Transport & Bensin';
+  if (lower === 'hiburan & nongkrong' || lower === 'hiburan & ngopi') return 'Hiburan & Jajan';
+  if (lower === 'kost & tagihan') return 'Tagihan & utilitas';
+  if (lower === 'pendidikan & kuliah') return 'Kebutuhan Kuliah & Print';
+  return catName.trim();
+};
+
+export const normalizeBudgetCategories = (categories, totalBudget = 1000000) => {
+  const tot = Number(totalBudget) > 0 ? Number(totalBudget) : 1000000;
+  if (!Array.isArray(categories) || categories.length === 0) {
+    return DEFAULT_BUDGET_CATEGORIES.map(c => ({
+      ...c,
+      budget: Math.round((tot * c.percentage) / 100)
+    }));
+  }
+
+  // 1. Normalisasi nama kategori lama
+  let list = categories.map(c => {
+    const normName = normalizeCategoryName(c.name);
+    const def = DEFAULT_BUDGET_CATEGORIES.find(d => d.name.toLowerCase() === normName.toLowerCase());
+    return {
+      ...c,
+      name: normName,
+      icon: c.icon || def?.icon || '🏷️',
+      color: c.color || def?.color || '#1665D8',
+      percentage: Number(c.percentage) || (def?.percentage ?? 15)
+    };
+  });
+
+  // Hapus duplikat nama jika ada
+  const seen = new Set();
+  list = list.filter(c => {
+    const key = c.name.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  // 2. Pastikan 6 kategori inti selalu ada
+  DEFAULT_BUDGET_CATEGORIES.forEach(def => {
+    const exists = list.some(c => c.name.toLowerCase() === def.name.toLowerCase());
+    if (!exists) {
+      list.push({
+        id: def.id,
+        name: def.name,
+        icon: def.icon,
+        percentage: def.percentage,
+        color: def.color,
+        budget: Math.round((tot * def.percentage) / 100)
+      });
+    }
+  });
+
+  // 3. Pastikan urutan rapi dan persentase seimbang 100%
+  const currentSum = list.reduce((s, c) => s + (Number(c.percentage) || 0), 0);
+  if (currentSum > 0 && currentSum !== 100) {
+    let remainder = 100;
+    list = list.map((c, i) => {
+      if (i === list.length - 1) {
+        const pct = Math.max(0, remainder);
+        return {
+          ...c,
+          percentage: pct,
+          budget: Math.round((tot * pct) / 100)
+        };
+      }
+      const pct = Math.round(((Number(c.percentage) || 0) / currentSum) * 100);
+      remainder -= pct;
+      return {
+        ...c,
+        percentage: pct,
+        budget: Math.round((tot * pct) / 100)
+      };
+    });
+  } else {
+    list = list.map(c => ({
+      ...c,
+      budget: Number(c.budget) || Math.round((tot * (Number(c.percentage) || 0)) / 100)
+    }));
+  }
+
+  return list;
+};
+
 export const INITIAL_DATA = {
   activeSemester: 1,
   profile: {
@@ -23,12 +119,12 @@ export const INITIAL_DATA = {
     endDate: "2026-09-30",
     totalBudget: 1500000,
     categories: [
-      { id: "cat-1", name: "Makanan & minuman", budget: 500000, icon: "🍜", color: "#F97316" },
-      { id: "cat-2", name: "Tagihan & utilitas", budget: 300000, icon: "🧾", color: "#3B82F6" },
-      { id: "cat-3", name: "Kebutuhan Pribadi & Skincare", budget: 250000, icon: "🧴", color: "#EC4899" },
-      { id: "cat-4", name: "Transport & Bensin", budget: 200000, icon: "🛵", color: "#10B981" },
-      { id: "cat-5", name: "Kebutuhan Kuliah & Print", budget: 150000, icon: "📚", color: "#8B5CF6" },
-      { id: "cat-6", name: "Hiburan & Jajan", budget: 100000, icon: "☕", color: "#F43F5E" }
+      { id: "cat-1", name: "Makanan & minuman", percentage: 35, budget: 500000, icon: "🍜", color: "#F97316" },
+      { id: "cat-2", name: "Tagihan & utilitas", percentage: 25, budget: 300000, icon: "⚡", color: "#3B82F6" },
+      { id: "cat-3", name: "Kebutuhan Pribadi & Skincare", percentage: 15, budget: 250000, icon: "🧴", color: "#EC4899" },
+      { id: "cat-4", name: "Transport & Bensin", percentage: 12, budget: 200000, icon: "🛵", color: "#10B981" },
+      { id: "cat-5", name: "Kebutuhan Kuliah & Print", percentage: 8, budget: 150000, icon: "📚", color: "#8B5CF6" },
+      { id: "cat-6", name: "Hiburan & Jajan", percentage: 5, budget: 100000, icon: "☕", color: "#F43F5E" }
     ]
   },
 
@@ -459,12 +555,12 @@ export const CLEAN_DATA = {
     endDate: "2026-09-30",
     totalBudget: 1000000,
     categories: [
-      { id: "cat-1", name: "Makanan & minuman", budget: 350000, icon: "🍜", color: "#F97316" },
-      { id: "cat-2", name: "Tagihan & utilitas", budget: 250000, icon: "🧾", color: "#3B82F6" },
-      { id: "cat-3", name: "Kebutuhan Pribadi & Skincare", budget: 150000, icon: "🧴", color: "#EC4899" },
-      { id: "cat-4", name: "Transport & Bensin", budget: 120000, icon: "🛵", color: "#10B981" },
-      { id: "cat-5", name: "Kebutuhan Kuliah & Print", budget: 80000, icon: "📚", color: "#8B5CF6" },
-      { id: "cat-6", name: "Hiburan & Jajan", budget: 50000, icon: "☕", color: "#F43F5E" }
+      { id: "cat-1", name: "Makanan & minuman", percentage: 35, budget: 350000, icon: "🍜", color: "#F97316" },
+      { id: "cat-2", name: "Tagihan & utilitas", percentage: 25, budget: 250000, icon: "⚡", color: "#3B82F6" },
+      { id: "cat-3", name: "Kebutuhan Pribadi & Skincare", percentage: 15, budget: 150000, icon: "🧴", color: "#EC4899" },
+      { id: "cat-4", name: "Transport & Bensin", percentage: 12, budget: 120000, icon: "🛵", color: "#10B981" },
+      { id: "cat-5", name: "Kebutuhan Kuliah & Print", percentage: 8, budget: 80000, icon: "📚", color: "#8B5CF6" },
+      { id: "cat-6", name: "Hiburan & Jajan", percentage: 5, budget: 50000, icon: "☕", color: "#F43F5E" }
     ]
   },
   transactions: [],

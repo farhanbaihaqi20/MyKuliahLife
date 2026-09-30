@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { loadLocalData, saveLocalData } from '../services/db';
 import { isSupabaseConfigured, supabase } from '../services/supabase';
 import { authService, profileService, dataSyncService, cloudService, storageService, generateUUID } from '../services/supabaseService';
-import { INITIAL_DATA, CLEAN_DATA } from '../constants/initialData';
+import { INITIAL_DATA, CLEAN_DATA, normalizeBudgetCategories, normalizeCategoryName } from '../constants/initialData';
 import { getFinancialCycle } from '../utils/dateCycle';
 import { sanitizeSlug, sanitizeImageUrl } from '../utils/security';
 
@@ -99,12 +99,20 @@ const reconcileUserData = (cloudData, cached, userId) => {
   cloudData.unlockedSemesters = mergedUnlocked;
 
   // 4. Reconcile Budget (if cloud total is default 1500000 but local has custom total)
-  if (cloudData.budget && cached.budget) {
-    if (Number(cloudData.budget.totalBudget) === 1500000 && Number(cached.budget.totalBudget) && Number(cached.budget.totalBudget) !== 1500000) {
+  if (cloudData.budget) {
+    if (cached?.budget && Number(cloudData.budget.totalBudget) === 1500000 && Number(cached.budget.totalBudget) && Number(cached.budget.totalBudget) !== 1500000) {
       cloudData.budget.totalBudget = Number(cached.budget.totalBudget);
       healingPayload.monthlyBudget = Number(cached.budget.totalBudget);
       needsCloudHealing = true;
     }
+    const tot = Number(cloudData.budget.totalBudget) || 1500000;
+    cloudData.budget.categories = normalizeBudgetCategories(cloudData.budget.categories, tot);
+  }
+  if (Array.isArray(cloudData.transactions)) {
+    cloudData.transactions = cloudData.transactions.map(t => ({
+      ...t,
+      category: normalizeCategoryName(t.category)
+    }));
   }
 
   // 5. Reconcile Fuel Data (keep cached if cloud is empty)

@@ -1,4 +1,4 @@
-import { INITIAL_DATA, CLEAN_DATA } from '../constants/initialData';
+import { INITIAL_DATA, CLEAN_DATA, normalizeBudgetCategories, normalizeCategoryName } from '../constants/initialData';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { profileService, dataSyncService } from './supabaseService';
 
@@ -32,19 +32,15 @@ export const loadLocalData = (userId = null) => {
       delete parsed.constructor;
       delete parsed.prototype;
 
-      if (parsed.budget && Array.isArray(parsed.budget.categories)) {
-        const hasPersonalCare = parsed.budget.categories.some(c =>
-          c?.name?.toLowerCase().includes('skincare') || c?.name?.toLowerCase().includes('pribadi')
-        );
-        if (!hasPersonalCare) {
-          parsed.budget.categories.push({
-            id: 'cat-personal',
-            name: 'Kebutuhan Pribadi & Skincare',
-            budget: 150000,
-            icon: '🧴',
-            color: '#EC4899'
-          });
-        }
+      if (parsed.budget) {
+        const tot = Number(parsed.budget.totalBudget) || 1000000;
+        parsed.budget.categories = normalizeBudgetCategories(parsed.budget.categories, tot);
+      }
+      if (Array.isArray(parsed.transactions)) {
+        parsed.transactions = parsed.transactions.map(t => ({
+          ...t,
+          category: normalizeCategoryName(t.category)
+        }));
       }
       // Ensure consistency for activeSemester and unlockedSemesters
       const safeActiveSemester = Math.min(Math.max(Number(parsed.activeSemester || parsed.profile?.semester || 1), 1), 14);

@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { isValidUUID, isValidEmail, sanitizeText } from '../utils/security';
+import { normalizeBudgetCategories, normalizeCategoryName } from '../constants/initialData';
 
 /**
  * Supabase Service Layer: Menangani Otentikasi dan Sinkronisasi Database
@@ -610,30 +611,7 @@ export const dataSyncService = {
           totalBudget: Number(prof.monthly_budget) || 1500000,
           categories: (() => {
             const tot = Number(prof.monthly_budget) || 1500000;
-            const fallbackCategories = [
-              { id: 'cat-1', name: 'Makanan & minuman', icon: '🍜', percentage: 40, budget: Math.round(tot * 0.4), color: '#F97316' },
-              { id: 'cat-2', name: 'Transportasi', icon: '🛵', percentage: 15, budget: Math.round(tot * 0.15), color: '#10B981' },
-              { id: 'cat-3', name: 'Tagihan & utilitas', icon: '⚡', percentage: 20, budget: Math.round(tot * 0.2), color: '#3B82F6' },
-              { id: 'cat-4', name: 'Kebutuhan Pribadi & Skincare', icon: '🧴', percentage: 15, budget: Math.round(tot * 0.15), color: '#EC4899' },
-              { id: 'cat-5', name: 'Hiburan & nongkrong', icon: '☕', percentage: 10, budget: Math.round(tot * 0.1), color: '#8B5CF6' }
-            ];
-            if (Array.isArray(prof.budget_categories) && prof.budget_categories.length > 0) {
-              const mappedCats = prof.budget_categories.map(c => ({
-                ...c,
-                budget: Number(c.budget) || Math.round((tot * (Number(c.percentage) || 20)) / 100)
-              }));
-              const hasPersonalCare = mappedCats.some(c =>
-                c.name?.toLowerCase().includes('skincare') || c.name?.toLowerCase().includes('pribadi')
-              );
-              if (!hasPersonalCare) {
-                return [
-                  ...mappedCats,
-                  { id: 'cat-personal', name: 'Kebutuhan Pribadi & Skincare', icon: '🧴', percentage: 10, budget: Math.round(tot * 0.1), color: '#EC4899' }
-                ];
-              }
-              return mappedCats;
-            }
-            return fallbackCategories;
+            return normalizeBudgetCategories(prof.budget_categories, tot);
           })()
         },
         accounts: (accountsRes.data || []).map(a => ({
@@ -652,7 +630,7 @@ export const dataSyncService = {
           type: t.type,
           amount: Number(t.amount),
           accountName: t.account_name || 'Bank',
-          category: t.category,
+          category: normalizeCategoryName(t.category),
           merchant: t.merchant || '',
           note: t.note || '',
           date: t.date,

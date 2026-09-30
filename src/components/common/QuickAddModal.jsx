@@ -34,13 +34,20 @@ export const QuickAddModal = () => {
   const [txNote, setTxNote] = useState('');
   const [txError, setTxError] = useState('');
 
-  // Synchronize txCategory when opened with pre-filled category
+  // Synchronize txCategory when opened with pre-filled category or if current is invalid
   React.useEffect(() => {
-    if (isQuickAddOpen && quickAddCategory) {
-      setTxCategory(quickAddCategory);
-      setTxType('expense');
+    if (isQuickAddOpen) {
+      if (quickAddCategory) {
+        setTxCategory(quickAddCategory);
+        setTxType('expense');
+      } else if (data.budget?.categories && data.budget.categories.length > 0) {
+        const exists = data.budget.categories.some(c => c.name === txCategory);
+        if (!exists) {
+          setTxCategory(data.budget.categories[0].name);
+        }
+      }
     }
-  }, [isQuickAddOpen, quickAddCategory]);
+  }, [isQuickAddOpen, quickAddCategory, data.budget?.categories]);
 
   // Synchronize txAccount with available accounts dynamically
   React.useEffect(() => {
@@ -348,7 +355,7 @@ export const QuickAddModal = () => {
                   value={txCategory}
                   onChange={(e) => setTxCategory(e.target.value)}
                 >
-                  {data.budget.categories.map(cat => (
+                  {(data.budget?.categories || []).map(cat => (
                     <option key={cat.id} value={cat.name}>
                       {cat.icon} {cat.name}
                     </option>

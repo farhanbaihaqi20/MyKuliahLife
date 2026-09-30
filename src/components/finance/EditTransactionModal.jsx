@@ -2,18 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Check, ArrowDown, ArrowUp, ArrowRightLeft, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatRupiahNumber, parseRupiahNumber } from '../../utils/formatters';
-
-const EXPENSE_CATEGORIES = [
-  { name: 'Makanan & minuman', icon: '🍜' },
-  { name: 'Kebutuhan Pribadi & Skincare', icon: '🧴' },
-  { name: 'Belanja harian', icon: '🛒' },
-  { name: 'Transportasi', icon: '🛵' },
-  { name: 'Pendidikan & Kuliah', icon: '📚' },
-  { name: 'Kost & Tagihan', icon: '🏠' },
-  { name: 'Hiburan & Ngopi', icon: '☕' },
-  { name: 'Kesehatan', icon: '💊' },
-  { name: 'Lainnya', icon: '💸' }
-];
+import { DEFAULT_BUDGET_CATEGORIES } from '../../constants/initialData';
 
 const INCOME_CATEGORIES = [
   { name: 'Kiriman Ortu', icon: '💰' },
@@ -37,19 +26,30 @@ export default function EditTransactionModal({ transaction, isOpen, onClose }) {
   const [icon, setIcon] = useState('💸');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Merge custom budget categories so user-created categories are available
+  // Kategori pengeluaran bersumber konsisten dari kategori budget aktif
   const availableExpenseCategories = useMemo(() => {
-    if (data.budget?.categories && data.budget.categories.length > 0) {
-      const budgetCats = data.budget.categories.map(c => ({
-        name: c.name,
-        icon: c.icon || '💸'
-      }));
-      const names = new Set(budgetCats.map(c => c.name));
-      const additions = EXPENSE_CATEGORIES.filter(c => !names.has(c.name));
-      return [...budgetCats, ...additions];
+    let list = (data.budget?.categories || []).map(c => ({
+      name: c.name,
+      icon: c.icon || '🏷️'
+    }));
+
+    if (list.length === 0) {
+      list = DEFAULT_BUDGET_CATEGORIES.map(c => ({ name: c.name, icon: c.icon }));
     }
-    return EXPENSE_CATEGORIES;
-  }, [data.budget?.categories]);
+
+    // Jika transaksi yang diedit punya kategori khusus/lama, tetap pertahankan agar tidak hilang
+    if (transaction?.category && transaction.type === 'expense') {
+      const exists = list.some(c => c.name.toLowerCase() === transaction.category.toLowerCase());
+      if (!exists) {
+        list.push({
+          name: transaction.category,
+          icon: transaction.icon || '🏷️'
+        });
+      }
+    }
+
+    return list;
+  }, [data.budget?.categories, transaction]);
 
   useEffect(() => {
     if (isOpen && transaction) {
@@ -133,8 +133,9 @@ export default function EditTransactionModal({ transaction, isOpen, onClose }) {
               type="button"
               onClick={() => {
                 setType('expense');
-                setCategory(EXPENSE_CATEGORIES[0].name);
-                setIcon(EXPENSE_CATEGORIES[0].icon);
+                const defaultCat = availableExpenseCategories[0] || { name: 'Makanan & minuman', icon: '🍜' };
+                setCategory(defaultCat.name);
+                setIcon(defaultCat.icon);
               }}
               style={{
                 flex: 1,
