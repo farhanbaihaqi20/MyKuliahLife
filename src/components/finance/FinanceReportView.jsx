@@ -4,6 +4,7 @@ import { getFinancialCycle } from '../../utils/dateCycle';
 import { maskMoney } from '../../utils/formatters';
 import { DonutChart } from '../charts/DonutChart';
 import { HorizontalBarChart } from '../charts/HorizontalBarChart';
+import { CategoryIcon } from '../common/CategoryIcon';
 import {
   ChevronLeft,
   ChevronRight,
@@ -569,19 +570,17 @@ export const FinanceReportView = ({ onEditTransaction }) => {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div
+                        className="has-3d-icon"
                         style={{
                           width: '38px',
                           height: '38px',
-                          borderRadius: '12px',
-                          backgroundColor: `${item.color}15`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '18px',
                           flexShrink: 0
                         }}
                       >
-                        {item.icon}
+                        <CategoryIcon category={item.label} icon={item.icon} size={38} />
                       </div>
                       <div>
                         <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
@@ -1039,19 +1038,17 @@ export const FinanceReportView = ({ onEditTransaction }) => {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div
+                  className="has-3d-icon"
                   style={{
                     width: '42px',
                     height: '42px',
-                    borderRadius: '14px',
-                    backgroundColor: '#EFF6FF',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '22px',
                     flexShrink: 0
                   }}
                 >
-                  {drillDownTarget.icon}
+                  <CategoryIcon category={drillDownTarget.title || drillDownTarget.label} icon={drillDownTarget.icon} size={42} />
                 </div>
                 <div>
                   <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
@@ -1169,19 +1166,17 @@ export const FinanceReportView = ({ onEditTransaction }) => {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div
+                        className="has-3d-icon"
                         style={{
                           width: '32px',
                           height: '32px',
-                          borderRadius: '8px',
-                          background: '#F1F5F9',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '15px',
                           flexShrink: 0
                         }}
                       >
-                        {tx.icon || '🍜'}
+                        <CategoryIcon category={tx.category || drillDownTarget.title} icon={tx.icon} size={28} />
                       </div>
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>

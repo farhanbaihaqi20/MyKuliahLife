@@ -9,6 +9,7 @@ import {
   Sliders
 } from 'lucide-react';
 import { maskMoney, formatRupiahNumber } from '../../utils/formatters';
+import { CategoryIcon } from '../common/CategoryIcon';
 
 export const CategoryDetailModal = ({
   category,
@@ -87,15 +88,8 @@ export const CategoryDetailModal = ({
         {/* Modal Header */}
         <div className="cat-modal-header">
           <div className="cat-modal-header-left">
-            <div
-              className="cat-modal-avatar"
-              style={{
-                backgroundColor: `${categoryColor}14`,
-                color: categoryColor,
-                border: `1.5px solid ${categoryColor}28`
-              }}
-            >
-              <span>{category.icon || '🏷️'}</span>
+            <div className="cat-modal-avatar has-3d-icon">
+              <CategoryIcon category={category.name} icon={category.icon} size={44} />
             </div>
             <div>
               <h3 className="cat-modal-title">{category.name}</h3>
@@ -255,8 +249,8 @@ export const CategoryDetailModal = ({
                     tabIndex={0}
                   >
                     <div className="cat-tx-left">
-                      <div className="cat-tx-icon-box">
-                        <span>{tx.icon || category.icon || '🍜'}</span>
+                      <div className="cat-tx-icon-box has-3d-icon" style={{ background: 'transparent' }}>
+                        <CategoryIcon category={category.name} icon={tx.icon || category.icon} size={28} />
                       </div>
                       <div className="cat-tx-content">
                         <span className="cat-tx-name" title={txTitle}>

@@ -9,6 +9,7 @@ import { AccountDetailModal } from '../components/finance/AccountDetailModal';
 import { CategoryDetailModal } from '../components/finance/CategoryDetailModal';
 import { BudgetSettingsModal } from '../components/finance/BudgetSettingsModal';
 import { FinancialStatementModal } from '../components/finance/FinancialStatementModal';
+import { CategoryIcon } from '../components/common/CategoryIcon';
 import {
   Wallet,
   Receipt,
@@ -501,14 +502,8 @@ export const FinanceView = () => {
                     {/* Top Row: Identity & Status Badge */}
                     <div className="budget-cat-header-row">
                       <div className="budget-cat-identity">
-                        <div
-                          className="budget-cat-icon-box"
-                          style={{
-                            backgroundColor: `${cat.color || '#1665D8'}14`,
-                            color: cat.color || '#1665D8'
-                          }}
-                        >
-                          <span>{cat.icon || '🏷️'}</span>
+                        <div className="budget-cat-icon-box has-3d-icon">
+                          <CategoryIcon category={cat.name} icon={cat.icon} size={36} />
                         </div>
                         <span className="budget-cat-name" title={cat.name}>
                           {cat.name}
@@ -681,8 +676,8 @@ export const FinanceView = () => {
                         >
                           <div className="transaction-card" style={{ margin: 0, cursor: 'pointer' }}>
                             <div className="transaction-left">
-                              <div className="category-icon-box" style={{ background: '#F1F5F9' }}>
-                                {tx.icon}
+                              <div className="category-icon-box has-3d-icon">
+                                <CategoryIcon category={tx.category} icon={tx.icon} size={36} />
                               </div>
                               <div className="transaction-info">
                                 <div className="transaction-title">{tx.category}</div>

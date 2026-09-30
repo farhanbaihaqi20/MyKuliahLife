@@ -12,6 +12,7 @@ import {
   Minus
 } from 'lucide-react';
 import { formatRupiahNumber, parseRupiahNumber } from '../../utils/formatters';
+import { CategoryIcon } from '../common/CategoryIcon';
 import confetti from 'canvas-confetti';
 
 const PRESETS = [
@@ -513,8 +514,8 @@ export const BudgetSettingsModal = ({
                 <div key={cat.id} className="budget-cat-slider-card">
                   <div className="budget-cat-slider-top">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="budget-cat-slider-icon" style={{ backgroundColor: `${cat.color}18` }}>
-                        {cat.icon || '🏷️'}
+                      <span className="budget-cat-slider-icon has-3d-icon" style={{ backgroundColor: 'transparent' }}>
+                        <CategoryIcon category={cat.name} icon={cat.icon} size={32} />
                       </span>
                       <div>
                         <div className="budget-cat-slider-name">{cat.name}</div>

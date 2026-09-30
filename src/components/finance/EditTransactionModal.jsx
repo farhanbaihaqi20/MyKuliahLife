@@ -3,6 +3,7 @@ import { X, Check, ArrowDown, ArrowUp, ArrowRightLeft, Loader2 } from 'lucide-re
 import { useApp } from '../../context/AppContext';
 import { formatRupiahNumber, parseRupiahNumber } from '../../utils/formatters';
 import { DEFAULT_BUDGET_CATEGORIES } from '../../constants/initialData';
+import { CategoryIcon } from '../common/CategoryIcon';
 
 const INCOME_CATEGORIES = [
   { name: 'Kiriman Ortu', icon: '💰' },
@@ -250,7 +251,7 @@ export default function EditTransactionModal({ transaction, isOpen, onClose }) {
                         textAlign: 'left'
                       }}
                     >
-                      <span style={{ fontSize: '14px' }}>{cat.icon}</span>
+                      <CategoryIcon category={cat.name} icon={cat.icon} size={20} />
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.name}</span>
                     </button>
                   );

@@ -2,20 +2,23 @@ import React, { useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { maskMoney, getRelativeDateInfo } from '../utils/formatters';
 import { SmartBudgetTipCard } from '../components/finance/SmartBudgetTipCard';
+import { CategoryIcon } from '../components/common/CategoryIcon';
+import iconReport from '../assets/quick-actions/finance-report.png';
+import iconSchedule from '../assets/quick-actions/class-schedule.png';
+import iconTarget from '../assets/quick-actions/savings-target.png';
+import iconBills from '../assets/quick-actions/bills-record.png';
+import iconAssignments from '../assets/quick-actions/assignments.png';
+import iconAttendance from '../assets/quick-actions/attendance.png';
+import iconNotes from '../assets/quick-actions/lecture-notes.png';
+import iconExtras from '../assets/quick-actions/extras-more.png';
 import {
-  PieChart,
   Calendar,
-  Target,
-  FileCheck2,
   Clock,
   BookOpen,
-  GraduationCap,
-  Grid,
   ChevronRight,
-  Sparkles,
   AlertCircle,
-  Plus,
-  MapPin
+  MapPin,
+  Plus
 } from 'lucide-react';
 
 export const HomeView = () => {
@@ -72,92 +75,100 @@ export const HomeView = () => {
 
   return (
     <div className="main-content">
-      {/* 1. Quick Actions Grid (Inspirasi TataLetakFitur.png) */}
+      {/* 1. Quick Actions Grid (3D Custom Unified Icons) */}
       <div className="quick-action-grid">
         <button
+          type="button"
           className="quick-action-item"
           onClick={() => navigateTo('finance', 'report')}
           title="Buka Laporan & Grafik Keuangan"
         >
-          <div className="action-icon-circle" style={{ background: '#EFF6FF', color: '#1665D8' }}>
-            <PieChart size={22} />
+          <div className="action-icon-box">
+            <img src={iconReport} alt="Laporan Keuangan" className="action-icon-img" loading="eager" />
           </div>
           <span className="action-icon-label">Laporan Keuangan</span>
         </button>
 
         <button
+          type="button"
           className="quick-action-item"
           onClick={() => navigateTo('academic', 'schedule')}
           title="Buka Jadwal Kuliah"
         >
-          <div className="action-icon-circle" style={{ background: '#ECFDF5', color: '#059669' }}>
-            <Calendar size={22} />
+          <div className="action-icon-box">
+            <img src={iconSchedule} alt="Jadwal Kuliah" className="action-icon-img" loading="eager" />
           </div>
           <span className="action-icon-label">Jadwal Kuliah</span>
         </button>
 
         <button
+          type="button"
           className="quick-action-item"
           onClick={() => navigateTo('finance', 'targets')}
           title="Buka Target Celengan / Nabung"
         >
-          <div className="action-icon-circle" style={{ background: '#FEF3C7', color: '#D97706' }}>
-            <Target size={22} />
+          <div className="action-icon-box">
+            <img src={iconTarget} alt="Target Nabung" className="action-icon-img" loading="eager" />
           </div>
           <span className="action-icon-label">Target Nabung</span>
         </button>
 
         <button
+          type="button"
           className="quick-action-item"
           onClick={() => navigateTo('finance', 'bills')}
           title="Buka Daftar Tagihan"
         >
-          <div className="action-icon-circle" style={{ background: '#FEE2E2', color: '#DC2626' }}>
-            <FileCheck2 size={22} />
+          <div className="action-icon-box">
+            <img src={iconBills} alt="Catat Tagihan" className="action-icon-img" loading="eager" />
           </div>
           <span className="action-icon-label">Catat Tagihan</span>
         </button>
 
         <button
+          type="button"
           className="quick-action-item"
           onClick={() => navigateTo('academic', 'assignments')}
           title="Buka Daftar Tugas Kuliah"
         >
-          <div className="action-icon-circle" style={{ background: '#F3E8FF', color: '#7C3AED' }}>
-            <Clock size={22} />
+          <div className="action-icon-box">
+            <img src={iconAssignments} alt="Tugas Kuliah" className="action-icon-img" loading="eager" />
           </div>
           <span className="action-icon-label">Tugas Kuliah</span>
         </button>
 
         <button
+          type="button"
           className="quick-action-item"
           onClick={() => navigateTo('academic', 'attendance')}
           title="Buka Presensi 16 Pertemuan Kuliah"
         >
-          <div className="action-icon-circle" style={{ background: '#E0F2FE', color: '#0284C7' }}>
-            <BookOpen size={22} />
+          <div className="action-icon-box">
+            <img src={iconAttendance} alt="Presensi Cepat" className="action-icon-img" loading="eager" />
           </div>
           <span className="action-icon-label">Presensi Cepat</span>
         </button>
 
         <button
+          type="button"
           className="quick-action-item"
           onClick={() => navigateTo('academic', 'notes')}
           title="Buka Catatan Materi Kuliah"
         >
-          <div className="action-icon-circle" style={{ background: '#FCE7F3', color: '#DB2777' }}>
-            <BookOpen size={22} />
+          <div className="action-icon-box">
+            <img src={iconNotes} alt="Catatan Kuliah" className="action-icon-img" loading="eager" />
           </div>
           <span className="action-icon-label">Catatan Kuliah</span>
         </button>
 
         <button
+          type="button"
           className="quick-action-item"
           onClick={() => navigateTo('extras')}
           title="Buka Menu Fitur Lainnya"
         >
-          <div className="action-icon-circle" style={{ background: '#F1F5F9', color: '#475569' }}>
-            <Grid size={22} />
+          <div className="action-icon-box">
+            <img src={iconExtras} alt="Lainnya" className="action-icon-img" loading="eager" />
           </div>
           <span className="action-icon-label">Lainnya</span>
         </button>
@@ -466,8 +477,8 @@ export const HomeView = () => {
                 title="Buka Riwayat Transaksi"
               >
                 <div className="transaction-left">
-                  <div className="category-icon-box" style={{ background: '#FEF3C7' }}>
-                    {tx.icon}
+                  <div className="category-icon-box has-3d-icon">
+                    <CategoryIcon category={tx.category} icon={tx.icon} size={36} />
                   </div>
                   <div className="transaction-info">
                     <div className="transaction-title">{tx.category}</div>

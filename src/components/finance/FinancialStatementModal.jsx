@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { formatRupiahNumber } from '../../utils/formatters';
 import { sanitizeCsvCell } from '../../utils/security';
+import { CategoryIcon } from '../common/CategoryIcon';
 
 const INDONESIAN_MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -756,8 +757,9 @@ export const FinancialStatementModal = ({
                             )}
                           </td>
                           <td>
-                            <span className="statement-cat-tag">
-                              {tx.icon} {tx.category || 'Lainnya'}
+                            <span className="statement-cat-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <CategoryIcon category={tx.category} icon={tx.icon} size={15} />
+                              <span>{tx.category || 'Lainnya'}</span>
                             </span>
                           </td>
                           <td style={{ fontSize: '11px', color: '#475569' }}>
