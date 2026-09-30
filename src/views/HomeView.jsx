@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { maskMoney, getRelativeDateInfo } from '../utils/formatters';
 import { SmartBudgetTipCard } from '../components/finance/SmartBudgetTipCard';
 import { CategoryIcon } from '../components/common/CategoryIcon';
+import { MascotEmptyState } from '../components/common/MascotEmptyState';
 import iconReport from '../assets/quick-actions/finance-report.png';
 import iconSchedule from '../assets/quick-actions/class-schedule.png';
 import iconTarget from '../assets/quick-actions/savings-target.png';
@@ -199,51 +200,19 @@ export const HomeView = () => {
         </div>
 
         {todayClasses.length === 0 ? (
-          <div
-            style={{
-              background: '#F8FAFC',
-              border: '1px dashed #CBD5E1',
-              borderRadius: '16px',
-              padding: '20px 16px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <div style={{ fontSize: '26px' }}>
-              {todayDayName === 'Minggu' ? '🌴' : '☕'}
-            </div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
-              Tidak ada jadwal kuliah hari ini
-            </div>
-            <div style={{ fontSize: '12px', color: '#64748B', maxWidth: '300px', lineHeight: 1.45 }}>
-              {todayDayName === 'Minggu'
-                ? 'Selamat berlibur! Siapkan energimu untuk kuliah besok.'
-                : 'Hari ini kosong. Waktunya belajar mandiri atau santai sejenak!'}
-            </div>
-            <button
-              type="button"
-              onClick={() => navigateTo('academic', 'schedule')}
-              style={{
-                marginTop: '6px',
-                background: '#FFFFFF',
-                color: '#1665D8',
-                border: '1px solid #BFDBFE',
-                borderRadius: '10px',
-                padding: '6px 14px',
-                fontSize: '11px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-            >
-              <Calendar size={13} /> Lihat Semua Jadwal
-            </button>
-          </div>
+          <MascotEmptyState
+            mascot="relax"
+            mascotSize={92}
+            title="Tidak ada jadwal kuliah hari ini"
+            description={
+              todayDayName === 'Minggu'
+                ? 'Selamat berlibur! Siapkan energimu untuk perkuliahan besok.'
+                : 'Hari ini kosong. Waktunya belajar mandiri atau santai sejenak!'
+            }
+            actionText="Lihat Semua Jadwal"
+            actionIcon={<Calendar size={13} />}
+            onAction={() => navigateTo('academic', 'schedule')}
+          />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {todayClasses.map(crs => {
@@ -360,22 +329,22 @@ export const HomeView = () => {
       </div>
 
       {/* 4. Tugas Kuliah Mendesak */}
-      {pendingAssignments.length > 0 && (
-        <div className="card-standard">
-          <div className="section-header-row">
-            <h3 className="section-title">
-              <AlertCircle size={18} style={{ color: '#EF4444' }} />
-              Tugas Mendekati Deadline
-            </h3>
-            <span
-              className="section-action-link"
-              onClick={() => navigateTo('academic', 'assignments')}
-              style={{ cursor: 'pointer' }}
-            >
-              Buka Tugas <ChevronRight size={14} />
-            </span>
-          </div>
+      <div className="card-standard">
+        <div className="section-header-row">
+          <h3 className="section-title">
+            <Clock size={17} style={{ color: pendingAssignments.length > 0 ? '#EF4444' : '#10B981' }} />
+            Tugas Kuliah
+          </h3>
+          <span
+            className="section-action-link"
+            onClick={() => navigateTo('academic', 'assignments')}
+            style={{ cursor: 'pointer' }}
+          >
+            Semua Tugas <ChevronRight size={14} />
+          </span>
+        </div>
 
+        {pendingAssignments.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {pendingAssignments.map(asg => (
               <div
@@ -405,8 +374,19 @@ export const HomeView = () => {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <MascotEmptyState
+            mascot="task"
+            mascotSize={88}
+            title="Tidak Ada Tugas Mendesak"
+            description="Semua tugas beres atau belum ada deadline baru. Waktunya santai dulu!"
+            actionText="Buka Semua Tugas"
+            actionIcon={<ChevronRight size={13} />}
+            onAction={() => navigateTo('academic', 'assignments')}
+            style={{ background: 'transparent', border: '1px dashed #E2E8F0', padding: '16px 12px' }}
+          />
+        )}
+      </div>
 
       {/* 5. Keuangan Bulan Ini (Sesuai Home.jpg) */}
       <div
@@ -499,52 +479,17 @@ export const HomeView = () => {
               </div>
             ))
           ) : (
-            <div
-              style={{
-                background: '#FFFFFF',
-                borderRadius: '16px',
-                padding: '24px 16px',
-                textAlign: 'center',
-                border: '1px dashed #E2E8F0',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '8px'
+            <MascotEmptyState
+              mascot="wallet"
+              mascotSize={92}
+              title="Belum Ada Transaksi Hari Ini"
+              description="Catat pengeluaran atau pemasukanmu hari ini agar arus kas tetap rapi."
+              actionText="+ Catat Transaksi"
+              onAction={() => {
+                setQuickAddType('expense');
+                setIsQuickAddOpen(true);
               }}
-            >
-              <div style={{ fontSize: '26px' }}>☕</div>
-              <div>
-                <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#334155' }}>
-                  Belum Ada Transaksi Hari Ini
-                </div>
-                <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '2px' }}>
-                  Catat pengeluaran atau pemasukanmu hari ini
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setQuickAddType('expense');
-                  setIsQuickAddOpen(true);
-                }}
-                style={{
-                  marginTop: '4px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: '#EFF6FF',
-                  color: '#1D4ED8',
-                  border: '1px solid #BFDBFE',
-                  borderRadius: '999px',
-                  padding: '6px 14px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                <Plus size={14} /> + Catat Transaksi
-              </button>
-            </div>
+            />
           )}
         </div>
       </div>

@@ -10,6 +10,7 @@ import { CategoryDetailModal } from '../components/finance/CategoryDetailModal';
 import { BudgetSettingsModal } from '../components/finance/BudgetSettingsModal';
 import { FinancialStatementModal } from '../components/finance/FinancialStatementModal';
 import { CategoryIcon } from '../components/common/CategoryIcon';
+import { MascotEmptyState } from '../components/common/MascotEmptyState';
 import {
   Wallet,
   Receipt,
@@ -599,24 +600,18 @@ export const FinanceView = () => {
           </div>
 
           {data.transactions.length === 0 ? (
-            <div className="empty-state-card">
-              <div className="empty-icon-circle">💸</div>
-              <h4 className="empty-title">Belum Ada Transaksi Tercatat</h4>
-              <p className="empty-desc">
-                Semua catatan pemasukan dan pengeluaran harianmu akan otomatis tersusun rapi per tanggal di sini.
-              </p>
-              <button
-                type="button"
-                className="btn-primary empty-cta-btn"
-                onClick={() => {
-                  setQuickAddType('expense');
-                  setIsQuickAddOpen(true);
-                }}
-              >
-                <Plus size={15} />
-                <span>Catat Transaksi Pertama</span>
-              </button>
-            </div>
+            <MascotEmptyState
+              mascot="wallet"
+              mascotSize={110}
+              title="Belum Ada Transaksi Tercatat"
+              description="Semua catatan pemasukan dan pengeluaran harianmu akan otomatis tersusun rapi per tanggal di sini."
+              actionText="Catat Transaksi Pertama"
+              actionIcon={<Plus size={15} />}
+              onAction={() => {
+                setQuickAddType('expense');
+                setIsQuickAddOpen(true);
+              }}
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Gesture Hint Banner */}

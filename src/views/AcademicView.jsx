@@ -24,6 +24,7 @@ import confetti from 'canvas-confetti';
 import SwipeableItem from '../components/common/SwipeableItem';
 import CourseDetailModal from '../components/academic/CourseDetailModal';
 import EditCourseModal from '../components/academic/EditCourseModal';
+import { MascotEmptyState } from '../components/common/MascotEmptyState';
 import { sanitizeUrl, isSafeExternalUrl } from '../utils/security';
 
 export const AcademicView = () => {
@@ -398,122 +399,40 @@ export const AcademicView = () => {
 
           {/* Empty state if semester has no courses */}
           {semesterCourses.length === 0 ? (
-            <div className="card-standard" style={{ textAlign: 'center', padding: '36px 20px' }}>
-              <span style={{ fontSize: '36px' }}>📚</span>
-              <h4 style={{ fontSize: '16px', fontWeight: 800, marginTop: '10px' }}>
-                Semester {viewSemester} Masih Kosong
-              </h4>
-              <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px', marginBottom: '16px' }}>
-                Belum ada matakuliah yang terdaftar untuk semester ini. Yuk mulai tambahkan matakuliah dan jadwal barumu!
-              </p>
-              <button
-                className="btn-primary"
-                onClick={handleOpenAddCourse}
-                style={{ width: 'auto', margin: '0 auto' }}
-              >
-                <Plus size={16} /> Tambah Matakuliah
-              </button>
-            </div>
+            <MascotEmptyState
+              mascot="courses"
+              mascotSize={110}
+              title={`Semester ${viewSemester} Masih Kosong`}
+              description="Belum ada matakuliah yang terdaftar untuk semester ini. Yuk mulai tambahkan matakuliah dan jadwal barumu!"
+              actionText="Tambah Matakuliah"
+              actionIcon={<Plus size={16} />}
+              onAction={handleOpenAddCourse}
+            />
           ) : filteredCourses.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {selectedDay === 'Minggu' ? (
-                <div
-                  className="card-standard"
-                  style={{
-                    textAlign: 'center',
-                    padding: '36px 20px',
-                    background: '#F8FAFC',
-                    border: '1px dashed #CBD5E1',
-                    borderRadius: '18px'
-                  }}
-                >
-                  <span style={{ fontSize: '36px' }}>🌴</span>
-                  <h4 style={{ fontSize: '15px', fontWeight: 800, marginTop: '8px', color: '#0F172A' }}>
-                    Hari Minggu — Libur Kuliah!
-                  </h4>
-                  <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px', marginBottom: '16px', lineHeight: 1.5, maxWidth: '320px', margin: '4px auto 16px' }}>
-                    Tidak ada jadwal kuliah di hari Minggu. Waktunya istirahat, recharge energimu, atau persiapan untuk perkuliahan besok.
-                  </p>
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <button
-                      className="btn-primary"
-                      type="button"
-                      onClick={() => setSelectedDay('Senin')}
-                      style={{ width: 'auto', padding: '8px 16px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      Lihat Jadwal Besok (Senin) →
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedDay('Semua')}
-                      style={{
-                        background: 'white',
-                        border: '1px solid #CBD5E1',
-                        color: '#334155',
-                        padding: '8px 14px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Lihat Semua Hari
-                    </button>
-                  </div>
-                </div>
+                <MascotEmptyState
+                  mascot="relax"
+                  mascotSize={105}
+                  title="Hari Minggu — Libur Kuliah!"
+                  description="Tidak ada jadwal kuliah di hari Minggu. Waktunya istirahat, recharge energimu, atau persiapan untuk perkuliahan besok."
+                  actionText="Lihat Jadwal Besok (Senin) →"
+                  onAction={() => setSelectedDay('Senin')}
+                  secondaryText="Lihat Semua Hari"
+                  onSecondary={() => setSelectedDay('Semua')}
+                />
               ) : (
-                <div
-                  className="card-standard"
-                  style={{
-                    textAlign: 'center',
-                    padding: '36px 20px',
-                    background: '#F8FAFC',
-                    border: '1px dashed #CBD5E1',
-                    borderRadius: '18px'
-                  }}
-                >
-                  <span style={{ fontSize: '32px' }}>☕</span>
-                  <h4 style={{ fontSize: '15px', fontWeight: 800, marginTop: '8px', color: '#0F172A' }}>
-                    Tidak Ada Kuliah Hari {selectedDay}
-                  </h4>
-                  <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px', marginBottom: '16px', maxWidth: '320px', margin: '4px auto 16px' }}>
-                    Tidak ada mata kuliah yang terdaftar di hari {selectedDay} untuk Semester {viewSemester}.
-                  </p>
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedDay('Semua')}
-                      style={{
-                        background: '#1665D8',
-                        color: 'white',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Lihat Semua Hari
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleOpenAddCourse}
-                      style={{
-                        background: 'white',
-                        border: '1px solid #CBD5E1',
-                        color: '#1665D8',
-                        padding: '8px 14px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      + Tambah Kuliah {selectedDay}
-                    </button>
-                  </div>
-                </div>
+                <MascotEmptyState
+                  mascot="relax"
+                  mascotSize={105}
+                  title={`Tidak Ada Kuliah Hari ${selectedDay}`}
+                  description={`Tidak ada mata kuliah yang terdaftar di hari ${selectedDay} untuk Semester ${viewSemester}. Waktunya santai sejenak!`}
+                  actionText="Lihat Semua Hari"
+                  onAction={() => setSelectedDay('Semua')}
+                  secondaryText={`+ Tambah Kuliah ${selectedDay}`}
+                  secondaryIcon={<Plus size={13} />}
+                  onSecondary={handleOpenAddCourse}
+                />
               )}
             </div>
           ) : (
@@ -646,9 +565,18 @@ export const AcademicView = () => {
           </div>
 
           {semesterAssignments.length === 0 ? (
-            <div className="card-standard" style={{ textAlign: 'center', padding: '30px 20px', color: '#64748B' }}>
-              Tidak ada tugas untuk Semester {viewSemester}. Santai dulu! ☕
-            </div>
+            <MascotEmptyState
+              mascot="task"
+              mascotSize={105}
+              title={`Tidak Ada Tugas Semester ${viewSemester}`}
+              description="Semua tugas sudah beres atau belum ada tugas baru. Waktunya santai sejenak!"
+              actionText="Tambah Tugas Baru"
+              actionIcon={<Plus size={14} />}
+              onAction={() => {
+                setQuickAddType('assignment');
+                setIsQuickAddOpen(true);
+              }}
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {semesterAssignments.map(asg => {
@@ -847,9 +775,18 @@ export const AcademicView = () => {
           </div>
 
           {semesterNotes.length === 0 ? (
-            <div className="card-standard" style={{ textAlign: 'center', padding: '30px 20px', color: '#64748B' }}>
-              Belum ada catatan materi di Semester {viewSemester}.
-            </div>
+            <MascotEmptyState
+              mascot="study"
+              mascotSize={105}
+              title="Belum Ada Catatan Kuliah"
+              description={`Belum ada catatan materi di Semester ${viewSemester}. Yuk catat ringkasan materi penting agar belajar lebih mudah!`}
+              actionText="Tulis Catatan Pertama"
+              actionIcon={<Plus size={14} />}
+              onAction={() => {
+                setQuickAddType('note');
+                setIsQuickAddOpen(true);
+              }}
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {semesterNotes.map(note => (

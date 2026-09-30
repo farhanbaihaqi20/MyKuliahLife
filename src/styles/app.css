@@ -967,6 +967,40 @@ html, body {
   box-shadow: none !important;
 }
 
+/* Mascot Empty State Cards */
+.mascot-empty-state-card {
+  background: var(--bg-card) !important;
+  border-color: var(--border-subtle) !important;
+  box-shadow: var(--shadow-sm);
+}
+
+.mascot-empty-state-card:hover .mascot-empty-img {
+  transform: translateY(-3px) scale(1.04);
+}
+
+.mascot-empty-state-card .mascot-empty-title {
+  color: var(--text-primary) !important;
+}
+
+.mascot-empty-state-card .mascot-empty-desc {
+  color: var(--text-secondary) !important;
+}
+
+.mascot-action-btn:hover {
+  background: #1255B8 !important;
+  transform: translateY(-1px);
+}
+
+.mascot-secondary-btn:hover {
+  background: var(--bg-secondary) !important;
+}
+
+.dark .mascot-secondary-btn {
+  background: #1E293B !important;
+  border-color: #334155 !important;
+  color: #CBD5E1 !important;
+}
+
 .action-icon-circle {
   width: 48px;
   height: 48px;
