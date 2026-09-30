@@ -850,12 +850,13 @@ export const AppProvider = ({ children }) => {
   // --- ACCOUNTS CRUD ---
   const addAccount = (acc) => {
     const accId = generateUUID();
+    const willBePrimary = Boolean(acc.isPrimary) || (data.accounts || []).length === 0;
     const newAccount = {
       id: accId,
       name: acc.name,
       type: acc.type || 'bank',
       balance: Number(acc.balance) || 0,
-      isPrimary: Boolean(acc.isPrimary),
+      isPrimary: willBePrimary,
       icon: acc.icon || '💳',
       color: acc.color || '#1665D8',
       accountNumber: acc.accountNumber || '',
@@ -864,9 +865,17 @@ export const AppProvider = ({ children }) => {
     };
     setData(prev => ({
       ...prev,
-      accounts: [...prev.accounts, newAccount]
+      accounts: [
+        ...(prev.accounts || []).map(a => willBePrimary ? { ...a, isPrimary: false } : a),
+        newAccount
+      ]
     }));
     if (user?.id) {
+      if (willBePrimary) {
+        data.accounts.filter(a => a.isPrimary).forEach(a => {
+          cloudService.updateAccount(a.id, { isPrimary: false });
+        });
+      }
       cloudService.insertAccount(user.id, newAccount);
     }
   };
@@ -874,18 +883,53 @@ export const AppProvider = ({ children }) => {
   const editAccount = (accId, updatedFields) => {
     setData(prev => ({
       ...prev,
-      accounts: prev.accounts.map(a => a.id === accId ? { ...a, ...updatedFields } : a)
+      accounts: prev.accounts.map(a => {
+        if (a.id === accId) {
+          return { ...a, ...updatedFields };
+        }
+        if (updatedFields.isPrimary) {
+          return { ...a, isPrimary: false };
+        }
+        return a;
+      })
     }));
     if (user?.id) {
       cloudService.updateAccount(accId, updatedFields);
+      if (updatedFields.isPrimary) {
+        data.accounts.filter(a => a.id !== accId && a.isPrimary).forEach(a => {
+          cloudService.updateAccount(a.id, { isPrimary: false });
+        });
+      }
+    }
+  };
+
+  const setPrimaryAccount = (accId) => {
+    setData(prev => ({
+      ...prev,
+      accounts: (prev.accounts || []).map(a => ({
+        ...a,
+        isPrimary: a.id === accId
+      }))
+    }));
+    if (user?.id) {
+      (data.accounts || []).forEach(a => {
+        cloudService.updateAccount(a.id, { isPrimary: a.id === accId });
+      });
     }
   };
 
   const deleteAccount = (accId) => {
-    setData(prev => ({
-      ...prev,
-      accounts: prev.accounts.filter(a => a.id !== accId)
-    }));
+    setData(prev => {
+      const remaining = prev.accounts.filter(a => a.id !== accId);
+      const wasPrimary = prev.accounts.find(a => a.id === accId)?.isPrimary;
+      if (wasPrimary && remaining.length > 0) {
+        remaining[0] = { ...remaining[0], isPrimary: true };
+      }
+      return {
+        ...prev,
+        accounts: remaining
+      };
+    });
     if (user?.id) {
       cloudService.deleteAccount(accId);
     }
@@ -2022,6 +2066,7 @@ export const AppProvider = ({ children }) => {
         addAccount,
         editAccount,
         deleteAccount,
+        setPrimaryAccount,
         addTransaction,
         editTransaction,
         deleteTransaction,

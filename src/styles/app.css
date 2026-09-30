@@ -4723,6 +4723,16 @@ html, body {
   box-shadow: 0 2px 8px rgba(22, 101, 216, 0.25);
 }
 
+.accounts-filter-pill .filter-pill-img {
+  width: 17px;
+  height: 17px;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
 .accounts-filter-pill .pill-badge {
   font-size: 10px;
   font-weight: 700;
@@ -4758,6 +4768,8 @@ html, body {
   cursor: pointer;
   text-align: left;
   font-family: inherit;
+  position: relative;
+  overflow: hidden;
 }
 
 .smart-pocket-card:hover {
@@ -4780,6 +4792,45 @@ html, body {
   gap: 12px;
   min-width: 0;
   flex: 1;
+}
+
+.pocket-avatar-wrapper {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pocket-avatar-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  display: block;
+  border-radius: 10px;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.06));
+  transition: transform 0.2s ease;
+}
+
+.smart-pocket-card:hover .pocket-avatar-img {
+  transform: scale(1.06);
+}
+
+.pocket-avatar-brand-dot {
+  position: absolute;
+  bottom: -2px;
+  right: -3px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  padding: 1px 4.5px;
+  border-radius: 6px;
+  border: 1.5px solid #FFFFFF;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
+  line-height: 1.1;
+  text-transform: uppercase;
 }
 
 .pocket-avatar {
@@ -4816,6 +4867,9 @@ html, body {
 }
 
 .primary-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 9.5px;
   font-weight: 700;
   background: #FEF3C7;
@@ -4828,12 +4882,22 @@ html, body {
 .pocket-meta-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 11.5px;
   color: #64748B;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.pocket-brand-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  line-height: 1.2;
+  letter-spacing: 0.1px;
 }
 
 .pocket-type-badge {
@@ -4881,6 +4945,30 @@ html, body {
 .smart-pocket-card:hover .pocket-chevron {
   color: #2563EB;
   transform: translateX(2px);
+}
+
+.dark .smart-pocket-card,
+body.dark-mode .smart-pocket-card {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.dark .smart-pocket-card:hover,
+body.dark-mode .smart-pocket-card:hover {
+  border-color: #475569;
+}
+
+.dark .pocket-avatar-brand-dot,
+body.dark-mode .pocket-avatar-brand-dot {
+  border-color: #1E293B;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.dark .pocket-name,
+body.dark-mode .pocket-name,
+.dark .pocket-balance-value,
+body.dark-mode .pocket-balance-value {
+  color: #F8FAFC;
 }
 
 /* Tip card */

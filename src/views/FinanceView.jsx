@@ -11,6 +11,7 @@ import { BudgetSettingsModal } from '../components/finance/BudgetSettingsModal';
 import { FinancialStatementModal } from '../components/finance/FinancialStatementModal';
 import { CategoryIcon } from '../components/common/CategoryIcon';
 import { MascotEmptyState } from '../components/common/MascotEmptyState';
+import { getAccountTypeIcon, getAccountBrandInfo, COLOR_SWATCHES } from '../utils/accountBrand';
 import {
   Wallet,
   Receipt,
@@ -33,7 +34,8 @@ import {
   Sliders,
   X,
   Printer,
-  FileText
+  FileText,
+  Star
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -58,6 +60,7 @@ export const FinanceView = () => {
     addAccount,
     editAccount,
     deleteAccount,
+    setPrimaryAccount,
     setIsQuickAddOpen,
     setQuickAddType,
     setQuickAddCategory,
@@ -112,12 +115,16 @@ export const FinanceView = () => {
   const [newAccIcon, setNewAccIcon] = useState('💳');
   const [newAccNumber, setNewAccNumber] = useState('');
   const [newAccNotes, setNewAccNotes] = useState('');
+  const [newAccIsPrimary, setNewAccIsPrimary] = useState(false);
+  const [newAccColor, setNewAccColor] = useState('');
 
   const [editingAccount, setEditingAccount] = useState(null);
   const [editAccName, setEditAccName] = useState('');
   const [editAccBalance, setEditAccBalance] = useState('');
   const [editAccNumber, setEditAccNumber] = useState('');
   const [editAccNotes, setEditAccNotes] = useState('');
+  const [editAccIsPrimary, setEditAccIsPrimary] = useState(false);
+  const [editAccColor, setEditAccColor] = useState('');
 
   // Group transactions by date & sort descending (Hari Ini on top)
   const groupedTransactions = useMemo(() => {
@@ -218,12 +225,13 @@ export const FinanceView = () => {
     if (!newAccName.trim()) return;
 
     addAccount({
-      name: newAccName,
+      name: newAccName.trim(),
       type: newAccType,
       balance: parseRupiahNumber(newAccBalance) || 0,
       accountNumber: newAccNumber.trim(),
       notes: newAccNotes.trim(),
-      icon: newAccType === 'bank' ? '🏦' : (newAccType === 'ewallet' ? '📱' : '💵')
+      isPrimary: newAccIsPrimary,
+      color: newAccColor || undefined
     });
 
     setIsAddAccountOpen(false);
@@ -231,6 +239,8 @@ export const FinanceView = () => {
     setNewAccBalance('');
     setNewAccNumber('');
     setNewAccNotes('');
+    setNewAccIsPrimary(false);
+    setNewAccColor('');
   };
 
   const openEditModal = (acc) => {
@@ -240,6 +250,8 @@ export const FinanceView = () => {
     setEditAccBalance(formatRupiahNumber(acc.balance));
     setEditAccNumber(acc.accountNumber || '');
     setEditAccNotes(acc.notes || '');
+    setEditAccIsPrimary(Boolean(acc.isPrimary));
+    setEditAccColor(acc.color || '');
   };
 
   const handleSaveEditAccount = (e) => {
@@ -247,10 +259,12 @@ export const FinanceView = () => {
     if (!editingAccount) return;
 
     const updatedData = {
-      name: editAccName,
+      name: editAccName.trim(),
       balance: parseRupiahNumber(editAccBalance) || 0,
       accountNumber: editAccNumber.trim(),
-      notes: editAccNotes.trim()
+      notes: editAccNotes.trim(),
+      isPrimary: editAccIsPrimary,
+      color: editAccColor || undefined
     };
 
     editAccount(editingAccount.id, updatedData);
@@ -1209,7 +1223,8 @@ export const FinanceView = () => {
               className={`accounts-filter-pill ${accountTypeFilter === 'bank' ? 'active' : ''}`}
               onClick={() => setAccountTypeFilter(prev => prev === 'bank' ? 'all' : 'bank')}
             >
-              <span>🏦 Bank</span>
+              <img src="/assets/accounts/account-bank.png" alt="Bank" className="filter-pill-img" />
+              <span>Bank</span>
               <span className="pill-badge">{bankAccounts.length}</span>
             </button>
             <button
@@ -1217,7 +1232,8 @@ export const FinanceView = () => {
               className={`accounts-filter-pill ${accountTypeFilter === 'ewallet' ? 'active' : ''}`}
               onClick={() => setAccountTypeFilter(prev => prev === 'ewallet' ? 'all' : 'ewallet')}
             >
-              <span>📱 E-Wallet</span>
+              <img src="/assets/accounts/account-ewallet.png" alt="E-Wallet" className="filter-pill-img" />
+              <span>E-Wallet</span>
               <span className="pill-badge">{ewalletAccounts.length}</span>
             </button>
             <button
@@ -1225,7 +1241,8 @@ export const FinanceView = () => {
               className={`accounts-filter-pill ${accountTypeFilter === 'cash' ? 'active' : ''}`}
               onClick={() => setAccountTypeFilter(prev => prev === 'cash' ? 'all' : 'cash')}
             >
-              <span>💵 Tunai</span>
+              <img src="/assets/accounts/account-cash.png" alt="Tunai" className="filter-pill-img" />
+              <span>Tunai</span>
               <span className="pill-badge">{cashAccounts.length}</span>
             </button>
             {otherAccounts.length > 0 && (
@@ -1288,38 +1305,63 @@ export const FinanceView = () => {
                 const isCash = acc.type === 'cash';
 
                 const themeClass = isBank ? 'theme-bank' : isEwallet ? 'theme-ewallet' : isCash ? 'theme-cash' : 'theme-other';
-                const accentColor = isBank ? '#2563EB' : isEwallet ? '#8B5CF6' : isCash ? '#059669' : '#64748B';
+                const brand = getAccountBrandInfo(acc);
 
                 return (
                   <div
                     key={acc.id}
                     className={`smart-pocket-card ${themeClass}`}
                     onClick={() => setSelectedAccountDetail(acc)}
-                    style={{ cursor: 'pointer' }}
+                    style={{
+                      cursor: 'pointer',
+                      borderLeft: `3.5px solid ${brand.color}`
+                    }}
                     role="button"
                     tabIndex={0}
                     title="Klik untuk lihat detail & transaksi dompet"
                   >
                     {/* Left: Avatar & Identity */}
                     <div className="pocket-left-section">
-                      <div
-                        className="pocket-avatar"
-                        style={{
-                          backgroundColor: `${acc.color || accentColor}14`,
-                          color: acc.color || accentColor
-                        }}
-                      >
-                        {acc.icon || (isBank ? '🏦' : isEwallet ? '📱' : '💵')}
+                      <div className="pocket-avatar-wrapper">
+                        <img
+                          src={getAccountTypeIcon(acc.type)}
+                          alt={acc.name}
+                          className="pocket-avatar-img"
+                        />
+                        <span
+                          className="pocket-avatar-brand-dot"
+                          style={{
+                            backgroundColor: brand.color,
+                            color: '#FFFFFF'
+                          }}
+                          title={brand.label}
+                        >
+                          {brand.shortCode || brand.label.slice(0, 2)}
+                        </span>
                       </div>
 
                       <div className="pocket-info">
                         <div className="pocket-name-row">
                           <span className="pocket-name">{acc.name}</span>
-                          {acc.isPrimary && <span className="primary-pill">Utama</span>}
+                          {acc.isPrimary && (
+                            <span className="primary-pill" title="Dompet Utama Transaksi">
+                              <Star size={9} fill="currentColor" /> Utama
+                            </span>
+                          )}
                         </div>
                         <div className="pocket-meta-row">
                           <span className="pocket-type-badge">
                             {isBank ? 'Bank' : isEwallet ? 'E-Wallet' : isCash ? 'Tunai' : 'Lainnya'}
+                          </span>
+                          <span
+                            className="pocket-brand-pill"
+                            style={{
+                              color: brand.color,
+                              backgroundColor: `${brand.color}14`,
+                              borderColor: `${brand.color}30`
+                            }}
+                          >
+                            {brand.label}
                           </span>
                           {acc.accountNumber && (
                             <span className="pocket-acc-number">
@@ -1354,7 +1396,7 @@ export const FinanceView = () => {
             </div>
           </div>
 
-            {/* Modal Tambah Dompet Baru */}
+          {/* Modal Tambah Dompet Baru */}
           {isAddAccountOpen && (
             <div className="modal-overlay" onClick={() => setIsAddAccountOpen(false)} style={{ zIndex: 1300 }}>
               <div className="modal-bottom-sheet" onClick={e => e.stopPropagation()}>
@@ -1365,7 +1407,7 @@ export const FinanceView = () => {
                     <label className="input-label">Nama Dompet / Bank</label>
                     <input
                       type="text"
-                      placeholder="cth: Bank Mandiri, OVO, ShopeePay"
+                      placeholder="cth: Bank Mandiri, OVO, ShopeePay, SeaBank"
                       className="input-field"
                       value={newAccName}
                       onChange={e => setNewAccName(e.target.value)}
@@ -1423,6 +1465,49 @@ export const FinanceView = () => {
                       value={newAccNotes}
                       onChange={e => setNewAccNotes(e.target.value)}
                     />
+                  </div>
+
+                  {/* Aksen Warna & Brand Swatches */}
+                  <div className="input-group">
+                    <label className="input-label">
+                      Aksen Warna & Brand <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 'normal' }}>(Opsional)</span>
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                      {COLOR_SWATCHES.map(sw => (
+                        <button
+                          key={sw.hex}
+                          type="button"
+                          onClick={() => setNewAccColor(sw.hex)}
+                          style={{
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '50%',
+                            background: sw.hex,
+                            border: newAccColor === sw.hex ? '2.5px solid #0F172A' : '1.5px solid rgba(0,0,0,0.1)',
+                            cursor: 'pointer',
+                            transform: newAccColor === sw.hex ? 'scale(1.15)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                          title={sw.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Opsi Jadikan Dompet Utama */}
+                  <div style={{ margin: '14px 0 10px', background: '#F8FAFC', padding: '10px 12px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>
+                      <input
+                        type="checkbox"
+                        checked={newAccIsPrimary}
+                        onChange={e => setNewAccIsPrimary(e.target.checked)}
+                        style={{ width: '16px', height: '16px', accentColor: '#1665D8', cursor: 'pointer' }}
+                      />
+                      <span>Jadikan Dompet Utama (Default Transaksi)</span>
+                    </label>
+                    <p style={{ fontSize: '11px', color: '#64748B', margin: '4px 0 0 24px' }}>
+                      Dompet ini akan otomatis dipilih pertama kali saat kamu mencatat transaksi baru.
+                    </p>
                   </div>
 
                   <button type="submit" className="btn-primary" style={{ marginTop: '14px' }}>
@@ -1487,6 +1572,49 @@ export const FinanceView = () => {
                       value={editAccNotes}
                       onChange={e => setEditAccNotes(e.target.value)}
                     />
+                  </div>
+
+                  {/* Aksen Warna & Brand Swatches */}
+                  <div className="input-group">
+                    <label className="input-label">
+                      Aksen Warna & Brand <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 'normal' }}>(Opsional)</span>
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                      {COLOR_SWATCHES.map(sw => (
+                        <button
+                          key={sw.hex}
+                          type="button"
+                          onClick={() => setEditAccColor(sw.hex)}
+                          style={{
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '50%',
+                            background: sw.hex,
+                            border: editAccColor === sw.hex ? '2.5px solid #0F172A' : '1.5px solid rgba(0,0,0,0.1)',
+                            cursor: 'pointer',
+                            transform: editAccColor === sw.hex ? 'scale(1.15)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                          title={sw.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Opsi Jadikan Dompet Utama */}
+                  <div style={{ margin: '14px 0 10px', background: '#F8FAFC', padding: '10px 12px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>
+                      <input
+                        type="checkbox"
+                        checked={editAccIsPrimary}
+                        onChange={e => setEditAccIsPrimary(e.target.checked)}
+                        style={{ width: '16px', height: '16px', accentColor: '#1665D8', cursor: 'pointer' }}
+                      />
+                      <span>Jadikan Dompet Utama (Default Transaksi)</span>
+                    </label>
+                    <p style={{ fontSize: '11px', color: '#64748B', margin: '4px 0 0 24px' }}>
+                      Dompet ini akan otomatis dipilih pertama kali saat kamu mencatat transaksi baru.
+                    </p>
                   </div>
 
                   <button type="submit" className="btn-primary" style={{ marginTop: '14px' }}>

@@ -20,6 +20,7 @@ import {
 import { formatRupiahNumber } from '../../utils/formatters';
 import { sanitizeCsvCell } from '../../utils/security';
 import { CategoryIcon } from '../common/CategoryIcon';
+import { getAccountTypeIcon, getAccountBrandInfo } from '../../utils/accountBrand';
 
 const INDONESIAN_MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -697,14 +698,16 @@ export const FinancialStatementModal = ({
                   {(data.accounts || []).map((acc) => (
                     <div key={acc.id} className="statement-account-item">
                       <div className="statement-account-left">
-                        <span className="statement-account-icon">{acc.icon || '💳'}</span>
+                        <span className="statement-account-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <img src={getAccountTypeIcon(acc.type)} alt={acc.name} style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+                        </span>
                         <div className="statement-account-info">
                           <div className="statement-account-name">
                             {acc.name}
                             {acc.isPrimary && <span className="statement-badge-primary">Utama</span>}
                           </div>
                           <div className="statement-account-type">
-                            {acc.type || 'Bank'}{acc.number ? ` • ${acc.number}` : ''}
+                            {acc.type || 'Bank'}{acc.accountNumber ? ` • ${acc.accountNumber}` : ''}
                           </div>
                         </div>
                       </div>

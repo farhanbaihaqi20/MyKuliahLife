@@ -18,9 +18,11 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { getAccountTypeIcon } from '../../utils/accountBrand';
 
 const POPULAR_ACCOUNTS = [
   // Banks
+  { name: 'KromBank', type: 'bank', icon: '🏦', color: '#7C3AED', defaultBal: 0 },
   { name: 'BCA', type: 'bank', icon: '🏦', color: '#0052CC', defaultBal: 0 },
   { name: 'Bank Mandiri', type: 'bank', icon: '🏦', color: '#0284C7', defaultBal: 0 },
   { name: 'BRI', type: 'bank', icon: '🏦', color: '#00529C', defaultBal: 0 },
@@ -30,12 +32,12 @@ const POPULAR_ACCOUNTS = [
   { name: 'BSI Syariah', type: 'bank', icon: '🏦', color: '#00A39D', defaultBal: 0 },
   { name: 'CIMB Niaga', type: 'bank', icon: '🏦', color: '#8B0000', defaultBal: 0 },
   // E-Wallets
-  { name: 'GoPay', type: 'ewallet', icon: '📱', color: '#00AED6', defaultBal: 0 },
-  { name: 'DANA', type: 'ewallet', icon: '📱', color: '#10B981', defaultBal: 0 },
+  { name: 'GoPay', type: 'ewallet', icon: '📱', color: '#00AA13', defaultBal: 0 },
+  { name: 'DANA', type: 'ewallet', icon: '📱', color: '#118EEA', defaultBal: 0 },
   { name: 'OVO', type: 'ewallet', icon: '📱', color: '#4C3494', defaultBal: 0 },
   { name: 'ShopeePay', type: 'ewallet', icon: '🛍️', color: '#EE4D2D', defaultBal: 0 },
   // Cash
-  { name: 'Uang Tunai / Cash', type: 'cash', icon: '💵', color: '#059669', defaultBal: 0 }
+  { name: 'Uang Tunai / Cash', type: 'cash', icon: '💵', color: '#10B981', defaultBal: 0 }
 ];
 
 export const OnboardingModal = () => {
@@ -417,8 +419,8 @@ export const OnboardingModal = () => {
                 {accounts.map((acc) => (
                   <div key={acc.id} className="account-setup-row">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-                      <div className="acc-icon-box">
-                        {acc.icon}
+                      <div className="acc-icon-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src={getAccountTypeIcon(acc.type)} alt={acc.name} style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

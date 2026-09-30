@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { maskMoney } from '../../utils/formatters';
+import { getAccountTypeIcon, getAccountBrandInfo } from '../../utils/accountBrand';
 import {
   X,
   Copy,
@@ -14,7 +15,8 @@ import {
   TrendingUp,
   TrendingDown,
   Wifi,
-  FileText
+  FileText,
+  Star
 } from 'lucide-react';
 
 export const AccountDetailModal = ({
@@ -25,7 +27,7 @@ export const AccountDetailModal = ({
   onDelete,
   onQuickAdd
 }) => {
-  const { data, isBalanceVisible, totalBalance } = useApp();
+  const { data, isBalanceVisible, totalBalance, setPrimaryAccount } = useApp();
   const [copied, setCopied] = useState(false);
   const [txFilter, setTxFilter] = useState('all'); // 'all' | 'expense' | 'income'
   const scrollRef = useRef(null);
@@ -97,6 +99,8 @@ export const AccountDetailModal = ({
     ? 'DOMPET TUNAI'
     : 'PORTOFOLIO';
 
+  const brand = getAccountBrandInfo(account);
+
   return (
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1200 }}>
       <div className="account-hub-sheet" onClick={(e) => e.stopPropagation()}>
@@ -108,14 +112,35 @@ export const AccountDetailModal = ({
               <div
                 className="hub-header-icon"
                 style={{
-                  backgroundColor: `${account.color || '#2563EB'}15`,
-                  color: account.color || '#2563EB'
+                  backgroundColor: `${brand.color}15`,
+                  color: brand.color
                 }}
               >
-                {account.icon || '💳'}
+                <img
+                  src={getAccountTypeIcon(account.type)}
+                  alt={account.name}
+                  style={{ width: '28px', height: '28px', objectFit: 'contain' }}
+                />
               </div>
               <div>
-                <h3 className="account-hub-title">{account.name}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <h3 className="account-hub-title">{account.name}</h3>
+                  {account.isPrimary && (
+                    <span className="primary-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                      <Star size={10} fill="currentColor" /> Utama
+                    </span>
+                  )}
+                  <span
+                    className="pocket-brand-pill"
+                    style={{
+                      color: brand.color,
+                      backgroundColor: `${brand.color}14`,
+                      borderColor: `${brand.color}30`
+                    }}
+                  >
+                    {brand.label}
+                  </span>
+                </div>
                 <p className="account-hub-subtitle">
                   {isBank ? 'Rekening Bank' : isEwallet ? 'Akun E-Wallet' : isCash ? 'Uang Tunai' : 'Dompet Digital'}
                   {stats.portfolioPct > 0 ? ` • ${stats.portfolioPct}% dari total aset` : ''}
@@ -137,15 +162,24 @@ export const AccountDetailModal = ({
         {/* Scrollable Modal Content */}
         <div className="account-hub-body" ref={scrollRef}>
           {/* 1. ULTRA-SLEEK LUXURY MINIMALIST CARD */}
-          <div className={`digital-wallet-card ${cardThemeClass}`}>
+          <div className={`digital-wallet-card ${cardThemeClass}`} style={{ borderLeft: `3.5px solid ${brand.color}` }}>
             {/* Ambient Sheen Overlay */}
             <div className="digital-card-sheen" />
 
             {/* Card Top: Type & Contactless Emblem */}
             <div className="digital-card-top">
               <div className="digital-card-brand">
-                <span className="digital-card-symbol">{account.icon || '💳'}</span>
+                <img
+                  src={getAccountTypeIcon(account.type)}
+                  alt={account.name}
+                  style={{ width: '22px', height: '22px', objectFit: 'contain' }}
+                />
                 <span className="digital-card-inst">{account.name}</span>
+                {account.isPrimary && (
+                  <span className="primary-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', marginLeft: '6px' }}>
+                    <Star size={9} fill="currentColor" /> Utama
+                  </span>
+                )}
               </div>
               <div className="digital-card-top-right">
                 <span className="digital-card-type-badge">{typeLabel}</span>
@@ -224,6 +258,37 @@ export const AccountDetailModal = ({
               <Plus size={15} strokeWidth={2.5} />
               <span>Catat Transaksi</span>
             </button>
+
+            {!account.isPrimary ? (
+              <button
+                type="button"
+                className="hub-action-pill highlight"
+                onClick={() => setPrimaryAccount(account.id)}
+                title="Jadikan akun ini sebagai pilihan utama saat mencatat transaksi"
+                style={{
+                  background: '#FEF3C7',
+                  color: '#B45309',
+                  borderColor: '#FDE68A'
+                }}
+              >
+                <Star size={14} />
+                <span>Jadikan Utama</span>
+              </button>
+            ) : (
+              <div
+                className="hub-action-pill highlight"
+                title="Akun ini adalah akun default transaksi"
+                style={{
+                  background: '#ECFDF5',
+                  color: '#047857',
+                  borderColor: '#A7F3D0',
+                  cursor: 'default'
+                }}
+              >
+                <Star size={14} fill="#047857" />
+                <span>Akun Utama</span>
+              </div>
+            )}
 
             <button
               type="button"

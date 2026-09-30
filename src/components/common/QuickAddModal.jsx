@@ -26,9 +26,10 @@ export const QuickAddModal = () => {
   );
 
   // Transaction form state
+  const primaryAccount = (data.accounts || []).find(a => a.isPrimary) || data.accounts?.[0];
   const [txType, setTxType] = useState('expense'); // expense | income | transfer
   const [txAmount, setTxAmount] = useState('');
-  const [txAccount, setTxAccount] = useState(data.accounts[0]?.name || '');
+  const [txAccount, setTxAccount] = useState(primaryAccount?.name || '');
   const [txCategory, setTxCategory] = useState(data.budget?.categories?.[0]?.name || 'Makanan & minuman');
   const [txMerchant, setTxMerchant] = useState('');
   const [txNote, setTxNote] = useState('');
@@ -49,15 +50,13 @@ export const QuickAddModal = () => {
     }
   }, [isQuickAddOpen, quickAddCategory, data.budget?.categories]);
 
-  // Synchronize txAccount with available accounts dynamically
+  // Synchronize txAccount with primary account whenever modal opens
   React.useEffect(() => {
-    if (data.accounts && data.accounts.length > 0) {
-      const exists = data.accounts.some(a => a.name === txAccount);
-      if (!exists || !txAccount) {
-        setTxAccount(data.accounts[0].name);
-      }
+    if (isQuickAddOpen && data.accounts && data.accounts.length > 0) {
+      const primary = data.accounts.find(a => a.isPrimary) || data.accounts[0];
+      setTxAccount(primary.name);
     }
-  }, [data.accounts, isQuickAddOpen]);
+  }, [isQuickAddOpen, data.accounts]);
 
   // Assignment form state
   const [asgCourseId, setAsgCourseId] = useState(activeSemesterCourses[0]?.id || '');
@@ -340,7 +339,7 @@ export const QuickAddModal = () => {
               >
                 {data.accounts.map(acc => (
                   <option key={acc.id} value={acc.name}>
-                    {acc.name} (Sisa: Rp {acc.balance.toLocaleString('id-ID')})
+                    {acc.isPrimary ? '⭐ ' : ''}{acc.name}{acc.isPrimary ? ' (Utama)' : ''} (Sisa: Rp {acc.balance.toLocaleString('id-ID')})
                   </option>
                 ))}
               </select>
