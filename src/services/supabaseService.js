@@ -719,7 +719,9 @@ export const dataSyncService = {
           station: fl.station || '',
           odometer: fl.odometer !== null && fl.odometer !== undefined ? Number(fl.odometer) : null,
           tankLevel: fl.tank_level !== null && fl.tank_level !== undefined ? Number(fl.tank_level) : 100,
-          note: fl.note || ''
+          note: fl.note || '',
+          accountName: fl.account_name || null,
+          transactionId: fl.transaction_id || null
         })),
         fuelSettings: fuelSettingsRes?.data ? {
           motorName: fuelSettingsRes.data.motor_name || 'Motor Saya',
@@ -1336,10 +1338,76 @@ export const cloudService = {
         tank_level: log.tankLevel !== null && log.tankLevel !== undefined ? Number(log.tankLevel) : 100,
         note: log.note || ''
       };
-      const { error } = await supabase.from('fuel_logs').insert(payload);
+      if (log.transactionId) payload.transaction_id = log.transactionId;
+      if (log.accountName) payload.account_name = log.accountName;
+
+      let { error } = await supabase.from('fuel_logs').insert(payload);
+      if (error && (error.code === 'PGRST204' || error.message?.includes('column'))) {
+        delete payload.transaction_id;
+        delete payload.account_name;
+        const retryRes = await supabase.from('fuel_logs').insert(payload);
+        error = retryRes.error;
+      }
       if (error) console.error('Cloud insert fuel log error:', error);
     } catch (e) {
       console.error('Catch insertFuelLog:', e);
+    }
+  },
+
+  async updateFuelLog(userId, logId, log) {
+    if (!isSupabaseConfigured() || !supabase || !logId) return;
+    try {
+      const payload = {};
+      if (log.date !== undefined) payload.date = log.date;
+      if (log.fuelType !== undefined) payload.fuel_type = log.fuelType;
+      if (log.amount !== undefined) payload.amount = Number(log.amount);
+      if (log.liters !== undefined) payload.liters = Number(log.liters);
+      if (log.pricePerLiter !== undefined) payload.price_per_liter = Number(log.pricePerLiter);
+      if (log.station !== undefined) payload.station = log.station || '';
+      if (log.odometer !== undefined) payload.odometer = log.odometer !== null && log.odometer !== '' ? Number(log.odometer) : null;
+      if (log.tankLevel !== undefined) payload.tank_level = log.tankLevel !== null && log.tankLevel !== '' ? Number(log.tankLevel) : 100;
+      if (log.note !== undefined) payload.note = log.note || '';
+      if (log.transactionId !== undefined) payload.transaction_id = log.transactionId;
+      if (log.accountName !== undefined) payload.account_name = log.accountName;
+
+      let query = supabase.from('fuel_logs').update(payload).eq('id', logId);
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
+      let { data: updatedRows, error } = await query.select();
+      if (error && (error.code === 'PGRST204' || error.message?.includes('column'))) {
+        delete payload.transaction_id;
+        delete payload.account_name;
+        let retryQuery = supabase.from('fuel_logs').update(payload).eq('id', logId);
+        if (userId) retryQuery = retryQuery.eq('user_id', userId);
+        const retryRes = await retryQuery.select();
+        updatedRows = retryRes.data;
+        error = retryRes.error;
+      }
+
+      if (error) {
+        console.error('Cloud update fuel log error:', error);
+      } else if ((!updatedRows || updatedRows.length === 0) && userId) {
+        // Fallback: If record does not exist yet in cloud (e.g. created offline), insert it now
+        delete payload.transaction_id;
+        delete payload.account_name;
+        const insertPayload = {
+          id: logId,
+          user_id: userId,
+          date: log.date || new Date().toISOString().split('T')[0],
+          fuel_type: log.fuelType || 'pertalite',
+          amount: Number(log.amount) || 0,
+          liters: Number(log.liters) || 0,
+          price_per_liter: Number(log.pricePerLiter) || 10000,
+          station: log.station || '',
+          odometer: log.odometer !== null && log.odometer !== '' ? Number(log.odometer) : null,
+          tank_level: log.tankLevel !== null && log.tankLevel !== '' ? Number(log.tankLevel) : 100,
+          note: log.note || ''
+        };
+        await supabase.from('fuel_logs').insert(insertPayload);
+      }
+    } catch (e) {
+      console.error('Catch updateFuelLog:', e);
     }
   },
 

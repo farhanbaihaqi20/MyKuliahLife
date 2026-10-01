@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { X, Fuel, Check, Sparkles, Navigation, Wallet, Info } from 'lucide-react';
+import { X, Fuel, Check, Sparkles, Wallet, Info, Calendar, Gauge, Edit3, ArrowRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
-export const FuelLogModal = ({ isOpen, onClose, fuelSettings, initialFuelType = 'pertalite' }) => {
-  const { data, addFuelLog } = useApp();
+export const FuelLogModal = ({
+  isOpen,
+  onClose,
+  fuelSettings,
+  initialFuelType = 'pertalite',
+  editingLog = null
+}) => {
+  const { data, addFuelLog, updateFuelLog, findLinkedTransaction } = useApp();
+
+  const isEditMode = Boolean(editingLog);
 
   const prices = fuelSettings?.fuelPrices || {
     pertalite: 10000,
@@ -14,39 +22,78 @@ export const FuelLogModal = ({ isOpen, onClose, fuelSettings, initialFuelType = 
 
   const [fuelType, setFuelType] = useState(initialFuelType || 'pertalite');
   const [nominalStr, setNominalStr] = useState('');
+  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [selectedAccount, setSelectedAccount] = useState('');
   const [station, setStation] = useState('SPBU Pertamina');
   const [odometer, setOdometer] = useState('');
   const [note, setNote] = useState('');
+  const [customPrice, setCustomPrice] = useState(null);
+  const [customLiters, setCustomLiters] = useState('');
+  const [isManualLiters, setIsManualLiters] = useState(false);
+  const [syncTransaction, setSyncTransaction] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Sync initialFuelType when modal opens
+  // Sync state whenever modal opens or editingLog changes
   useEffect(() => {
-    if (isOpen && initialFuelType) {
-      setFuelType(initialFuelType);
-    }
-  }, [isOpen, initialFuelType]);
+    if (!isOpen) return;
 
-  // Set default account when modal opens or accounts change
-  useEffect(() => {
-    if (data.accounts && data.accounts.length > 0) {
-      const primary = data.accounts.find(a => a.isPrimary) || data.accounts[0];
-      setSelectedAccount(primary.name);
-    }
-  }, [data.accounts, isOpen]);
+    if (editingLog) {
+      const logFuelType = editingLog.fuelType || 'pertalite';
+      setFuelType(logFuelType);
+      setNominalStr(editingLog.amount ? Number(editingLog.amount).toLocaleString('id-ID') : '');
+      setDate(editingLog.date || new Date().toISOString().split('T')[0]);
+      setStation(editingLog.station || 'SPBU Pertamina');
+      setOdometer(
+        editingLog.odometer !== null && editingLog.odometer !== undefined
+          ? String(editingLog.odometer)
+          : ''
+      );
+      setNote(editingLog.note || '');
+      setCustomPrice(editingLog.pricePerLiter ? Number(editingLog.pricePerLiter) : null);
+      setCustomLiters(editingLog.liters ? String(editingLog.liters) : '');
+      setIsManualLiters(false);
+      setSyncTransaction(true);
 
-  // Pre-fill odometer placeholder/value from current settings
-  useEffect(() => {
-    if (isOpen && fuelSettings?.currentOdometer) {
-      // Keep empty by default so user types latest reading, but keep previous as placeholder
+      // Resolve selected account
+      if (editingLog.accountName) {
+        setSelectedAccount(editingLog.accountName);
+      } else {
+        const linkedTx = findLinkedTransaction(data.transactions, editingLog);
+        if (linkedTx?.accountName) {
+          setSelectedAccount(linkedTx.accountName);
+        } else if (data.accounts && data.accounts.length > 0) {
+          const primary = data.accounts.find(a => a.isPrimary) || data.accounts[0];
+          setSelectedAccount(primary.name);
+        }
+      }
+    } else {
+      setFuelType(initialFuelType || 'pertalite');
+      setNominalStr('');
+      setDate(new Date().toISOString().split('T')[0]);
+      setStation('SPBU Pertamina');
+      setOdometer('');
+      setNote('');
+      setCustomPrice(null);
+      setCustomLiters('');
+      setIsManualLiters(false);
+      setSyncTransaction(true);
+
+      if (data.accounts && data.accounts.length > 0) {
+        const primary = data.accounts.find(a => a.isPrimary) || data.accounts[0];
+        setSelectedAccount(primary.name);
+      }
     }
-  }, [isOpen, fuelSettings]);
+  }, [isOpen, editingLog, initialFuelType]);
 
   if (!isOpen) return null;
 
-  const currentPrice = prices[fuelType] || 10000;
+  const currentPrice = customPrice || prices[fuelType] || 10000;
   const nominalNum = Number(nominalStr.replace(/\D/g, '')) || 0;
-  const calculatedLiters = currentPrice > 0 ? (nominalNum / currentPrice).toFixed(3) : 0;
+  
+  // Calculate liters (either manual input or calculated from nominal / price)
+  const calculatedLiters = isManualLiters && customLiters
+    ? Number(customLiters) || 0
+    : currentPrice > 0 ? Number((nominalNum / currentPrice).toFixed(3)) : 0;
 
   // Handle format rupiah input
   const handleNominalChange = (e) => {
@@ -71,30 +118,43 @@ export const FuelLogModal = ({ isOpen, onClose, fuelSettings, initialFuelType = 
     setNominalStr(approxNominal.toLocaleString('id-ID'));
   };
 
+  const handleSelectFuelType = (typeId) => {
+    setFuelType(typeId);
+    // If switching fuel type, update pricePerLiter to current official price
+    if (!isEditMode || typeId !== editingLog?.fuelType) {
+      setCustomPrice(null);
+    } else if (editingLog?.pricePerLiter) {
+      setCustomPrice(Number(editingLog.pricePerLiter));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (nominalNum <= 0) return;
 
     setIsSubmitting(true);
     try {
-      await addFuelLog({
+      const payload = {
+        date,
         fuelType,
         amount: nominalNum,
         liters: Number(calculatedLiters),
         pricePerLiter: currentPrice,
         station: station.trim() || 'SPBU Pertamina',
-        odometer: odometer ? Number(odometer) : null,
+        odometer: odometer !== '' && !isNaN(Number(odometer)) ? Number(odometer) : null,
         accountName: selectedAccount,
         note: note.trim()
-      }, true);
+      };
+
+      if (isEditMode) {
+        await updateFuelLog(editingLog.id, payload, syncTransaction);
+      } else {
+        await addFuelLog(payload, syncTransaction);
+      }
 
       onClose();
-      // Reset form
-      setNominalStr('');
-      setOdometer('');
-      setNote('');
     } catch (err) {
-      console.error('Failed to add fuel log:', err);
+      console.error('Failed to save fuel log:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -119,12 +179,18 @@ export const FuelLogModal = ({ isOpen, onClose, fuelSettings, initialFuelType = 
         {/* Header Modal */}
         <div className="modal-header-fuel">
           <div className="header-title-flex">
-            <div className="header-icon-fuel">
-              <Fuel size={20} />
+            <div className={`header-icon-fuel ${isEditMode ? 'edit-mode' : ''}`}>
+              {isEditMode ? <Edit3 size={20} /> : <Fuel size={20} />}
             </div>
             <div>
-              <h2 className="modal-title-fuel">Catat Isi Bensin</h2>
-              <p className="modal-subtitle-fuel">Otomatis catat pengeluaran & update sisa tangki</p>
+              <h2 className="modal-title-fuel">
+                {isEditMode ? 'Edit Riwayat Bensin' : 'Catat Isi Bensin'}
+              </h2>
+              <p className="modal-subtitle-fuel">
+                {isEditMode
+                  ? 'Perbarui rincian pengisian & sinkronkan data transaksi'
+                  : 'Otomatis catat pengeluaran & update sisa tangki'}
+              </p>
             </div>
           </div>
           <button className="btn-close-fuel" onClick={onClose} aria-label="Tutup modal">
@@ -132,20 +198,36 @@ export const FuelLogModal = ({ isOpen, onClose, fuelSettings, initialFuelType = 
           </button>
         </div>
 
-        {/* Form Isi Bensin */}
+        {/* Form Isi / Edit Bensin */}
         <form onSubmit={handleSubmit} className="fuel-form-body">
-          {/* 1. Pilih Jenis BBM */}
+          {/* 1. Tanggal Pengisian */}
+          <div className="form-group-fuel">
+            <label className="form-label-fuel">
+              <Calendar size={14} className="inline mr-1 text-slate-500" />
+              Tanggal Pengisian <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="date"
+              className="input-date-fuel"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* 2. Pilih Jenis BBM */}
           <div className="form-group-fuel">
             <label className="form-label-fuel">Jenis Bahan Bakar</label>
             <div className="fuel-type-grid">
               {fuelOptions.map((opt) => {
                 const isSelected = fuelType === opt.id;
+                const displayPrice = isSelected && customPrice ? customPrice : opt.price;
                 return (
                   <button
                     key={opt.id}
                     type="button"
                     className={`fuel-type-btn ${isSelected ? 'selected' : ''}`}
-                    onClick={() => setFuelType(opt.id)}
+                    onClick={() => handleSelectFuelType(opt.id)}
                     style={{
                       borderColor: isSelected ? opt.color : undefined
                     }}
@@ -155,7 +237,7 @@ export const FuelLogModal = ({ isOpen, onClose, fuelSettings, initialFuelType = 
                       <span className="fuel-ron" style={{ color: opt.color }}>{opt.oktan}</span>
                     </div>
                     <span className="fuel-price">
-                      Rp {opt.price?.toLocaleString('id-ID')}/L
+                      Rp {displayPrice?.toLocaleString('id-ID')}/L
                     </span>
                     {isSelected && (
                       <div className="fuel-checked-pill" style={{ background: opt.color }}>
@@ -168,7 +250,7 @@ export const FuelLogModal = ({ isOpen, onClose, fuelSettings, initialFuelType = 
             </div>
           </div>
 
-          {/* 2. Nominal Rupiah */}
+          {/* 3. Nominal Rupiah */}
           <div className="form-group-fuel">
             <label className="form-label-fuel">
               Nominal Pengisian (Rp) <span className="text-rose-500">*</span>
@@ -183,7 +265,7 @@ export const FuelLogModal = ({ isOpen, onClose, fuelSettings, initialFuelType = 
                 value={nominalStr}
                 onChange={handleNominalChange}
                 required
-                autoFocus
+                autoFocus={!isEditMode}
               />
             </div>
 
@@ -212,17 +294,21 @@ export const FuelLogModal = ({ isOpen, onClose, fuelSettings, initialFuelType = 
           {/* Live Calculation Liters Box */}
           <div className="liters-calc-banner">
             <div className="liters-banner-left">
-              <span className="liters-banner-label">Estimasi Didapat:</span>
+              <span className="liters-banner-label">
+                {isManualLiters ? 'Volume Liter:' : 'Estimasi Didapat:'}
+              </span>
               <span className="liters-banner-val">
-                <strong>{nominalNum > 0 ? calculatedLiters : '0.000'}</strong> Liter
+                <strong>{nominalNum > 0 ? Number(calculatedLiters).toFixed(3) : '0.000'}</strong> Liter
               </span>
             </div>
-            <span className="liters-calc-rate">
-              @ Rp {currentPrice.toLocaleString('id-ID')}/L
-            </span>
+            <div className="text-right">
+              <span className="liters-calc-rate">
+                @ Rp {currentPrice.toLocaleString('id-ID')}/L
+              </span>
+            </div>
           </div>
 
-          {/* 3. Akun Pembayaran */}
+          {/* 4. Akun Pembayaran (Dompet/Rekening) */}
           <div className="form-group-fuel">
             <label className="form-label-fuel">
               <Wallet size={15} className="inline mr-1 text-slate-500" />
@@ -241,7 +327,7 @@ export const FuelLogModal = ({ isOpen, onClose, fuelSettings, initialFuelType = 
             </select>
           </div>
 
-          {/* 4. Lokasi SPBU & Odometer (2 Kolom) */}
+          {/* 5. Lokasi SPBU & Odometer (2 Kolom) */}
           <div className="form-grid-two">
             <div className="form-group-fuel">
               <label className="form-label-fuel">Lokasi SPBU</label>
@@ -259,21 +345,21 @@ export const FuelLogModal = ({ isOpen, onClose, fuelSettings, initialFuelType = 
                 Odometer (km)
                 {fuelSettings?.currentOdometer > 0 && (
                   <span className="last-odo-badge">
-                    Lalu: {Number(fuelSettings.currentOdometer).toLocaleString('id-ID')}
+                    Tercatat: {Number(fuelSettings.currentOdometer).toLocaleString('id-ID')}
                   </span>
                 )}
               </label>
               <input
                 type="number"
                 className="input-text-fuel"
-                placeholder={fuelSettings?.currentOdometer ? String(fuelSettings.currentOdometer + 150) : "Contoh: 14640"}
+                placeholder={fuelSettings?.currentOdometer ? String(fuelSettings.currentOdometer) : "Contoh: 14640"}
                 value={odometer}
                 onChange={(e) => setOdometer(e.target.value)}
               />
             </div>
           </div>
 
-          {/* 5. Catatan Tambahan (Opsional) */}
+          {/* 6. Catatan Tambahan (Opsional) */}
           <div className="form-group-fuel">
             <label className="form-label-fuel">Catatan (Opsional)</label>
             <input
@@ -285,13 +371,26 @@ export const FuelLogModal = ({ isOpen, onClose, fuelSettings, initialFuelType = 
             />
           </div>
 
-          {/* Auto Transaction Info Box */}
-          <div className="auto-tx-info-box">
-            <Info size={15} className="text-emerald-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-slate-600 dark:text-slate-300">
-              Otomatis tercatat di anggaran <strong>Transport & Bensin</strong> dan saldo dompet Anda akan disesuaikan.
-            </p>
-          </div>
+          {/* 7. Checkbox Sinkronisasi Transaksi Keuangan */}
+          <label className="sync-tx-checkbox-wrap">
+            <input
+              type="checkbox"
+              checked={syncTransaction}
+              onChange={(e) => setSyncTransaction(e.target.checked)}
+            />
+            <div className="sync-tx-checkbox-text">
+              <span className="sync-tx-title">
+                {isEditMode
+                  ? 'Sinkronkan dengan Transaksi Keuangan'
+                  : 'Otomatis Masukkan ke Jurnal Pengeluaran'}
+              </span>
+              <p className="sync-tx-desc">
+                {isEditMode
+                  ? `Catatan pengeluaran kategori Transport & Bensin serta saldo rekening ${selectedAccount || 'Tunai'} akan diperbarui otomatis.`
+                  : `Tercatat otomatis di kategori Transport & Bensin pada rekening ${selectedAccount || 'Tunai'}.`}
+              </p>
+            </div>
+          </label>
 
           {/* Action Buttons */}
           <div className="fuel-form-actions">
@@ -308,7 +407,11 @@ export const FuelLogModal = ({ isOpen, onClose, fuelSettings, initialFuelType = 
               className="btn-submit-fuel"
               disabled={nominalNum <= 0 || isSubmitting}
             >
-              {isSubmitting ? 'Menyimpan...' : 'Simpan & Masukkan Pengeluaran'}
+              {isSubmitting
+                ? 'Menyimpan...'
+                : isEditMode
+                ? 'Simpan Perubahan'
+                : 'Simpan & Masukkan Pengeluaran'}
             </button>
           </div>
         </form>

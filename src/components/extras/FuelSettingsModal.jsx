@@ -80,7 +80,7 @@ export const FuelSettingsModal = ({ isOpen, onClose, fuelSettings }) => {
         setSyncFeedback({ type: 'error', message: res.error || 'Gagal mengambil data harga BBM.' });
       }
     } catch {
-      setSyncFeedback({ type: 'error', message: 'Koneksi gagal saat menghubungi API.' });
+      setSyncFeedback({ type: 'error', message: 'Koneksi gagal saat memperbarui data harga Pertamina.' });
     } finally {
       setIsFetchingPrices(false);
     }
@@ -291,8 +291,12 @@ export const FuelSettingsModal = ({ isOpen, onClose, fuelSettings }) => {
               <div className="bg-sky-50/70 dark:bg-sky-950/30 p-3 rounded-xl border border-sky-100 dark:border-sky-900/50">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-sky-900 dark:text-sky-200">
-                    <Globe size={15} className="text-sky-500" />
-                    <span>Sinkronisasi Otomatis Pertamina</span>
+                    <img
+                      src="/assets/icons/pertamina-emblem.svg"
+                      alt="Pertamina"
+                      style={{ width: '15px', height: '12px', objectFit: 'contain' }}
+                    />
+                    <span>Sinkronisasi Resmi Pertamina</span>
                   </div>
                   <button
                     type="button"

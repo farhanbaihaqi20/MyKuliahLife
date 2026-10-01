@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Settings, Activity, Clock, Sparkles } from 'lucide-react';
+import { ArrowLeft, Plus, Settings, Activity, Clock, Sparkles, MapPin } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import MotorTankVisual from './MotorTankVisual';
 import FuelLogModal from './FuelLogModal';
@@ -13,12 +13,13 @@ export const FuelDashboard = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState('efficiency'); // 'efficiency' | 'history'
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [selectedFuelTypeForModal, setSelectedFuelTypeForModal] = useState('pertalite');
+  const [editingLog, setEditingLog] = useState(null);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   // Auto-fetch fuel prices on mount if lastPriceSync is null or older than 24 hours
   useEffect(() => {
     if (!fuelSettings?.lastPriceSync) {
-      fetchFuelPrices(fuelSettings?.provinceSlug || 'jawa-timur').catch(() => {});
+      fetchFuelPrices(fuelSettings?.provinceSlug || 'jawa-timur').catch(() => { });
     }
   }, []);
 
@@ -37,27 +38,53 @@ export const FuelDashboard = ({ onBack }) => {
   ];
 
   const handleOpenLogModal = (fuelTypeId = 'pertalite') => {
+    setEditingLog(null);
     setSelectedFuelTypeForModal(fuelTypeId);
+    setIsLogModalOpen(true);
+  };
+
+  const handleEditLog = (log) => {
+    setEditingLog(log);
     setIsLogModalOpen(true);
   };
 
   return (
     <div className="fuel-dashboard-container animate-fade-in">
-      {/* Top Header (Hanya 1 Tombol Setting Tunggal di Pojok Kanan) */}
+      {/* Top Header */}
       <div className="fuel-topbar">
         <button
           className="btn-fuel-back"
           onClick={onBack}
           aria-label="Kembali ke menu lainnya"
+          title="Kembali"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={19} />
         </button>
+
         <div className="fuel-topbar-title">
           <h2>BBM & Kendaraan</h2>
-          <span className="text-xs text-slate-500 dark:text-slate-400">
-            {fuelSettings?.provinceName || 'Jawa Timur'} • Auto Pertamina API
-          </span>
+          <button
+            type="button"
+            className="fuel-topbar-capsule"
+            onClick={() => setIsSettingsModalOpen(true)}
+            title="Klik untuk ubah provinsi atau perbarui harga Pertamina"
+          >
+            <span className="fuel-capsule-loc">
+              <MapPin size={11} className="fuel-pin-icon" />
+              <span>{fuelSettings?.provinceName || 'Jawa Timur'}</span>
+            </span>
+            <span className="fuel-capsule-divider" />
+            <span className="fuel-capsule-pertamina">
+              <img
+                src="/assets/icons/pertamina-emblem.svg"
+                alt="Pertamina"
+                className="fuel-pertamina-logo"
+              />
+              <span>Harga Sesuai Pertamina</span>
+            </span>
+          </button>
         </div>
+
         <button
           className="btn-fuel-icon-action"
           onClick={() => setIsSettingsModalOpen(true)}
@@ -83,6 +110,11 @@ export const FuelDashboard = ({ onBack }) => {
         <div className="live-price-header-row">
           <div className="live-price-title-group">
             <span className="live-pulse-dot" />
+            <img
+              src="/assets/icons/pertamina-emblem.svg"
+              alt="Pertamina"
+              className="fuel-pertamina-card-logo"
+            />
             <h3 className="live-price-heading">Live Harga Pertamina</h3>
           </div>
           <span className="live-price-sub-badge">
@@ -168,16 +200,21 @@ export const FuelDashboard = ({ onBack }) => {
         {activeTab === 'efficiency' ? (
           <FuelEfficiencyCard fuelLogs={fuelLogs} fuelSettings={fuelSettings} />
         ) : (
-          <FuelHistoryList fuelLogs={fuelLogs} />
+          <FuelHistoryList fuelLogs={fuelLogs} onEditLog={handleEditLog} />
         )}
       </div>
 
       {/* Modals */}
       <FuelLogModal
+        key={editingLog ? `edit-${editingLog.id}` : 'new-log'}
         isOpen={isLogModalOpen}
-        onClose={() => setIsLogModalOpen(false)}
+        onClose={() => {
+          setIsLogModalOpen(false);
+          setEditingLog(null);
+        }}
         fuelSettings={fuelSettings}
         initialFuelType={selectedFuelTypeForModal}
+        editingLog={editingLog}
       />
       <FuelSettingsModal
         isOpen={isSettingsModalOpen}

@@ -115,9 +115,19 @@ const reconcileUserData = (cloudData, cached, userId) => {
     }));
   }
 
-  // 5. Reconcile Fuel Data (keep cached if cloud is empty)
+  // 5. Reconcile Fuel Data (keep cached if cloud is empty, merge metadata if cloud exists)
   if ((!cloudData.fuelLogs || cloudData.fuelLogs.length === 0) && cached.fuelLogs && cached.fuelLogs.length > 0) {
     cloudData.fuelLogs = cached.fuelLogs;
+  } else if (Array.isArray(cloudData.fuelLogs) && Array.isArray(cached?.fuelLogs)) {
+    const cachedMap = new Map(cached.fuelLogs.map(l => [l.id, l]));
+    cloudData.fuelLogs = cloudData.fuelLogs.map(fl => {
+      const c = cachedMap.get(fl.id);
+      return {
+        ...fl,
+        transactionId: fl.transactionId || c?.transactionId || null,
+        accountName: fl.accountName || c?.accountName || null
+      };
+    });
   }
   if (!cloudData.fuelSettings && cached.fuelSettings) {
     cloudData.fuelSettings = cached.fuelSettings;
@@ -937,7 +947,7 @@ export const AppProvider = ({ children }) => {
 
   // --- TRANSACTIONS CRUD ---
   const addTransaction = async (tx) => {
-    const txId = generateUUID();
+    const txId = tx.id || generateUUID();
     const newTx = {
       id: txId,
       date: tx.date || new Date().toISOString().split('T')[0],
@@ -996,6 +1006,8 @@ export const AppProvider = ({ children }) => {
         lastSynced: new Date().toLocaleTimeString('id-ID')
       });
     }
+
+    return newTx;
   };
 
   const deleteTransaction = async (txId, rollbackBalance = true) => {
@@ -1123,6 +1135,8 @@ export const AppProvider = ({ children }) => {
         lastSynced: new Date().toLocaleTimeString('id-ID')
       });
     }
+
+    return savedNewTx;
   };
 
   // Budget Management (Direct Cloud Sync + Safe Local Persistence)
@@ -1276,6 +1290,22 @@ export const AppProvider = ({ children }) => {
   };
 
   // --- FUEL TRACKER CRUD & SYNC ---
+  const findLinkedTransaction = (transactions = [], fuelLog) => {
+    if (!fuelLog || !Array.isArray(transactions)) return null;
+    if (fuelLog.transactionId) {
+      const found = transactions.find(t => String(t.id) === String(fuelLog.transactionId));
+      if (found) return found;
+    }
+    // Fallback heuristic: match category Transport & Bensin, same date, same amount, note contains fuel icon or station matches merchant
+    const match = transactions.find(t =>
+      t.category === 'Transport & Bensin' &&
+      t.date === fuelLog.date &&
+      Number(t.amount) === Number(fuelLog.amount) &&
+      (t.note?.includes('⛽') || (fuelLog.station && t.merchant === fuelLog.station))
+    );
+    return match || null;
+  };
+
   const addFuelLog = async (logData, autoRecordTransaction = true) => {
     const logId = generateUUID();
     const fuelPrice = Number(logData.pricePerLiter) || 10000;
@@ -1304,8 +1334,32 @@ export const AppProvider = ({ children }) => {
     const updatedFuelSettings = {
       ...currSettings,
       currentTankLevel: newTankLevel,
-      currentOdometer: newOdo
+      currentOdometer: Math.max(newOdo, currSettings.currentOdometer || 0)
     };
+
+    let createdTx = null;
+    // Auto-record to Financial Transactions (Category: "Transport & Bensin")
+    if (autoRecordTransaction && amount > 0) {
+      const fuelNames = {
+        pertalite: 'Pertalite',
+        pertamax_90: 'Pertamax',
+        pertamax_green: 'Pertamax Green 95',
+        pertamax_turbo: 'Pertamax Turbo'
+      };
+      const fuelLabel = fuelNames[logData.fuelType] || 'BBM';
+      const odoText = logData.odometer ? ` | Odo: ${Number(logData.odometer).toLocaleString('id-ID')} km` : '';
+
+      createdTx = await addTransaction({
+        type: 'expense',
+        category: 'Transport & Bensin',
+        amount,
+        accountName: logData.accountName || data.accounts?.[0]?.name || 'Tunai',
+        merchant: logData.station || 'SPBU Pertamina',
+        note: `⛽ ${fuelLabel} ${calculatedLiters.toFixed(2)}L @ Rp${fuelPrice.toLocaleString('id-ID')}${odoText}`,
+        icon: '⛽',
+        date: logData.date || new Date().toISOString().split('T')[0]
+      });
+    }
 
     const newLog = {
       id: logId,
@@ -1317,7 +1371,9 @@ export const AppProvider = ({ children }) => {
       station: logData.station || '',
       odometer: logData.odometer !== undefined && logData.odometer !== null && logData.odometer !== '' ? Number(logData.odometer) : null,
       tankLevel: newTankLevel,
-      note: logData.note || ''
+      note: logData.note || '',
+      accountName: logData.accountName || data.accounts?.[0]?.name || 'Tunai',
+      transactionId: createdTx?.id || null
     };
 
     setData(prev => {
@@ -1335,47 +1391,187 @@ export const AppProvider = ({ children }) => {
     if (user?.id) {
       cloudService.insertFuelLog(user.id, newLog);
       cloudService.upsertFuelSettings(user.id, updatedFuelSettings);
-    }
-
-    // Auto-record to Financial Transactions (Category: "Transport & Bensin")
-    if (autoRecordTransaction && amount > 0) {
-      const fuelNames = {
-        pertalite: 'Pertalite',
-        pertamax_90: 'Pertamax',
-        pertamax_green: 'Pertamax Green 95',
-        pertamax_turbo: 'Pertamax Turbo'
-      };
-      const fuelLabel = fuelNames[logData.fuelType] || 'BBM';
-      const odoText = logData.odometer ? ` | Odo: ${Number(logData.odometer).toLocaleString('id-ID')} km` : '';
-
-      await addTransaction({
-        type: 'expense',
-        category: 'Transport & Bensin',
-        amount,
-        accountName: logData.accountName || data.accounts?.[0]?.name || 'Tunai',
-        merchant: logData.station || 'SPBU Pertamina',
-        note: `⛽ ${fuelLabel} ${calculatedLiters.toFixed(2)}L @ Rp${fuelPrice.toLocaleString('id-ID')}${odoText}`,
-        icon: '⛽',
-        date: logData.date || new Date().toISOString().split('T')[0]
+      setSyncStatus({
+        mode: 'online',
+        message: 'Tersinkron Aman ke Cloud',
+        lastSynced: new Date().toLocaleTimeString('id-ID')
       });
     }
 
     return newLog;
   };
 
-  const deleteFuelLog = (logId) => {
+  const updateFuelLog = async (logId, updatedData, syncTransaction = true) => {
+    const oldLog = (data.fuelLogs || []).find(fl => fl.id === logId);
+    if (!oldLog) {
+      console.warn('Fuel log not found for update:', logId);
+      return null;
+    }
+
+    const fuelPrice = Number(updatedData.pricePerLiter) || Number(oldLog.pricePerLiter) || 10000;
+    const amount = Number(updatedData.amount !== undefined ? updatedData.amount : oldLog.amount);
+    const calculatedLiters = updatedData.liters !== undefined && updatedData.liters !== null && updatedData.liters !== ''
+      ? Number(updatedData.liters)
+      : Number((amount / fuelPrice).toFixed(3));
+
+    const currSettings = data.fuelSettings || {
+      motorName: 'Motor Saya',
+      motorType: 'Matic',
+      tankCapacity: 4.2,
+      currentTankLevel: 50,
+      currentOdometer: 0,
+      provinceSlug: 'jawa-timur',
+      provinceName: 'Jawa Timur',
+      lastPriceSync: null,
+      fuelPrices: DEFAULT_FUEL_PRICES
+    };
+
+    const tankCap = Number(currSettings.tankCapacity) || 4.2;
+    const oldLiters = Number(oldLog.liters) || 0;
+    const diffLiters = calculatedLiters - oldLiters;
+    const diffPercent = (diffLiters / tankCap) * 100;
+    const newTankLevel = Math.max(0, Math.min(100, Math.round((Number(currSettings.currentTankLevel) || 50) + diffPercent)));
+
+    const nextLog = {
+      ...oldLog,
+      ...updatedData,
+      amount,
+      liters: calculatedLiters,
+      pricePerLiter: fuelPrice,
+      tankLevel: newTankLevel,
+      odometer: updatedData.odometer !== undefined && updatedData.odometer !== null && updatedData.odometer !== ''
+        ? Number(updatedData.odometer)
+        : null
+    };
+
+    // Calculate max odometer from all logs
+    const allLogs = (data.fuelLogs || []).map(fl => fl.id === logId ? nextLog : fl);
+    const allOdos = allLogs.map(l => Number(l.odometer)).filter(n => !isNaN(n) && n > 0);
+    const maxOdo = allOdos.length > 0 ? Math.max(...allOdos) : (currSettings.currentOdometer || 0);
+
+    const updatedFuelSettings = {
+      ...currSettings,
+      currentTankLevel: newTankLevel,
+      currentOdometer: maxOdo
+    };
+
+    let savedUpdatedLog = { ...nextLog };
+
+    // Financial transaction synchronization
+    if (syncTransaction) {
+      const linkedTx = findLinkedTransaction(data.transactions, oldLog);
+      const fuelNames = {
+        pertalite: 'Pertalite',
+        pertamax_90: 'Pertamax',
+        pertamax_green: 'Pertamax Green 95',
+        pertamax_turbo: 'Pertamax Turbo'
+      };
+      const fuelLabel = fuelNames[nextLog.fuelType] || 'BBM';
+      const odoText = nextLog.odometer ? ` | Odo: ${Number(nextLog.odometer).toLocaleString('id-ID')} km` : '';
+      const txNote = `⛽ ${fuelLabel} ${calculatedLiters.toFixed(2)}L @ Rp${fuelPrice.toLocaleString('id-ID')}${odoText}`;
+      const targetAccountName = updatedData.accountName || oldLog.accountName || linkedTx?.accountName || data.accounts?.[0]?.name || 'Tunai';
+
+      if (linkedTx) {
+        savedUpdatedLog.transactionId = linkedTx.id;
+        savedUpdatedLog.accountName = targetAccountName;
+        await editTransaction(linkedTx.id, {
+          amount,
+          accountName: targetAccountName,
+          merchant: nextLog.station || 'SPBU Pertamina',
+          note: txNote,
+          date: nextLog.date || new Date().toISOString().split('T')[0]
+        });
+      } else if (amount > 0) {
+        const newTx = await addTransaction({
+          type: 'expense',
+          category: 'Transport & Bensin',
+          amount,
+          accountName: targetAccountName,
+          merchant: nextLog.station || 'SPBU Pertamina',
+          note: txNote,
+          icon: '⛽',
+          date: nextLog.date || new Date().toISOString().split('T')[0]
+        });
+        if (newTx?.id) {
+          savedUpdatedLog.transactionId = newTx.id;
+          savedUpdatedLog.accountName = targetAccountName;
+        }
+      }
+    }
+
     setData(prev => {
+      const nextLogs = (prev.fuelLogs || []).map(fl => fl.id === logId ? savedUpdatedLog : fl);
       const nextData = {
         ...prev,
-        fuelLogs: (prev.fuelLogs || []).filter(fl => fl.id !== logId)
+        fuelLogs: nextLogs,
+        fuelSettings: updatedFuelSettings
       };
       if (!isAuthLoading) {
         saveLocalData(nextData, user?.id);
       }
       return nextData;
     });
+
     if (user?.id) {
-      cloudService.deleteFuelLog(logId);
+      await cloudService.updateFuelLog(user.id, logId, savedUpdatedLog);
+      await cloudService.upsertFuelSettings(user.id, updatedFuelSettings);
+      setSyncStatus({
+        mode: 'online',
+        message: 'Tersinkron Aman ke Cloud',
+        lastSynced: new Date().toLocaleTimeString('id-ID')
+      });
+    }
+
+    return savedUpdatedLog;
+  };
+
+  const deleteFuelLog = async (logId, deleteLinkedTx = false) => {
+    let linkedTxId = null;
+    const targetLog = (data.fuelLogs || []).find(fl => fl.id === logId);
+    if (targetLog && deleteLinkedTx) {
+      const linkedTx = findLinkedTransaction(data.transactions, targetLog);
+      if (linkedTx) {
+        linkedTxId = linkedTx.id;
+      }
+    }
+
+    let updatedFuelSettings = null;
+    setData(prev => {
+      const remainingLogs = (prev.fuelLogs || []).filter(fl => fl.id !== logId);
+      const allOdos = remainingLogs.map(l => Number(l.odometer)).filter(n => !isNaN(n) && n > 0);
+      const currSettings = prev.fuelSettings || {};
+      const maxOdo = allOdos.length > 0 ? Math.max(...allOdos) : (currSettings.currentOdometer || 0);
+
+      updatedFuelSettings = {
+        ...currSettings,
+        currentOdometer: maxOdo
+      };
+
+      const nextData = {
+        ...prev,
+        fuelLogs: remainingLogs,
+        fuelSettings: updatedFuelSettings
+      };
+      if (!isAuthLoading) {
+        saveLocalData(nextData, user?.id);
+      }
+      return nextData;
+    });
+
+    if (linkedTxId) {
+      await deleteTransaction(linkedTxId, true);
+    }
+
+    if (user?.id) {
+      await cloudService.deleteFuelLog(logId);
+      if (updatedFuelSettings) {
+        await cloudService.upsertFuelSettings(user.id, updatedFuelSettings);
+      }
+      setSyncStatus({
+        mode: 'online',
+        message: 'Tersinkron Aman ke Cloud',
+        lastSynced: new Date().toLocaleTimeString('id-ID')
+      });
     }
   };
 
@@ -2111,7 +2307,9 @@ export const AppProvider = ({ children }) => {
           fuelPrices: DEFAULT_FUEL_PRICES
         },
         addFuelLog,
+        updateFuelLog,
         deleteFuelLog,
+        findLinkedTransaction,
         updateFuelSettings,
         fetchFuelPrices
       }}
