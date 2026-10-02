@@ -1069,11 +1069,39 @@ export const AppProvider = ({ children }) => {
         });
       }
 
+      let updatedDebts = prev.debts || [];
+      if (targetTx.debtId) {
+        const debtIndex = updatedDebts.findIndex(d => String(d.id) === String(targetTx.debtId));
+        if (debtIndex !== -1) {
+          const d = updatedDebts[debtIndex];
+          if (targetTx.category === 'Pelunasan Piutang' || targetTx.category === 'Bayar Utang') {
+            const newPayments = (d.payments || []).filter(p => String(p.id) !== String(targetTx.id));
+            const newRemaining = Math.min(Number(d.totalAmount) || 0, (Number(d.remainingAmount) || 0) + Number(targetTx.amount));
+            const updatedD = {
+              ...d,
+              remainingAmount: newRemaining,
+              status: newRemaining > 0 ? 'active' : d.status,
+              payments: newPayments
+            };
+            updatedDebts = [...updatedDebts];
+            updatedDebts[debtIndex] = updatedD;
+            if (user?.id) {
+              cloudService.updateDebt(d.id, {
+                remainingAmount: newRemaining,
+                status: updatedD.status,
+                payments: newPayments
+              }, user.id).catch(err => console.warn(err));
+            }
+          }
+        }
+      }
+
       finalAccounts = updatedAccounts;
 
       const nextData = {
         ...prev,
         accounts: updatedAccounts,
+        debts: updatedDebts,
         transactions: (prev.transactions || []).filter(t => String(t.id) !== String(txId))
       };
 
@@ -1569,17 +1597,92 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const deleteDebt = (debtId) => {
+  const deleteDebt = async (debtId) => {
+    let finalAccounts = [];
+    let linkedTxIds = [];
+
     setData(prev => {
       const currentDebts = Array.isArray(prev.debts) ? prev.debts : [];
+      const targetDebt = currentDebts.find(d => String(d.id) === String(debtId));
       const nextDebts = currentDebts.filter(d => String(d.id) !== String(debtId));
-      const nextData = { ...prev, debts: nextDebts };
-      if (!isAuthLoading) saveLocalData(nextData, user?.id);
+
+      const currentTxs = Array.isArray(prev.transactions) ? prev.transactions : [];
+
+      // Find all transactions linked to this debt:
+      // 1. Direct match by debtId
+      // 2. Heuristic fallback for legacy/un-tagged transactions
+      const linkedTxs = currentTxs.filter(t => {
+        if (t.debtId && String(t.debtId) === String(debtId)) return true;
+        if (targetDebt && !t.debtId) {
+          const isDebtType = t.type === 'debt_out' || t.type === 'debt_in';
+          const matchMerchant = t.merchant && t.merchant.trim().toLowerCase() === targetDebt.personName.trim().toLowerCase();
+          const matchCategory = ['Piutang Diberikan', 'Penerimaan Utang', 'Pelunasan Piutang', 'Bayar Utang'].includes(t.category);
+          if (isDebtType && matchMerchant && matchCategory) return true;
+        }
+        return false;
+      });
+
+      linkedTxIds = linkedTxs.map(t => t.id);
+
+      // Rollback accounts balance for each linked transaction being removed
+      let updatedAccounts = [...(prev.accounts || [])];
+      for (const tx of linkedTxs) {
+        const txAmount = Number(tx.amount) || 0;
+        if (txAmount <= 0) continue;
+
+        updatedAccounts = updatedAccounts.map(acc => {
+          if (acc.name === tx.accountName) {
+            let balance = Number(acc.balance) || 0;
+            // Rollback rules:
+            // - debt_out or expense (money went out): rollback restores balance (+txAmount)
+            // - debt_in or income (money came in): rollback deducts balance (-txAmount)
+            if (tx.type === 'debt_out' || tx.type === 'expense') {
+              balance += txAmount;
+            } else if (tx.type === 'debt_in' || tx.type === 'income') {
+              balance = Math.max(0, balance - txAmount);
+            }
+            return { ...acc, balance, updated: 'Baru saja' };
+          }
+          return acc;
+        });
+      }
+
+      finalAccounts = updatedAccounts;
+
+      // Filter out all linked transactions
+      const remainingTxs = currentTxs.filter(t => !linkedTxIds.includes(t.id));
+
+      const nextData = {
+        ...prev,
+        accounts: updatedAccounts,
+        debts: nextDebts,
+        transactions: remainingTxs
+      };
+
+      if (!isAuthLoading) {
+        saveLocalData(nextData, user?.id);
+      }
       return nextData;
     });
 
     if (user?.id) {
-      cloudService.deleteDebt(debtId, user.id).catch(err => console.warn(err));
+      try {
+        // 1. Delete debt row, delete linked transactions, and update account balances in Supabase
+        await cloudService.deleteDebt(debtId, user.id, finalAccounts);
+
+        // 2. Explicitly ensure any individual linked transaction IDs are deleted if needed
+        for (const txId of linkedTxIds) {
+          await cloudService.deleteTransaction(user.id, txId, finalAccounts);
+        }
+
+        setSyncStatus({
+          mode: 'online',
+          message: 'Tersinkron Aman ke Cloud',
+          lastSynced: new Date().toLocaleTimeString('id-ID')
+        });
+      } catch (err) {
+        console.warn('Error syncing debt deletion to cloud:', err);
+      }
     }
   };
 

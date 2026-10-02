@@ -636,7 +636,8 @@ export const dataSyncService = {
           merchant: t.merchant || '',
           note: t.note || '',
           date: t.date,
-          icon: t.icon || '💸'
+          icon: t.icon || '💸',
+          debtId: t.debt_id || null
         })),
         courses: (coursesRes.data || []).map(c => {
           const courseAtt = (attendanceRes.data || [])
@@ -1095,7 +1096,8 @@ export const cloudService = {
         merchant: tx.merchant || '',
         note: tx.note || '',
         icon: tx.icon || '💸',
-        date: tx.date || new Date().toISOString().split('T')[0]
+        date: tx.date || new Date().toISOString().split('T')[0],
+        debt_id: tx.debtId || null
       };
       const { error } = await supabase.from('transactions').insert(payload);
       if (error) console.error('Cloud insert transaction error:', error);
@@ -1151,6 +1153,7 @@ export const cloudService = {
       if (fields.note !== undefined) payload.note = fields.note;
       if (fields.icon !== undefined) payload.icon = fields.icon;
       if (fields.date !== undefined) payload.date = fields.date;
+      if (fields.debtId !== undefined) payload.debt_id = fields.debtId;
 
       if (isUUID) {
         let query = supabase.from('transactions').update(payload).eq('id', txId);
@@ -1174,7 +1177,8 @@ export const cloudService = {
               merchant: fields.merchant || '',
               note: fields.note || '',
               icon: fields.icon || '💸',
-              date: fields.date || new Date().toISOString().split('T')[0]
+              date: fields.date || new Date().toISOString().split('T')[0],
+              debt_id: fields.debtId || null
             };
             const { error: insErr } = await supabase.from('transactions').insert(insertPayload);
             if (insErr) console.error('Cloud insert fallback transaction error:', insErr);
@@ -1194,7 +1198,8 @@ export const cloudService = {
           merchant: fields.merchant || '',
           note: fields.note || '',
           icon: fields.icon || '💸',
-          date: fields.date || new Date().toISOString().split('T')[0]
+          date: fields.date || new Date().toISOString().split('T')[0],
+          debt_id: fields.debtId || null
         };
         const { error: insErr } = await supabase.from('transactions').insert(insertPayload);
         if (insErr) console.error('Cloud insert fallback for non-UUID transaction error:', insErr);
@@ -1516,13 +1521,31 @@ export const cloudService = {
     }
   },
 
-  async deleteDebt(debtId, userId = null) {
+  async deleteDebt(debtId, userId = null, updatedAccounts = []) {
     if (!isSupabaseConfigured() || !supabase || !debtId) return;
     try {
+      // 1. Explicitly delete any linked transactions (also backed by ON DELETE CASCADE in db)
+      let txQuery = supabase.from('transactions').delete().eq('debt_id', debtId);
+      if (userId) txQuery = txQuery.eq('user_id', userId);
+      await txQuery;
+
+      // 2. Delete the debt record
       let query = supabase.from('debts').delete().eq('id', debtId);
       if (userId) query = query.eq('user_id', userId);
       const { error } = await query;
       if (error) console.error('Cloud delete debt error:', error);
+
+      // 3. Update account balances if provided
+      if (updatedAccounts && updatedAccounts.length > 0) {
+        for (const acc of updatedAccounts) {
+          const accIsUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(acc.id);
+          if (accIsUUID) {
+            await supabase.from('accounts').update({ balance: Number(acc.balance) }).eq('id', acc.id);
+          } else if (userId) {
+            await supabase.from('accounts').update({ balance: Number(acc.balance) }).eq('user_id', userId).eq('name', acc.name);
+          }
+        }
+      }
     } catch (e) {
       console.error('Catch deleteDebt:', e);
     }

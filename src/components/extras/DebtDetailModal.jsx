@@ -185,7 +185,12 @@ export const DebtDetailModal = ({ isOpen, onClose, debt, onEdit, onPay }) => {
         {/* Actions */}
         {isConfirmDelete ? (
           <div className="debt-delete-confirm">
-            <span>Hapus catatan ini?</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+              <span>Hapus catatan ini?</span>
+              <span style={{ fontSize: '10.5px', fontWeight: 500, color: '#B91C1C' }}>
+                Riwayat transaksi di Finance & saldo akan dikembalikan
+              </span>
+            </div>
             <div className="debt-delete-confirm-btns">
               <button
                 type="button"
