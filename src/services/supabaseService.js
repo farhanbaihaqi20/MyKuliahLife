@@ -568,7 +568,8 @@ export const dataSyncService = {
         billsRes,
         targetsRes,
         fuelLogsRes,
-        fuelSettingsRes
+        fuelSettingsRes,
+        debtsRes
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
         supabase.from('accounts').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
@@ -580,7 +581,8 @@ export const dataSyncService = {
         supabase.from('bills').select('*').eq('user_id', userId),
         supabase.from('savings_targets').select('*').eq('user_id', userId),
         supabase.from('fuel_logs').select('*').eq('user_id', userId).order('date', { ascending: false }).then(r => r, () => ({ data: [] })),
-        supabase.from('fuel_settings').select('*').eq('user_id', userId).maybeSingle().then(r => r, () => ({ data: null }))
+        supabase.from('fuel_settings').select('*').eq('user_id', userId).maybeSingle().then(r => r, () => ({ data: null })),
+        supabase.from('debts').select('*').eq('user_id', userId).order('created_date', { ascending: false }).then(r => r, () => ({ data: [] }))
       ]);
 
       if (!profileRes.data) {
@@ -738,7 +740,23 @@ export const dataSyncService = {
             pertamax_green: 19150,
             pertamax_turbo: 19600
           }
-        } : null
+        } : null,
+        debts: (debtsRes?.data || []).map(d => ({
+          id: d.id,
+          type: d.type,
+          affectsBalance: Boolean(d.affects_balance),
+          personName: d.person_name,
+          personAvatar: d.person_avatar || (d.type === 'receivable' ? '🧑' : '🤝'),
+          description: d.description || '',
+          totalAmount: Number(d.total_amount),
+          remainingAmount: Number(d.remaining_amount),
+          accountName: d.account_name || 'Dompet Utama (Cash)',
+          createdDate: d.created_date,
+          dueDate: d.due_date || null,
+          status: d.status || 'active',
+          settledDate: d.settled_date || null,
+          payments: Array.isArray(d.payments) ? d.payments : []
+        }))
       };
     } catch (err) {
       console.error('Failed to load user data from Supabase:', err);
@@ -1441,6 +1459,72 @@ export const cloudService = {
       if (error) console.error('Cloud upsert fuel settings error:', error);
     } catch (e) {
       console.error('Catch upsertFuelSettings:', e);
+    }
+  },
+
+  // UTANG & PIUTANG (DEBTS)
+  async insertDebt(userId, debt) {
+    if (!isSupabaseConfigured() || !supabase || !userId || !debt) return;
+    try {
+      const payload = {
+        id: debt.id,
+        user_id: userId,
+        type: debt.type,
+        affects_balance: Boolean(debt.affectsBalance),
+        person_name: debt.personName,
+        person_avatar: debt.personAvatar || (debt.type === 'receivable' ? '🧑' : '🤝'),
+        description: debt.description || '',
+        total_amount: Number(debt.totalAmount || debt.amount || 0),
+        remaining_amount: Number(debt.remainingAmount ?? debt.totalAmount ?? 0),
+        account_name: debt.accountName || null,
+        created_date: debt.createdDate || new Date().toISOString().split('T')[0],
+        due_date: debt.dueDate || null,
+        status: debt.status || 'active',
+        settled_date: debt.settledDate || null,
+        payments: Array.isArray(debt.payments) ? debt.payments : []
+      };
+      const { error } = await supabase.from('debts').insert(payload);
+      if (error) console.error('Cloud insert debt error:', error);
+    } catch (e) {
+      console.error('Catch insertDebt:', e);
+    }
+  },
+
+  async updateDebt(debtId, fields, userId = null) {
+    if (!isSupabaseConfigured() || !supabase || !debtId) return;
+    try {
+      const payload = {
+        updated_at: new Date().toISOString()
+      };
+      if (fields.personName !== undefined) payload.person_name = fields.personName;
+      if (fields.personAvatar !== undefined) payload.person_avatar = fields.personAvatar;
+      if (fields.description !== undefined) payload.description = fields.description;
+      if (fields.totalAmount !== undefined) payload.total_amount = Number(fields.totalAmount);
+      if (fields.remainingAmount !== undefined) payload.remaining_amount = Number(fields.remainingAmount);
+      if (fields.accountName !== undefined) payload.account_name = fields.accountName;
+      if (fields.dueDate !== undefined) payload.due_date = fields.dueDate || null;
+      if (fields.status !== undefined) payload.status = fields.status;
+      if (fields.settledDate !== undefined) payload.settled_date = fields.settledDate || null;
+      if (fields.payments !== undefined) payload.payments = Array.isArray(fields.payments) ? fields.payments : [];
+
+      let query = supabase.from('debts').update(payload).eq('id', debtId);
+      if (userId) query = query.eq('user_id', userId);
+      const { error } = await query;
+      if (error) console.error('Cloud update debt error:', error);
+    } catch (e) {
+      console.error('Catch updateDebt:', e);
+    }
+  },
+
+  async deleteDebt(debtId, userId = null) {
+    if (!isSupabaseConfigured() || !supabase || !debtId) return;
+    try {
+      let query = supabase.from('debts').delete().eq('id', debtId);
+      if (userId) query = query.eq('user_id', userId);
+      const { error } = await query;
+      if (error) console.error('Cloud delete debt error:', error);
+    } catch (e) {
+      console.error('Catch deleteDebt:', e);
     }
   }
 };

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { loadLocalData, saveLocalData } from '../services/db';
+import { loadLocalData, saveLocalData, syncWithCloud } from '../services/db';
 import { isSupabaseConfigured, supabase } from '../services/supabase';
 import { authService, profileService, dataSyncService, cloudService, storageService, generateUUID } from '../services/supabaseService';
 import { INITIAL_DATA, CLEAN_DATA, normalizeBudgetCategories, normalizeCategoryName } from '../constants/initialData';
@@ -136,6 +136,12 @@ const reconcileUserData = (cloudData, cached, userId) => {
   // 6. Reconcile Debts
   if ((!cloudData.debts || cloudData.debts.length === 0) && cached?.debts && cached.debts.length > 0) {
     cloudData.debts = cached.debts;
+    // Auto sync local debts to cloud if user is authenticated!
+    if (userId) {
+      cached.debts.forEach(d => {
+        cloudService.insertDebt(userId, d).catch(err => console.warn('Sync cached debt error:', err));
+      });
+    }
   } else if (!cloudData.debts) {
     cloudData.debts = cached?.debts || [];
   }
@@ -1403,8 +1409,11 @@ export const AppProvider = ({ children }) => {
       return nextData;
     });
 
-    if (user?.id && shadowTx) {
-      cloudService.insertTransaction(user.id, shadowTx, finalAccounts).catch(err => console.warn(err));
+    if (user?.id) {
+      cloudService.insertDebt(user.id, newDebt).catch(err => console.warn(err));
+      if (shadowTx) {
+        cloudService.insertTransaction(user.id, shadowTx, finalAccounts).catch(err => console.warn(err));
+      }
     }
 
     return newDebt;
@@ -1507,8 +1516,22 @@ export const AppProvider = ({ children }) => {
       return nextData;
     });
 
-    if (user?.id && shadowTx) {
-      cloudService.insertTransaction(user.id, shadowTx, finalAccounts).catch(err => console.warn(err));
+    if (user?.id) {
+      const currentDebts = Array.isArray(data.debts) ? data.debts : [];
+      const targetDebt = currentDebts.find(d => String(d.id) === String(debtId));
+      if (targetDebt) {
+        const newRem = Math.max(0, (Number(targetDebt.remainingAmount) || 0) - payAmount);
+        cloudService.updateDebt(debtId, {
+          remainingAmount: newRem,
+          status: newRem === 0 ? 'settled' : targetDebt.status,
+          settledDate: newRem === 0 ? (targetDebt.settledDate || paymentDate) : targetDebt.settledDate,
+          payments: [newPayment, ...(targetDebt.payments || [])]
+        }, user.id).catch(err => console.warn(err));
+      }
+
+      if (shadowTx) {
+        cloudService.insertTransaction(user.id, shadowTx, finalAccounts).catch(err => console.warn(err));
+      }
     }
   };
 
@@ -1540,6 +1563,10 @@ export const AppProvider = ({ children }) => {
       if (!isAuthLoading) saveLocalData(nextData, user?.id);
       return nextData;
     });
+
+    if (user?.id) {
+      cloudService.updateDebt(debtId, fields, user.id).catch(err => console.warn(err));
+    }
   };
 
   const deleteDebt = (debtId) => {
@@ -1550,6 +1577,10 @@ export const AppProvider = ({ children }) => {
       if (!isAuthLoading) saveLocalData(nextData, user?.id);
       return nextData;
     });
+
+    if (user?.id) {
+      cloudService.deleteDebt(debtId, user.id).catch(err => console.warn(err));
+    }
   };
 
   // --- FUEL TRACKER CRUD & SYNC ---
