@@ -699,7 +699,7 @@ export const FinanceView = () => {
 
                             <div className="transaction-right">
                               <div className={`transaction-amount ${tx.type}`}>
-                                {tx.type === 'expense'
+                                {tx.type === 'expense' || tx.type === 'debt_out'
                                   ? `-${maskMoney(tx.amount, isBalanceVisible)}`
                                   : `+${maskMoney(tx.amount, isBalanceVisible)}`}
                               </div>

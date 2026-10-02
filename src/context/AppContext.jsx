@@ -133,6 +133,13 @@ const reconcileUserData = (cloudData, cached, userId) => {
     cloudData.fuelSettings = cached.fuelSettings;
   }
 
+  // 6. Reconcile Debts
+  if ((!cloudData.debts || cloudData.debts.length === 0) && cached?.debts && cached.debts.length > 0) {
+    cloudData.debts = cached.debts;
+  } else if (!cloudData.debts) {
+    cloudData.debts = cached?.debts || [];
+  }
+
   // Background auto-heal Supabase
   if (needsCloudHealing && userId) {
     profileService.updateProfile(userId, healingPayload).catch(err => {
@@ -857,6 +864,23 @@ export const AppProvider = ({ children }) => {
   const percentUsed = Math.min(100, Math.round((cycleExpenses / totalBudget) * 100));
   const dailyAllowance = Math.round(remainingBudget / Math.max(1, financialCycle.daysRemaining));
 
+  // --- UTANG & PIUTANG (DEBTS) COMPUTED ---
+  const totalReceivable = useMemo(() => {
+    return (data.debts || [])
+      .filter(d => d.type === 'receivable' && d.status === 'active')
+      .reduce((sum, d) => sum + (Number(d.remainingAmount) || 0), 0);
+  }, [data.debts]);
+
+  const totalPayable = useMemo(() => {
+    return (data.debts || [])
+      .filter(d => d.type === 'payable' && d.status === 'active')
+      .reduce((sum, d) => sum + (Number(d.remainingAmount) || 0), 0);
+  }, [data.debts]);
+
+  const activeDebtsCount = useMemo(() => {
+    return (data.debts || []).filter(d => d.status === 'active').length;
+  }, [data.debts]);
+
   // --- ACCOUNTS CRUD ---
   const addAccount = (acc) => {
     const accId = generateUUID();
@@ -1022,9 +1046,9 @@ export const AppProvider = ({ children }) => {
         updatedAccounts = (prev.accounts || []).map(acc => {
           let balance = Number(acc.balance) || 0;
           if (acc.name === targetTx.accountName) {
-            if (targetTx.type === 'expense') {
+            if (targetTx.type === 'expense' || targetTx.type === 'debt_out') {
               balance += targetTx.amount;
-            } else if (targetTx.type === 'income') {
+            } else if (targetTx.type === 'income' || targetTx.type === 'debt_in') {
               balance = Math.max(0, balance - targetTx.amount);
             } else if (targetTx.type === 'transfer') {
               balance += targetTx.amount;
@@ -1079,8 +1103,8 @@ export const AppProvider = ({ children }) => {
       const tempAccounts = (prev.accounts || []).map(acc => {
         let balance = Number(acc.balance) || 0;
         if (acc.name === oldTx.accountName) {
-          if (oldTx.type === 'expense') balance += oldTx.amount;
-          else if (oldTx.type === 'income') balance = Math.max(0, balance - oldTx.amount);
+          if (oldTx.type === 'expense' || oldTx.type === 'debt_out') balance += oldTx.amount;
+          else if (oldTx.type === 'income' || oldTx.type === 'debt_in') balance = Math.max(0, balance - oldTx.amount);
           else if (oldTx.type === 'transfer') balance += oldTx.amount;
         }
         if (oldTx.type === 'transfer' && acc.name === oldTx.toAccountName) {
@@ -1101,8 +1125,8 @@ export const AppProvider = ({ children }) => {
       const updatedAccounts = tempAccounts.map(acc => {
         let balance = Number(acc.balance) || 0;
         if (acc.name === newTx.accountName) {
-          if (newTx.type === 'expense') balance = Math.max(0, balance - newTx.amount);
-          else if (newTx.type === 'income') balance += newTx.amount;
+          if (newTx.type === 'expense' || newTx.type === 'debt_out') balance = Math.max(0, balance - newTx.amount);
+          else if (newTx.type === 'income' || newTx.type === 'debt_in') balance += newTx.amount;
           else if (newTx.type === 'transfer') balance = Math.max(0, balance - newTx.amount);
         }
         if (newTx.type === 'transfer' && acc.name === newTx.toAccountName) {
@@ -1287,6 +1311,245 @@ export const AppProvider = ({ children }) => {
     if (user?.id) {
       cloudService.deleteTarget(targetId);
     }
+  };
+
+  // --- UTANG & PIUTANG (DEBTS) CRUD ---
+  const addDebt = async (debt) => {
+    const debtId = debt.id || generateUUID();
+    const amount = Number(debt.totalAmount || debt.amount || 0);
+    // Jika type receivable, selalu kurangi saldo akun kita.
+    // Jika type payable, cek opsi affectsBalance (apakah pinjam cash atau non-cash seperti kasbon warung/makanan)
+    const affectsBalance = debt.type === 'receivable' ? true : (debt.affectsBalance !== undefined ? Boolean(debt.affectsBalance) : true);
+
+    const newDebt = {
+      id: debtId,
+      type: debt.type, // 'receivable' (piutang: orang pinjam ke kita) | 'payable' (utang: kita berutang)
+      affectsBalance,
+      personName: (debt.personName || 'Tanpa Nama').trim(),
+      personAvatar: debt.personAvatar || (debt.type === 'receivable' ? '🧑' : '🤝'),
+      description: debt.description || '',
+      totalAmount: amount,
+      remainingAmount: amount,
+      accountName: debt.accountName || data.accounts?.[0]?.name || 'Dompet Utama (Cash)',
+      createdDate: debt.createdDate || new Date().toISOString().split('T')[0],
+      dueDate: debt.dueDate || null,
+      status: 'active',
+      settledDate: null,
+      payments: []
+    };
+
+    let shadowTx = null;
+    if (debt.type === 'receivable') {
+      shadowTx = {
+        id: generateUUID(),
+        date: newDebt.createdDate,
+        type: 'debt_out',
+        category: 'Piutang Diberikan',
+        amount: amount,
+        accountName: newDebt.accountName,
+        merchant: newDebt.personName,
+        note: `Pinjamkan uang: ${newDebt.description || newDebt.personName}`,
+        icon: '📤',
+        debtId: debtId
+      };
+    } else if (debt.type === 'payable' && affectsBalance) {
+      shadowTx = {
+        id: generateUUID(),
+        date: newDebt.createdDate,
+        type: 'debt_in',
+        category: 'Penerimaan Utang',
+        amount: amount,
+        accountName: newDebt.accountName,
+        merchant: newDebt.personName,
+        note: `Terima pinjaman cash: ${newDebt.description || newDebt.personName}`,
+        icon: '📥',
+        debtId: debtId
+      };
+    }
+
+    let finalAccounts = [];
+
+    setData(prev => {
+      let updatedAccounts = prev.accounts || [];
+      if (shadowTx) {
+        updatedAccounts = updatedAccounts.map(acc => {
+          let balance = Number(acc.balance) || 0;
+          if (acc.name === newDebt.accountName) {
+            if (shadowTx.type === 'debt_out') {
+              balance = Math.max(0, balance - amount);
+            } else if (shadowTx.type === 'debt_in') {
+              balance += amount;
+            }
+            return { ...acc, balance, updated: 'Baru saja' };
+          }
+          return acc;
+        });
+      }
+
+      finalAccounts = updatedAccounts;
+      const currentDebts = Array.isArray(prev.debts) ? prev.debts : [];
+      const currentTxs = Array.isArray(prev.transactions) ? prev.transactions : [];
+
+      const nextData = {
+        ...prev,
+        accounts: updatedAccounts,
+        debts: [newDebt, ...currentDebts],
+        transactions: shadowTx ? [shadowTx, ...currentTxs] : currentTxs
+      };
+
+      if (!isAuthLoading) {
+        saveLocalData(nextData, user?.id);
+      }
+      return nextData;
+    });
+
+    if (user?.id && shadowTx) {
+      cloudService.insertTransaction(user.id, shadowTx, finalAccounts).catch(err => console.warn(err));
+    }
+
+    return newDebt;
+  };
+
+  const recordDebtPayment = async (debtId, payment) => {
+    const payAmount = Number(payment.amount || 0);
+    if (payAmount <= 0) return;
+
+    const paymentDate = payment.date || new Date().toISOString().split('T')[0];
+    const accountName = payment.accountName || data.accounts?.[0]?.name || 'Dompet Utama (Cash)';
+    const note = payment.note || '';
+
+    const newPayment = {
+      id: generateUUID(),
+      amount: payAmount,
+      date: paymentDate,
+      accountName,
+      note
+    };
+
+    let shadowTx = null;
+    let finalAccounts = [];
+
+    setData(prev => {
+      const currentDebts = Array.isArray(prev.debts) ? prev.debts : [];
+      const targetDebt = currentDebts.find(d => String(d.id) === String(debtId));
+      if (!targetDebt) return prev;
+
+      const newRemaining = Math.max(0, (Number(targetDebt.remainingAmount) || 0) - payAmount);
+      const isSettled = newRemaining === 0;
+
+      const updatedDebts = currentDebts.map(d => {
+        if (String(d.id) === String(debtId)) {
+          return {
+            ...d,
+            remainingAmount: newRemaining,
+            status: isSettled ? 'settled' : d.status,
+            settledDate: isSettled ? (d.settledDate || paymentDate) : d.settledDate,
+            payments: [newPayment, ...(d.payments || [])]
+          };
+        }
+        return d;
+      });
+
+      if (targetDebt.type === 'receivable') {
+        shadowTx = {
+          id: generateUUID(),
+          date: paymentDate,
+          type: 'debt_in',
+          category: 'Pelunasan Piutang',
+          amount: payAmount,
+          accountName,
+          merchant: targetDebt.personName,
+          note: `Bayar piutang dari ${targetDebt.personName}${note ? ': ' + note : ''}`,
+          icon: '📥',
+          debtId: debtId
+        };
+      } else {
+        shadowTx = {
+          id: generateUUID(),
+          date: paymentDate,
+          type: 'debt_out',
+          category: 'Bayar Utang',
+          amount: payAmount,
+          accountName,
+          merchant: targetDebt.personName,
+          note: `Bayar cicilan ke ${targetDebt.personName}${note ? ': ' + note : ''}`,
+          icon: '📤',
+          debtId: debtId
+        };
+      }
+
+      const updatedAccounts = (prev.accounts || []).map(acc => {
+        let balance = Number(acc.balance) || 0;
+        if (acc.name === accountName) {
+          if (shadowTx.type === 'debt_in') {
+            balance += payAmount;
+          } else if (shadowTx.type === 'debt_out') {
+            balance = Math.max(0, balance - payAmount);
+          }
+          return { ...acc, balance, updated: 'Baru saja' };
+        }
+        return acc;
+      });
+
+      finalAccounts = updatedAccounts;
+      const currentTxs = Array.isArray(prev.transactions) ? prev.transactions : [];
+
+      const nextData = {
+        ...prev,
+        accounts: updatedAccounts,
+        debts: updatedDebts,
+        transactions: [shadowTx, ...currentTxs]
+      };
+
+      if (!isAuthLoading) {
+        saveLocalData(nextData, user?.id);
+      }
+      return nextData;
+    });
+
+    if (user?.id && shadowTx) {
+      cloudService.insertTransaction(user.id, shadowTx, finalAccounts).catch(err => console.warn(err));
+    }
+  };
+
+  const settleDebt = async (debtId, accountName = null) => {
+    const target = (data.debts || []).find(d => String(d.id) === String(debtId));
+    if (!target || target.remainingAmount <= 0) return;
+    const targetAcc = accountName || target.accountName || data.accounts?.[0]?.name;
+    await recordDebtPayment(debtId, {
+      amount: target.remainingAmount,
+      date: new Date().toISOString().split('T')[0],
+      accountName: targetAcc,
+      note: 'Pelunasan penuh'
+    });
+  };
+
+  const editDebt = (debtId, fields) => {
+    setData(prev => {
+      const currentDebts = Array.isArray(prev.debts) ? prev.debts : [];
+      const updatedDebts = currentDebts.map(d => {
+        if (String(d.id) === String(debtId)) {
+          return {
+            ...d,
+            ...fields
+          };
+        }
+        return d;
+      });
+      const nextData = { ...prev, debts: updatedDebts };
+      if (!isAuthLoading) saveLocalData(nextData, user?.id);
+      return nextData;
+    });
+  };
+
+  const deleteDebt = (debtId) => {
+    setData(prev => {
+      const currentDebts = Array.isArray(prev.debts) ? prev.debts : [];
+      const nextDebts = currentDebts.filter(d => String(d.id) !== String(debtId));
+      const nextData = { ...prev, debts: nextDebts };
+      if (!isAuthLoading) saveLocalData(nextData, user?.id);
+      return nextData;
+    });
   };
 
   // --- FUEL TRACKER CRUD & SYNC ---
@@ -2273,6 +2536,16 @@ export const AppProvider = ({ children }) => {
         addSavingsTarget,
         depositToTarget,
         deleteSavingsTarget,
+        // Utang & Piutang (Debts)
+        debts: data.debts || [],
+        totalReceivable,
+        totalPayable,
+        activeDebtsCount,
+        addDebt,
+        recordDebtPayment,
+        settleDebt,
+        editDebt,
+        deleteDebt,
         // Academic CRUD
         cumulativeGpa,
         totalCumulativeSks,

@@ -73,6 +73,7 @@ export const loadLocalData = (userId = null) => {
         courseNotes: Array.isArray(parsed.courseNotes) ? parsed.courseNotes : [],
         bills: Array.isArray(parsed.bills) ? parsed.bills : [],
         savingsTargets: Array.isArray(parsed.savingsTargets) ? parsed.savingsTargets : [],
+        debts: Array.isArray(parsed.debts) ? parsed.debts : [],
         profile: {
           ...CLEAN_DATA.profile,
           ...(typeof parsed.profile === 'object' && parsed.profile !== null ? parsed.profile : {})

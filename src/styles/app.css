@@ -5888,8 +5888,7 @@ body.dark-mode .pocket-balance-value {
 html,
 body,
 #root,
-.app-viewport,
-.mobile-device-frame {
+.app-viewport {
   max-width: 100vw;
   overflow-x: hidden;
 }
@@ -8473,147 +8472,328 @@ body,
    EXTRAS VIEW (MENU LAINNYA) & FUEL TRACKER DESIGN SYSTEM
    ========================================================================== */
 
-/* 1. Extras View Hub */
+/* 1. Extras View Hub (Minimalist Design) */
 .extras-view-container {
   padding: 16px;
+  width: 100%;
   max-width: 480px;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
-.extras-hero-card {
-  background: linear-gradient(135deg, #1665D8 0%, #0284C7 60%, #0EA5E9 100%);
-  border-radius: 20px;
-  padding: 22px 20px;
-  color: white;
-  box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.35);
+.extras-minimal-hero {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 18px 20px;
   margin-bottom: 20px;
-  position: relative;
-  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease;
 }
 
-.extras-hero-card::after {
-  content: '';
-  position: absolute;
-  top: -30px;
-  right: -30px;
-  width: 140px;
-  height: 140px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
+.dark .extras-minimal-hero {
+  background: #1E293B;
+  border-color: #334155;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.extras-hero-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.extras-hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  background: #F1F5F9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.dark .extras-hero-tag {
+  background: #0F172A;
+  color: #94A3B8;
+  border: 1px solid #1E293B;
+}
+
+.extras-tag-icon {
+  color: #0284C7;
+}
+
+.dark .extras-tag-icon {
+  color: #38BDF8;
+}
+
+.extras-hero-count {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94A3B8;
+}
+
+.dark .extras-hero-count {
+  color: #64748B;
+}
+
+.extras-hero-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.3px;
+}
+
+.dark .extras-hero-title {
+  color: #F8FAFC;
+}
+
+.extras-hero-desc {
+  font-size: 12.5px;
+  color: #64748B;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.dark .extras-hero-desc {
+  color: #94A3B8;
+}
+
+.extras-section {
+  margin-top: 4px;
+}
+
+.extras-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 0 2px;
 }
 
 .extras-section-title {
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 700;
-  color: #334155;
-  margin-bottom: 12px;
+  color: #64748B;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  margin: 0;
 }
 
 .dark .extras-section-title {
   color: #94A3B8;
 }
 
-.extras-feature-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.extras-feature-card {
-  background: #FFFFFF;
-  border: 1.5px solid #E2E8F0;
-  border-radius: 18px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 155px;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.05);
-}
-
-.dark .extras-feature-card {
-  background: #1E293B;
-  border-color: #334155;
-  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.3);
-}
-
-.extras-feature-card.ready-card {
-  cursor: pointer;
-  border-color: #BAE6FD;
-}
-
-.extras-feature-card.ready-card:hover {
-  transform: translateY(-3px);
-  border-color: #0284C7;
-  box-shadow: 0 10px 20px -5px rgba(2, 132, 199, 0.2);
-}
-
-.extras-feature-card.disabled-card {
-  opacity: 0.72;
-  cursor: not-allowed;
-}
-
-.extras-feature-icon-wrap {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.extras-feature-badge {
-  font-size: 10px;
+.extras-badge-soon {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  font-size: 8.5px;
   font-weight: 700;
-  padding: 3px 8px;
+  padding: 1px 5px;
   border-radius: 99px;
-  letter-spacing: 0.3px;
+  background: #64748B;
+  color: #FFFFFF;
+  letter-spacing: 0.2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
 }
 
-.extras-feature-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #0F172A;
-  margin-bottom: 4px;
-}
-
-.dark .extras-feature-title {
+.dark .extras-badge-soon {
+  background: #475569;
   color: #F8FAFC;
 }
 
-.extras-feature-desc {
-  font-size: 11px;
-  color: #64748B;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.quick-action-item.is-upcoming {
+  opacity: 0.88;
 }
 
-.dark .extras-feature-desc {
+.quick-action-item.is-upcoming:hover {
+  opacity: 1;
+}
+
+.extras-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.extras-list-item {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 15px;
+  padding: 13px 14px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  user-select: none;
+}
+
+.dark .extras-list-item {
+  background: #1E293B;
+  border-color: #334155;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.extras-list-item.is-active {
+  cursor: pointer;
+}
+
+.extras-list-item.is-active:hover {
+  border-color: #CBD5E1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+}
+
+.dark .extras-list-item.is-active:hover {
+  border-color: #475569;
+  background: #243248;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+}
+
+.extras-list-item.is-active:active {
+  transform: scale(0.995);
+}
+
+.extras-list-item.is-disabled {
+  opacity: 0.68;
+  cursor: default;
+}
+
+.dark .extras-list-item.is-disabled {
+  opacity: 0.58;
+}
+
+.extras-item-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.extras-list-item.is-active:hover .extras-item-icon-box {
+  transform: scale(1.06);
+}
+
+.extras-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.extras-item-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.extras-item-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+.dark .extras-item-title {
+  color: #F8FAFC;
+}
+
+.extras-item-desc {
+  font-size: 11.5px;
+  color: #64748B;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.dark .extras-item-desc {
   color: #94A3B8;
 }
 
-.extras-feature-footer {
-  margin-top: 10px;
-  display: flex;
+.extras-status-chip {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 99px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.2px;
+}
+
+.extras-status-chip.is-active {
+  display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11.5px;
-  font-weight: 700;
+  background: #ECFDF5;
+  color: #059669;
+  border: 1px solid #A7F3D0;
+}
+
+.dark .extras-status-chip.is-active {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34D399;
+  border-color: rgba(52, 211, 153, 0.25);
+}
+
+.extras-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10B981;
+}
+
+.extras-status-chip.is-muted {
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+}
+
+.dark .extras-status-chip.is-muted {
+  background: #0F172A;
+  color: #94A3B8;
+  border-color: #334155;
+}
+
+.extras-item-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94A3B8;
+  margin-left: 2px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.extras-list-item.is-active:hover .extras-item-action {
   color: #0284C7;
+  transform: translateX(2px);
+}
+
+.dark .extras-list-item.is-active:hover .extras-item-action {
+  color: #38BDF8;
 }
 
 /* 2. Fuel Dashboard Container */
 .fuel-dashboard-container {
-  padding: max(24px, calc(env(safe-area-inset-top, 0px) + 16px)) 16px 90px;
+  padding: max(48px, calc(env(safe-area-inset-top, 0px) + 20px)) 16px 90px;
+  width: 100%;
   max-width: 480px;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .fuel-topbar {
@@ -11298,4 +11478,1068 @@ body,
     opacity: 0.9;
     transform: scale(1.04);
   }
+}
+
+/* ==========================================================================
+   UTANG & PIUTANG (MINIMALIST FINTECH DESIGN SYSTEM)
+   ========================================================================== */
+.debt-dashboard-root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  flex: 1;
+  padding: max(48px, calc(env(safe-area-inset-top, 0px) + 20px)) 16px calc(var(--bottom-nav-height) + var(--safe-bottom) + 24px);
+}
+
+.debt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.debt-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.debt-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  color: #334155;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.debt-icon-btn:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+  color: #0F172A;
+}
+
+.debt-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.debt-title {
+  font-size: 19px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+  letter-spacing: -0.4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.debt-subtitle {
+  font-size: 12px;
+  color: #64748B;
+  font-weight: 500;
+  display: block;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.debt-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 99px;
+  background: #0F172A;
+  color: #FFFFFF;
+  font-size: 12.5px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+  flex-shrink: 0;
+}
+
+.debt-add-btn:hover {
+  background: #1E293B;
+  transform: translateY(-1px);
+}
+
+.debt-balance-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.04);
+}
+
+.debt-balance-hero {
+  margin-bottom: 16px;
+}
+
+.debt-net-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.debt-net-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+
+.debt-net-badge.is-positive {
+  background: #ECFDF5;
+  color: #065F46;
+}
+
+.debt-net-badge.is-negative {
+  background: #FFF1F2;
+  color: #9F1239;
+}
+
+.debt-net-amount {
+  font-size: 26px;
+  font-weight: 900;
+  color: #0F172A;
+  letter-spacing: -0.6px;
+  margin-top: 4px;
+}
+
+.debt-metrics-split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.debt-metric-col {
+  flex: 1;
+}
+
+.debt-metric-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.debt-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.debt-dot.green {
+  background: #10B981;
+}
+
+.debt-dot.amber {
+  background: #F59E0B;
+}
+
+.debt-metric-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.debt-metric-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748B;
+  background: #F1F5F9;
+  padding: 1px 6px;
+  border-radius: 99px;
+}
+
+.debt-metric-val {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.debt-metric-divider {
+  width: 1px;
+  height: 36px;
+  background: #F1F5F9;
+  margin: 0 16px;
+}
+
+/* Filter Segmented Control */
+.debt-filter-bar {
+  display: flex;
+  gap: 4px;
+  background: #F1F5F9;
+  padding: 4px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.debt-filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.debt-filter-pill {
+  flex: 1 1 0;
+  min-width: max-content;
+  text-align: center;
+  padding: 7px 10px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748B;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.debt-filter-pill.active {
+  background: #FFFFFF;
+  color: #0F172A;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+/* Search Wrapper */
+.debt-search-wrapper {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.debt-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94A3B8;
+}
+
+.debt-search-input {
+  width: 100%;
+  height: 40px;
+  padding-left: 36px;
+  padding-right: 28px;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  background: #FFFFFF;
+  font-size: 13px;
+  color: #0F172A;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.debt-search-input:focus {
+  border-color: #0F172A;
+  outline: none;
+}
+
+.debt-search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+  line-height: 1;
+}
+
+/* Debt Cards List */
+.debt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.debt-item-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 15px 16px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.debt-item-card:hover {
+  transform: translateY(-1px);
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+}
+
+.debt-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.debt-person-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.debt-person-avatar {
+  font-size: 20px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F8FAFC;
+  border-radius: 10px;
+  border: 1px solid #F1F5F9;
+  flex-shrink: 0;
+}
+
+.debt-person-info {
+  min-width: 0;
+}
+
+.debt-person-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.debt-person-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.debt-type-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 99px;
+}
+
+.debt-type-tag.is-rec {
+  background: #ECFDF5;
+  color: #065F46;
+}
+
+.debt-type-tag.is-pay {
+  background: #EFF6FF;
+  color: #1E40AF;
+}
+
+.debt-sub-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: #F1F5F9;
+  color: #64748B;
+}
+
+.debt-settled-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: #E2E8F0;
+  color: #475569;
+}
+
+.debt-person-meta {
+  font-size: 11.5px;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.debt-meta-bullet {
+  color: #CBD5E1;
+}
+
+.debt-meta-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 170px;
+}
+
+.debt-amount-box {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.debt-amount-primary {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.debt-amount-primary.is-settled {
+  color: #94A3B8;
+  text-decoration: line-through;
+}
+
+.debt-amount-total {
+  font-size: 11px;
+  color: #94A3B8;
+  display: block;
+  margin-top: 1px;
+}
+
+.debt-progress-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+
+.debt-progress-track {
+  flex: 1;
+  height: 3px;
+  background: #F1F5F9;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.debt-progress-fill {
+  height: 100%;
+  background: #0F172A;
+  border-radius: 99px;
+}
+
+.debt-progress-text {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.debt-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 1px solid #F8FAFC;
+}
+
+.debt-footer-date {
+  font-size: 11px;
+  color: #64748B;
+}
+
+.debt-due-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.debt-due-text.is-overdue {
+  color: #DC2626;
+  font-weight: 700;
+}
+
+.debt-created-text {
+  color: #94A3B8;
+}
+
+.debt-action-pill {
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.debt-action-pill.rec {
+  background: #ECFDF5;
+  color: #065F46;
+}
+
+.debt-action-pill.rec:hover {
+  background: #D1FAE5;
+}
+
+.debt-action-pill.pay {
+  background: #F1F5F9;
+  color: #1E293B;
+}
+
+.debt-action-pill.pay:hover {
+  background: #E2E8F0;
+}
+
+.debt-done-pill {
+  font-size: 11px;
+  color: #10B981;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Modals */
+.debt-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.debt-modal-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 22px 20px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12);
+  border: 1px solid #E2E8F0;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.debt-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.debt-modal-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.debt-modal-sub {
+  font-size: 12px;
+  color: #64748B;
+  display: block;
+  margin-top: 2px;
+}
+
+.debt-modal-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: none;
+  background: #F1F5F9;
+  color: #64748B;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.debt-modal-close:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.debt-segmented-control {
+  display: flex;
+  gap: 4px;
+  background: #F1F5F9;
+  padding: 4px;
+  border-radius: 12px;
+  margin-bottom: 14px;
+}
+
+.debt-segment-btn {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: #64748B;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.debt-segment-btn.active {
+  background: #FFFFFF;
+  color: #0F172A;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.debt-segmented-sub {
+  display: flex;
+  gap: 4px;
+  background: #F8FAFC;
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+}
+
+.debt-sub-btn {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: #64748B;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.debt-sub-btn.active {
+  background: #0F172A;
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+.debt-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.debt-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.debt-form-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.debt-input,
+.debt-select {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #E2E8F0;
+  border-radius: 11px;
+  font-size: 13px;
+  color: #0F172A;
+  background: #FFFFFF;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.debt-input:focus,
+.debt-select:focus {
+  border-color: #0F172A;
+  outline: none;
+}
+
+.debt-avatar-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-top: 4px;
+}
+
+.debt-avatar-chip {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.debt-avatar-chip.selected {
+  border-color: #0F172A;
+  background: #0F172A;
+}
+
+.debt-amount-wrapper {
+  position: relative;
+}
+
+.debt-currency-prefix {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #64748B;
+}
+
+.debt-amount-input {
+  padding-left: 36px !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+}
+
+.debt-form-row-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 11px;
+}
+
+.debt-row-label {
+  font-size: 12px;
+  color: #64748B;
+  font-weight: 600;
+}
+
+.debt-row-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.debt-modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.debt-btn-cancel {
+  flex: 1;
+  height: 42px;
+  border-radius: 11px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.debt-btn-cancel:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+.debt-btn-submit {
+  flex: 1.5;
+  height: 42px;
+  border-radius: 11px;
+  border: none;
+  background: #0F172A;
+  font-size: 13px;
+  font-weight: 800;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.debt-btn-submit:hover {
+  background: #1E293B;
+}
+
+.debt-error-text {
+  font-size: 11.5px;
+  color: #DC2626;
+  font-weight: 600;
+}
+
+.debt-payment-hero {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.debt-payment-hero-lbl {
+  font-size: 12px;
+  color: #64748B;
+  font-weight: 600;
+}
+
+.debt-payment-hero-val {
+  font-size: 18px;
+  font-weight: 900;
+  color: #0F172A;
+}
+
+.debt-quick-chip {
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+}
+
+.debt-detail-avatar {
+  font-size: 22px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F8FAFC;
+  border-radius: 11px;
+  border: 1px solid #F1F5F9;
+  flex-shrink: 0;
+}
+
+.debt-detail-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 13px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.debt-detail-metric {
+  display: flex;
+  flex-direction: column;
+}
+
+.debt-detail-metric-lbl {
+  font-size: 10.5px;
+  color: #64748B;
+  font-weight: 600;
+}
+
+.debt-detail-metric-val {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0F172A;
+  margin-top: 2px;
+}
+
+.debt-detail-metric-val.highlight {
+  color: #0F172A;
+  font-weight: 900;
+}
+
+.debt-detail-progress {
+  margin-bottom: 16px;
+}
+
+.debt-detail-progress-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #64748B;
+  font-weight: 600;
+  margin-top: 5px;
+}
+
+.debt-due-alert {
+  color: #DC2626;
+  font-weight: 700;
+}
+
+.debt-detail-desc {
+  font-size: 12.5px;
+  color: #334155;
+  background: #F8FAFC;
+  padding: 10px 14px;
+  border-radius: 11px;
+  border: 1px solid #E2E8F0;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.debt-history-section {
+  margin-bottom: 16px;
+}
+
+.debt-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.debt-history-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.debt-link-btn {
+  background: none;
+  border: none;
+  color: #0F172A;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.debt-history-empty {
+  font-size: 12px;
+  color: #94A3B8;
+  text-align: center;
+  padding: 18px;
+  background: #F8FAFC;
+  border-radius: 10px;
+}
+
+.debt-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.debt-history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 12px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+}
+
+.debt-history-note {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.debt-history-date {
+  font-size: 10.5px;
+  color: #64748B;
+  margin-top: 1px;
+}
+
+.debt-history-amount {
+  font-size: 13px;
+  font-weight: 700;
+  color: #10B981;
+}
+
+.debt-btn-reminder {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border-radius: 11px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  color: #0F172A;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 14px;
+  transition: all 0.15s ease;
+}
+
+.debt-btn-reminder:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+.debt-delete-confirm {
+  padding: 12px 14px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.debt-delete-confirm span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #991B1B;
+}
+
+.debt-delete-confirm-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.debt-btn-danger {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: none;
+  background: #DC2626;
+  color: #FFFFFF;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.transaction-amount.debt_out {
+  color: #EA580C;
+}
+
+.transaction-amount.debt_in {
+  color: #10B981;
 }

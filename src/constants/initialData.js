@@ -258,6 +258,49 @@ export const INITIAL_DATA = {
     }
   ],
 
+  debts: [
+    {
+      id: "debt-demo-1",
+      type: "receivable",
+      personName: "Dimas (Teman Sekelas)",
+      personAvatar: "🧑‍💻",
+      description: "Pinjam buat bayar fotokopi modul & kas kelas",
+      totalAmount: 50000,
+      remainingAmount: 20000,
+      accountName: "Dompet Utama (Cash)",
+      createdDate: "2026-09-20",
+      dueDate: "2026-10-10",
+      status: "active",
+      settledDate: null,
+      affectsBalance: true,
+      payments: [
+        {
+          id: "dp-demo-1",
+          amount: 30000,
+          date: "2026-09-28",
+          accountName: "Dompet Utama (Cash)",
+          note: "Dicicil separuh dulu"
+        }
+      ]
+    },
+    {
+      id: "debt-demo-2",
+      type: "payable",
+      personName: "Warung Bu Siti",
+      personAvatar: "🍲",
+      description: "Kasbon makan siang pas dompet ketinggalan",
+      totalAmount: 25000,
+      remainingAmount: 25000,
+      accountName: "Dompet Utama (Cash)",
+      createdDate: "2026-09-25",
+      dueDate: "2026-10-05",
+      status: "active",
+      settledDate: null,
+      affectsBalance: false,
+      payments: []
+    }
+  ],
+
   courses: [
     {
       id: "crs-1",
@@ -566,6 +609,7 @@ export const CLEAN_DATA = {
   transactions: [],
   bills: [],
   savingsTargets: [],
+  debts: [],
   courses: [],
   assignments: [],
   courseNotes: [],
