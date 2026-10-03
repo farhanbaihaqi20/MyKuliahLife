@@ -39,7 +39,8 @@ export const loadLocalData = (userId = null) => {
       if (Array.isArray(parsed.transactions)) {
         parsed.transactions = parsed.transactions.map(t => ({
           ...t,
-          category: normalizeCategoryName(t.category)
+          toAccountName: t.toAccountName || t.to_account_name || null,
+          category: t.type === 'transfer' ? 'Transfer Antar Akun' : normalizeCategoryName(t.category)
         }));
       }
       // Ensure consistency for activeSemester and unlockedSemesters

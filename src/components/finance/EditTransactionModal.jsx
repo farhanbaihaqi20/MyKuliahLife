@@ -57,8 +57,10 @@ export default function EditTransactionModal({ transaction, isOpen, onClose }) {
       setType(transaction.type || 'expense');
       setAmount(transaction.amount ? formatRupiahNumber(transaction.amount) : '');
       setCategory(transaction.category || 'Makanan & minuman');
-      setAccountName(transaction.accountName || (data.accounts[0]?.name || 'Tunai'));
-      setToAccountName(transaction.toAccountName || (data.accounts[1]?.name || ''));
+      const fromAcc = transaction.accountName || (data.accounts[0]?.name || 'Tunai');
+      setAccountName(fromAcc);
+      const fallbackTo = (data.accounts || []).find(a => a.name !== fromAcc)?.name || '';
+      setToAccountName(transaction.toAccountName || fallbackTo);
       setMerchant(transaction.merchant === '-' ? '' : (transaction.merchant || ''));
       setNote(transaction.note || '');
       setDate(transaction.date || new Date().toISOString().split('T')[0]);
@@ -88,6 +90,21 @@ export default function EditTransactionModal({ transaction, isOpen, onClose }) {
     const rawAmount = parseRupiahNumber(amount);
     if (!rawAmount || rawAmount <= 0 || isSubmitting) return;
 
+    if (type === 'transfer') {
+      if (!data.accounts || data.accounts.length < 2) {
+        alert('Kamu perlu minimal 2 akun/dompet aktif untuk transfer saldo.');
+        return;
+      }
+      if (!toAccountName) {
+        alert('Pilih akun / dompet tujuan transfer.');
+        return;
+      }
+      if (accountName === toAccountName) {
+        alert('Akun sumber (asal) dan akun tujuan tidak boleh sama.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       await editTransaction(transaction.id, {
@@ -96,7 +113,7 @@ export default function EditTransactionModal({ transaction, isOpen, onClose }) {
         category: type === 'transfer' ? 'Transfer Antar Akun' : category,
         accountName,
         toAccountName: type === 'transfer' ? toAccountName : undefined,
-        merchant: merchant.trim() || '-',
+        merchant: type === 'transfer' ? (merchant.trim() || `Transfer ke ${toAccountName}`) : (merchant.trim() || '-'),
         note: note.trim(),
         date,
         icon: type === 'transfer' ? '🔄' : icon
@@ -267,7 +284,14 @@ export default function EditTransactionModal({ transaction, isOpen, onClose }) {
               <select
                 className="input-field"
                 value={accountName}
-                onChange={(e) => setAccountName(e.target.value)}
+                onChange={(e) => {
+                  const newFrom = e.target.value;
+                  setAccountName(newFrom);
+                  if (toAccountName === newFrom) {
+                    const nextTo = (data.accounts || []).find(a => a.name !== newFrom)?.name || '';
+                    setToAccountName(nextTo);
+                  }
+                }}
               >
                 {data.accounts.map(acc => (
                   <option key={acc.id} value={acc.name}>

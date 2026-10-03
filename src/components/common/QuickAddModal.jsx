@@ -30,6 +30,7 @@ export const QuickAddModal = () => {
   const [txType, setTxType] = useState('expense'); // expense | income | transfer
   const [txAmount, setTxAmount] = useState('');
   const [txAccount, setTxAccount] = useState(primaryAccount?.name || '');
+  const [txToAccount, setTxToAccount] = useState('');
   const [txCategory, setTxCategory] = useState(data.budget?.categories?.[0]?.name || 'Makanan & minuman');
   const [txMerchant, setTxMerchant] = useState('');
   const [txNote, setTxNote] = useState('');
@@ -50,11 +51,13 @@ export const QuickAddModal = () => {
     }
   }, [isQuickAddOpen, quickAddCategory, data.budget?.categories]);
 
-  // Synchronize txAccount with primary account whenever modal opens
+  // Synchronize txAccount & txToAccount whenever modal opens
   React.useEffect(() => {
     if (isQuickAddOpen && data.accounts && data.accounts.length > 0) {
       const primary = data.accounts.find(a => a.isPrimary) || data.accounts[0];
       setTxAccount(primary.name);
+      const secondary = data.accounts.find(a => a.name !== primary.name) || data.accounts[1];
+      setTxToAccount(secondary ? secondary.name : '');
     }
   }, [isQuickAddOpen, data.accounts]);
 
@@ -119,9 +122,25 @@ export const QuickAddModal = () => {
       return;
     }
 
+    // Validasi khusus transaksi Transfer
+    if (txType === 'transfer') {
+      if (!data.accounts || data.accounts.length < 2) {
+        setTxError('Kamu perlu minimal 2 akun / dompet aktif untuk melakukan transfer uang. Silakan tambahkan akun baru di menu Keuangan.');
+        return;
+      }
+      if (!txToAccount) {
+        setTxError('Pilih akun / dompet tujuan transfer.');
+        return;
+      }
+      if (currentAcc.name === txToAccount) {
+        setTxError('Akun sumber (asal) dan akun tujuan tidak boleh sama.');
+        return;
+      }
+    }
+
     // Cek kecukupan saldo untuk Pengeluaran & Transfer
     if ((txType === 'expense' || txType === 'transfer') && rawAmount > currentAcc.balance) {
-      setTxError(`Saldo di ${currentAcc.name} tidak mencukupi! Saldo saat ini: Rp ${currentAcc.balance.toLocaleString('id-ID')}, sedangkan transaksi sebesar Rp ${rawAmount.toLocaleString('id-ID')}.`);
+      setTxError(`Saldo di ${currentAcc.name} tidak mencukupi! Saldo saat ini: Rp ${currentAcc.balance.toLocaleString('id-ID')}, sedangkan ${txType === 'transfer' ? 'nominal transfer' : 'transaksi'} sebesar Rp ${rawAmount.toLocaleString('id-ID')}.`);
       return;
     }
 
@@ -129,10 +148,11 @@ export const QuickAddModal = () => {
       type: txType,
       amount: rawAmount,
       accountName: currentAcc.name,
-      category: txType === 'income' ? 'Pemasukan' : txCategory,
-      merchant: txMerchant.trim() || txNote.trim() || (txType === 'expense' ? txCategory : (txType === 'transfer' ? 'Transfer Saldo' : 'Pemasukan')),
-      note: txNote,
-      icon: txType === 'income' ? '💰' : (txType === 'transfer' ? '🔁' : '🍜')
+      toAccountName: txType === 'transfer' ? txToAccount : undefined,
+      category: txType === 'transfer' ? 'Transfer Antar Akun' : (txType === 'income' ? 'Pemasukan' : txCategory),
+      merchant: txMerchant.trim() || (txType === 'transfer' ? `Transfer ke ${txToAccount}` : (txType === 'expense' ? txCategory : 'Pemasukan')),
+      note: txNote.trim(),
+      icon: txType === 'income' ? '💰' : (txType === 'transfer' ? '🔄' : '🍜')
     });
 
     confetti({ particleCount: 40, spread: 60, origin: { y: 0.8 } });
@@ -302,7 +322,14 @@ export const QuickAddModal = () => {
                   color: txType === 'transfer' ? '#FFFFFF' : '#475569',
                   borderColor: 'transparent'
                 }}
-                onClick={() => setTxType('transfer')}
+                onClick={() => {
+                  setTxType('transfer');
+                  setTxError('');
+                  if (!txToAccount || txToAccount === txAccount) {
+                    const other = (data.accounts || []).find(a => a.name !== txAccount);
+                    if (other) setTxToAccount(other.name);
+                  }
+                }}
               >
                 Transfer
               </button>
@@ -330,20 +357,95 @@ export const QuickAddModal = () => {
             </div>
 
             {/* Account Selector */}
-            <div className="input-group">
-              <label className="input-label">Pilih Dompet / Akun</label>
-              <select
-                className="input-field"
-                value={txAccount}
-                onChange={(e) => setTxAccount(e.target.value)}
-              >
-                {data.accounts.map(acc => (
-                  <option key={acc.id} value={acc.name}>
-                    {acc.isPrimary ? '⭐ ' : ''}{acc.name}{acc.isPrimary ? ' (Utama)' : ''} (Sisa: Rp {acc.balance.toLocaleString('id-ID')})
-                  </option>
-                ))}
-              </select>
-            </div>
+            {txType === 'transfer' ? (
+              <div style={{ marginBottom: '14px' }}>
+                {(data.accounts || []).length < 2 ? (
+                  <div style={{
+                    background: '#FEF2F2',
+                    border: '1px solid #FCA5A5',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    fontSize: '12px',
+                    color: '#B91C1C',
+                    marginBottom: '10px'
+                  }}>
+                    ⚠️ <strong>Perlu Minimal 2 Akun:</strong> Kamu saat ini hanya memiliki 1 dompet/akun. Tambahkan dompet baru di menu Keuangan untuk transfer saldo.
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label">Dari Akun (Sumber)</label>
+                      <select
+                        className="input-field"
+                        value={txAccount}
+                        onChange={(e) => {
+                          const newFrom = e.target.value;
+                          setTxAccount(newFrom);
+                          if (txToAccount === newFrom) {
+                            const nextTo = (data.accounts || []).find(a => a.name !== newFrom);
+                            if (nextTo) setTxToAccount(nextTo.name);
+                          }
+                        }}
+                      >
+                        {data.accounts.map(acc => (
+                          <option key={acc.id} value={acc.name}>
+                            {acc.isPrimary ? '⭐ ' : ''}{acc.name} (Sisa: Rp {acc.balance.toLocaleString('id-ID')})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label">Ke Akun (Tujuan)</label>
+                      <select
+                        className="input-field"
+                        value={txToAccount}
+                        onChange={(e) => setTxToAccount(e.target.value)}
+                      >
+                        {data.accounts
+                          .filter(acc => acc.name !== txAccount)
+                          .map(acc => (
+                            <option key={acc.id} value={acc.name}>
+                              {acc.isPrimary ? '⭐ ' : ''}{acc.name} (Sisa: Rp {acc.balance.toLocaleString('id-ID')})
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{
+                  background: '#EFF6FF',
+                  border: '1px solid #DBEAFE',
+                  borderRadius: '10px',
+                  padding: '8px 12px',
+                  fontSize: '11px',
+                  color: '#1E40AF',
+                  marginTop: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <span>ℹ️</span>
+                  <span>Transfer memindahkan uang antar akun tanpa mempengaruhi budget kategori ataupun limit belanja harian (suges).</span>
+                </div>
+              </div>
+            ) : (
+              <div className="input-group">
+                <label className="input-label">Pilih Dompet / Akun</label>
+                <select
+                  className="input-field"
+                  value={txAccount}
+                  onChange={(e) => setTxAccount(e.target.value)}
+                >
+                  {data.accounts.map(acc => (
+                    <option key={acc.id} value={acc.name}>
+                      {acc.isPrimary ? '⭐ ' : ''}{acc.name}{acc.isPrimary ? ' (Utama)' : ''} (Sisa: Rp {acc.balance.toLocaleString('id-ID')})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Category Selector (for expense) */}
             {txType === 'expense' && (
@@ -366,7 +468,7 @@ export const QuickAddModal = () => {
             {/* Nama Pengeluaran / Transaksi */}
             <div className="input-group">
               <label className="input-label">
-                {txType === 'expense' ? 'Nama Pengeluaran / Transaksi' : txType === 'income' ? 'Sumber Pemasukan' : 'Nama Transaksi'}
+                {txType === 'expense' ? 'Nama Pengeluaran / Transaksi' : txType === 'income' ? 'Sumber Pemasukan' : 'Keperluan / Keterangan Transfer'}
               </label>
               <input
                 type="text"
@@ -375,7 +477,7 @@ export const QuickAddModal = () => {
                     ? 'cth: Cilok, Kantin Rektorat, Kopi, Alfamart'
                     : txType === 'income'
                     ? 'cth: Kiriman Ortu, Gaji, Beasiswa, Freelance'
-                    : 'cth: Tarik Tunai, Top up E-Wallet'
+                    : 'cth: Tarik Tunai, Top up E-Wallet, Pindah Tabungan'
                 }
                 className="input-field"
                 value={txMerchant}
@@ -385,10 +487,10 @@ export const QuickAddModal = () => {
 
             {/* Catatan */}
             <div className="input-group">
-              <label className="input-label">Catatan / Keterangan</label>
+              <label className="input-label">Catatan Tambahan (Opsional)</label>
               <input
                 type="text"
-                placeholder="cth: Makan siang komplit + es teh"
+                placeholder={txType === 'transfer' ? 'cth: Biaya admin 0, untuk jajan pekan depan' : 'cth: Makan siang komplit + es teh'}
                 className="input-field"
                 value={txNote}
                 onChange={(e) => setTxNote(e.target.value)}

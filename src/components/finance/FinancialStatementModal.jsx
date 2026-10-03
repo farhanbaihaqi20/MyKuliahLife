@@ -133,7 +133,7 @@ export const FinancialStatementModal = ({
       const acc = (data.accounts || []).find(a => a.id === selectedAccountId);
       if (acc) {
         list = list.filter(
-          t => t.accountName === acc.name || t.accountId === acc.id || t.sourceAccountId === acc.id
+          t => t.accountName === acc.name || t.accountId === acc.id || t.sourceAccountId === acc.id || (t.type === 'transfer' && t.toAccountName === acc.name)
         );
       }
     }
@@ -148,11 +148,11 @@ export const FinancialStatementModal = ({
 
     // Compute cash flow
     const totalInflow = list
-      .filter(t => t.type === 'income')
+      .filter(t => t.type === 'income' || (selectedAccount && t.type === 'transfer' && t.toAccountName === selectedAccount.name))
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
     const totalOutflow = list
-      .filter(t => t.type === 'expense')
+      .filter(t => t.type === 'expense' || (selectedAccount && t.type === 'transfer' && t.accountName === selectedAccount.name))
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
     const netCashflow = totalInflow - totalOutflow;
@@ -171,6 +171,12 @@ export const FinancialStatementModal = ({
         currentRun += Number(tx.amount) || 0;
       } else if (tx.type === 'expense') {
         currentRun -= Number(tx.amount) || 0;
+      } else if (tx.type === 'transfer' && selectedAccount) {
+        if (tx.toAccountName === selectedAccount.name) {
+          currentRun += Number(tx.amount) || 0;
+        } else if (tx.accountName === selectedAccount.name) {
+          currentRun -= Number(tx.amount) || 0;
+        }
       }
       return {
         ...tx,
@@ -746,8 +752,15 @@ export const FinancialStatementModal = ({
                   </thead>
                   <tbody>
                     {transactionsChronological.map((tx) => {
-                      const isIncome = tx.type === 'income';
-                      const desc = (tx.merchant ? `${tx.merchant} ` : '') + (tx.note || tx.category || 'Transaksi');
+                      const isTransfer = tx.type === 'transfer';
+                      const isOutgoing = tx.type === 'expense' || (isTransfer && selectedAccount && tx.accountName === selectedAccount.name);
+                      const isIncoming = tx.type === 'income' || (isTransfer && selectedAccount && tx.toAccountName === selectedAccount.name);
+
+                      const desc = isTransfer
+                        ? (selectedAccount
+                            ? (tx.accountName === selectedAccount.name ? `Transfer ke ${tx.toAccountName || 'Akun Lain'}` : `Transfer dari ${tx.accountName || 'Akun Lain'}`)
+                            : `${tx.merchant || 'Transfer Antar Akun'}: ${tx.accountName} ➔ ${tx.toAccountName || 'Akun Lain'}`)
+                        : ((tx.merchant ? `${tx.merchant} ` : '') + (tx.note || tx.category || 'Transaksi'));
 
                       return (
                         <tr key={tx.id}>
@@ -755,33 +768,38 @@ export const FinancialStatementModal = ({
                           <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{tx.date}</td>
                           <td>
                             <div style={{ fontWeight: 700, color: '#0F172A' }}>{desc}</div>
-                            {tx.merchant && tx.note && (
+                            {tx.note && !isTransfer && (
                               <div style={{ fontSize: '10px', color: '#64748B' }}>{tx.note}</div>
+                            )}
+                            {isTransfer && tx.note && (
+                              <div style={{ fontSize: '10px', color: '#64748B' }}>Catatan: {tx.note}</div>
                             )}
                           </td>
                           <td>
                             <span className="statement-cat-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                               <CategoryIcon category={tx.category} icon={tx.icon} size={15} />
-                              <span>{tx.category || 'Lainnya'}</span>
+                              <span>{tx.category || (isTransfer ? 'Transfer Antar Akun' : 'Lainnya')}</span>
                             </span>
                           </td>
                           <td style={{ fontSize: '11px', color: '#475569' }}>
-                            {tx.accountName || '-'}
+                            {isTransfer
+                              ? (tx.toAccountName ? `${tx.accountName} ➔ ${tx.toAccountName}` : tx.accountName)
+                              : (tx.accountName || '-')}
                           </td>
                           <td style={{ textAlign: 'center' }}>
-                            <span className={`statement-dk-badge ${isIncome ? 'credit' : 'debit'}`}>
-                              {isIncome ? 'CR' : 'DB'}
+                            <span className={`statement-dk-badge ${isIncoming ? 'credit' : isOutgoing ? 'debit' : 'credit'}`} style={isTransfer && !selectedAccount ? { background: '#EFF6FF', color: '#2563EB' } : {}}>
+                              {isIncoming ? 'CR' : isOutgoing ? 'DB' : 'TR'}
                             </span>
                           </td>
                           <td
                             style={{
                               textAlign: 'right',
                               fontWeight: 800,
-                              color: isIncome ? '#047857' : '#B91C1C',
+                              color: isIncoming ? '#047857' : isOutgoing ? '#B91C1C' : '#2563EB',
                               whiteSpace: 'nowrap'
                             }}
                           >
-                            {isIncome ? '+' : '-'}Rp {(Number(tx.amount) || 0).toLocaleString('id-ID')}
+                            {isIncoming ? '+' : isOutgoing ? '-' : ''}Rp {(Number(tx.amount) || 0).toLocaleString('id-ID')}
                           </td>
                           <td
                             style={{

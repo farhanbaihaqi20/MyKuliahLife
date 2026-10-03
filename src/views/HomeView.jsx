@@ -461,10 +461,18 @@ export const HomeView = () => {
                     <CategoryIcon category={tx.category} icon={tx.icon} size={36} />
                   </div>
                   <div className="transaction-info">
-                    <div className="transaction-title">{tx.category}</div>
+                    <div className="transaction-title">
+                      {tx.type === 'transfer' ? (tx.merchant || 'Transfer Antar Akun') : tx.category}
+                    </div>
                     <div className="transaction-subtitle">
-                      <span className="account-badge-micro">{tx.accountName}</span>
-                      <span className="transaction-subtitle-text">{tx.merchant || tx.note}</span>
+                      <span className="account-badge-micro">
+                        {tx.type === 'transfer' && tx.toAccountName
+                          ? `${tx.accountName} ➔ ${tx.toAccountName}`
+                          : tx.accountName}
+                      </span>
+                      <span className="transaction-subtitle-text">
+                        {tx.type === 'transfer' ? (tx.note || 'Pindah Saldo') : (tx.merchant || tx.note)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -473,7 +481,9 @@ export const HomeView = () => {
                   <div className={`transaction-amount ${tx.type}`}>
                     {tx.type === 'expense' || tx.type === 'debt_out'
                       ? `-${maskMoney(tx.amount, isBalanceVisible)}`
-                      : `+${maskMoney(tx.amount, isBalanceVisible)}`}
+                      : tx.type === 'transfer'
+                        ? `${maskMoney(tx.amount, isBalanceVisible)}`
+                        : `+${maskMoney(tx.amount, isBalanceVisible)}`}
                   </div>
                 </div>
               </div>

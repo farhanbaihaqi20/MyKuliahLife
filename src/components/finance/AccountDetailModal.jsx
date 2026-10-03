@@ -423,16 +423,29 @@ export const AccountDetailModal = ({
                 </div>
               ) : (
                 accountTransactions.map((tx) => {
-                  const isExpense = tx.type === 'expense';
-                  const isIncome = tx.type === 'income';
+                  const isOutgoing = tx.type === 'expense' || tx.type === 'debt_out' || (tx.type === 'transfer' && tx.accountName === account.name);
+                  const isIncoming = tx.type === 'income' || tx.type === 'debt_in' || (tx.type === 'transfer' && tx.toAccountName === account.name);
+
+                  let txTitle = tx.merchant || tx.category || 'Transaksi';
+                  let txSub = `${tx.date} • ${tx.category || (isOutgoing ? 'Pengeluaran' : 'Pemasukan')}`;
+
+                  if (tx.type === 'transfer') {
+                    if (tx.accountName === account.name) {
+                      txTitle = tx.merchant || `Transfer ke ${tx.toAccountName || 'Akun Lain'}`;
+                      txSub = `${tx.date} • Transfer Keluar ke ${tx.toAccountName || 'Akun Lain'}${tx.note ? ` (${tx.note})` : ''}`;
+                    } else {
+                      txTitle = tx.merchant || `Transfer dari ${tx.accountName || 'Akun Lain'}`;
+                      txSub = `${tx.date} • Transfer Masuk dari ${tx.accountName || 'Akun Lain'}${tx.note ? ` (${tx.note})` : ''}`;
+                    }
+                  }
 
                   return (
                     <div key={tx.id} className="modern-tx-row">
                       <div className="modern-tx-left">
-                        <div className={`modern-tx-circle ${tx.type}`}>
-                          {isExpense ? (
+                        <div className={`modern-tx-circle ${isOutgoing ? 'expense' : isIncoming ? 'income' : 'transfer'}`}>
+                          {isOutgoing ? (
                             <ArrowUpRight size={14} />
-                          ) : isIncome ? (
+                          ) : isIncoming ? (
                             <ArrowDownLeft size={14} />
                           ) : (
                             <ArrowLeftRight size={14} />
@@ -440,16 +453,16 @@ export const AccountDetailModal = ({
                         </div>
                         <div className="modern-tx-meta">
                           <span className="modern-tx-merchant">
-                            {tx.merchant || tx.category || 'Transaksi'}
+                            {txTitle}
                           </span>
                           <span className="modern-tx-subtitle">
-                            {tx.date} • {tx.category || (isExpense ? 'Pengeluaran' : 'Pemasukan')}
+                            {txSub}
                           </span>
                         </div>
                       </div>
 
-                      <div className={`modern-tx-amount ${tx.type}`}>
-                        {isExpense ? '-' : '+'}{maskMoney(tx.amount, isBalanceVisible)}
+                      <div className={`modern-tx-amount ${isOutgoing ? 'expense' : 'income'}`}>
+                        {isOutgoing ? '-' : '+'}{maskMoney(tx.amount, isBalanceVisible)}
                       </div>
                     </div>
                   );

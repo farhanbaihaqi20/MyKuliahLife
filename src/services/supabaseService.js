@@ -632,11 +632,12 @@ export const dataSyncService = {
           type: t.type,
           amount: Number(t.amount),
           accountName: t.account_name || 'Bank',
-          category: normalizeCategoryName(t.category),
+          toAccountName: t.to_account_name || null,
+          category: t.type === 'transfer' ? 'Transfer Antar Akun' : normalizeCategoryName(t.category),
           merchant: t.merchant || '',
           note: t.note || '',
           date: t.date,
-          icon: t.icon || '💸',
+          icon: t.icon || (t.type === 'transfer' ? '🔄' : '💸'),
           debtId: t.debt_id || null
         })),
         courses: (coursesRes.data || []).map(c => {
@@ -1090,6 +1091,7 @@ export const cloudService = {
         id: validId,
         user_id: userId,
         account_name: tx.accountName,
+        to_account_name: tx.toAccountName || null,
         type: tx.type,
         amount: Number(tx.amount),
         category: tx.category,
@@ -1099,7 +1101,12 @@ export const cloudService = {
         date: tx.date || new Date().toISOString().split('T')[0],
         debt_id: tx.debtId || null
       };
-      const { error } = await supabase.from('transactions').insert(payload);
+      let { error } = await supabase.from('transactions').insert(payload);
+      if (error && error.message && error.message.includes('to_account_name')) {
+        delete payload.to_account_name;
+        const retry = await supabase.from('transactions').insert(payload);
+        error = retry.error;
+      }
       if (error) console.error('Cloud insert transaction error:', error);
 
       // Sync account balance
@@ -1149,6 +1156,7 @@ export const cloudService = {
       if (fields.type !== undefined) payload.type = fields.type;
       if (fields.category !== undefined) payload.category = fields.category;
       if (fields.accountName !== undefined) payload.account_name = fields.accountName;
+      if (fields.toAccountName !== undefined) payload.to_account_name = fields.toAccountName;
       if (fields.merchant !== undefined) payload.merchant = fields.merchant;
       if (fields.note !== undefined) payload.note = fields.note;
       if (fields.icon !== undefined) payload.icon = fields.icon;
@@ -1160,7 +1168,14 @@ export const cloudService = {
         if (userId) {
           query = query.eq('user_id', userId);
         }
-        const { data: updatedRows, error } = await query.select();
+        let { data: updatedRows, error } = await query.select();
+
+        if (error && error.message && error.message.includes('to_account_name')) {
+          delete payload.to_account_name;
+          const retry = await supabase.from('transactions').update(payload).eq('id', txId).select();
+          error = retry.error;
+          updatedRows = retry.data;
+        }
 
         if (error) {
           console.error('Cloud update transaction error:', error);
@@ -1171,6 +1186,7 @@ export const cloudService = {
               id: txId,
               user_id: userId,
               account_name: fields.accountName || 'Tunai',
+              to_account_name: fields.toAccountName || null,
               type: fields.type || 'expense',
               amount: Number(fields.amount) || 0,
               category: fields.category || 'Lainnya',
@@ -1180,7 +1196,12 @@ export const cloudService = {
               date: fields.date || new Date().toISOString().split('T')[0],
               debt_id: fields.debtId || null
             };
-            const { error: insErr } = await supabase.from('transactions').insert(insertPayload);
+            let { error: insErr } = await supabase.from('transactions').insert(insertPayload);
+            if (insErr && insErr.message && insErr.message.includes('to_account_name')) {
+              delete insertPayload.to_account_name;
+              const retryIns = await supabase.from('transactions').insert(insertPayload);
+              insErr = retryIns.error;
+            }
             if (insErr) console.error('Cloud insert fallback transaction error:', insErr);
           }
         }
@@ -1192,6 +1213,7 @@ export const cloudService = {
           id: newUUID,
           user_id: userId,
           account_name: fields.accountName || 'Tunai',
+          to_account_name: fields.toAccountName || null,
           type: fields.type || 'expense',
           amount: Number(fields.amount) || 0,
           category: fields.category || 'Lainnya',
@@ -1201,7 +1223,12 @@ export const cloudService = {
           date: fields.date || new Date().toISOString().split('T')[0],
           debt_id: fields.debtId || null
         };
-        const { error: insErr } = await supabase.from('transactions').insert(insertPayload);
+        let { error: insErr } = await supabase.from('transactions').insert(insertPayload);
+        if (insErr && insErr.message && insErr.message.includes('to_account_name')) {
+          delete insertPayload.to_account_name;
+          const retryIns = await supabase.from('transactions').insert(insertPayload);
+          insErr = retryIns.error;
+        }
         if (insErr) console.error('Cloud insert fallback for non-UUID transaction error:', insErr);
       }
 

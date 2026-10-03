@@ -111,7 +111,8 @@ const reconcileUserData = (cloudData, cached, userId) => {
   if (Array.isArray(cloudData.transactions)) {
     cloudData.transactions = cloudData.transactions.map(t => ({
       ...t,
-      category: normalizeCategoryName(t.category)
+      toAccountName: t.toAccountName || t.to_account_name || null,
+      category: t.type === 'transfer' ? 'Transfer Antar Akun' : normalizeCategoryName(t.category)
     }));
   }
 
