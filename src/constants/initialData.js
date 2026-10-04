@@ -610,6 +610,8 @@ export const CLEAN_DATA = {
   bills: [],
   savingsTargets: [],
   debts: [],
+  doctorVisits: [],
+  medications: [],
   courses: [],
   assignments: [],
   courseNotes: [],

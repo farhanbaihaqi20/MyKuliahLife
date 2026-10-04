@@ -569,7 +569,9 @@ export const dataSyncService = {
         targetsRes,
         fuelLogsRes,
         fuelSettingsRes,
-        debtsRes
+        debtsRes,
+        doctorVisitsRes,
+        medicationsRes
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
         supabase.from('accounts').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
@@ -582,7 +584,9 @@ export const dataSyncService = {
         supabase.from('savings_targets').select('*').eq('user_id', userId),
         supabase.from('fuel_logs').select('*').eq('user_id', userId).order('date', { ascending: false }).then(r => r, () => ({ data: [] })),
         supabase.from('fuel_settings').select('*').eq('user_id', userId).maybeSingle().then(r => r, () => ({ data: null })),
-        supabase.from('debts').select('*').eq('user_id', userId).order('created_date', { ascending: false }).then(r => r, () => ({ data: [] }))
+        supabase.from('debts').select('*').eq('user_id', userId).order('created_date', { ascending: false }).then(r => r, () => ({ data: [] })),
+        supabase.from('doctor_visits').select('*').eq('user_id', userId).order('visit_date', { ascending: false }).then(r => r, () => ({ data: [] })),
+        supabase.from('medications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).then(r => r, () => ({ data: [] }))
       ]);
 
       if (!profileRes.data) {
@@ -758,6 +762,36 @@ export const dataSyncService = {
           status: d.status || 'active',
           settledDate: d.settled_date || null,
           payments: Array.isArray(d.payments) ? d.payments : []
+        })),
+        doctorVisits: (doctorVisitsRes?.data || []).map(v => ({
+          id: v.id,
+          visitDate: v.visit_date,
+          doctorName: v.doctor_name || '',
+          facilityName: v.facility_name || '',
+          specialty: v.specialty || '',
+          diagnosis: v.diagnosis || '',
+          notes: v.notes || '',
+          cost: Number(v.cost) || 0,
+          accountName: v.account_name || null,
+          transactionId: v.transaction_id || null,
+          nextVisitDate: v.next_visit_date || null
+        })),
+        medications: (medicationsRes?.data || []).map(m => ({
+          id: m.id,
+          name: m.name,
+          dosage: m.dosage || '',
+          form: m.form || 'tablet',
+          instructions: m.instructions || '',
+          scheduleTimes: Array.isArray(m.schedule_times) ? m.schedule_times : [],
+          startDate: m.start_date,
+          endDate: m.end_date || null,
+          stockRemaining: m.stock_remaining !== null && m.stock_remaining !== undefined ? Number(m.stock_remaining) : null,
+          status: m.status || 'active',
+          doseLogs: Array.isArray(m.dose_logs) ? m.dose_logs : [],
+          doctorVisitId: m.doctor_visit_id || null,
+          cost: Number(m.cost) || 0,
+          accountName: m.account_name || null,
+          transactionId: m.transaction_id || null
         }))
       };
     } catch (err) {
@@ -1575,6 +1609,140 @@ export const cloudService = {
       }
     } catch (e) {
       console.error('Catch deleteDebt:', e);
+    }
+  },
+
+  // SEHATKU: RIWAYAT KUNJUNGAN DOKTER (DOCTOR VISITS)
+  async insertDoctorVisit(userId, visit) {
+    if (!isSupabaseConfigured() || !supabase || !userId || !visit) return;
+    try {
+      const payload = {
+        id: visit.id,
+        user_id: userId,
+        visit_date: visit.visitDate || new Date().toISOString().split('T')[0],
+        doctor_name: visit.doctorName || '',
+        facility_name: visit.facilityName || '',
+        specialty: visit.specialty || '',
+        diagnosis: visit.diagnosis || '',
+        notes: visit.notes || '',
+        cost: Number(visit.cost) || 0,
+        account_name: visit.accountName || null,
+        transaction_id: visit.transactionId || null,
+        next_visit_date: visit.nextVisitDate || null
+      };
+      const { error } = await supabase.from('doctor_visits').insert(payload);
+      if (error) console.error('Cloud insert doctor visit error:', error);
+    } catch (e) {
+      console.error('Catch insertDoctorVisit:', e);
+    }
+  },
+
+  async updateDoctorVisit(visitId, fields, userId = null) {
+    if (!isSupabaseConfigured() || !supabase || !visitId) return;
+    try {
+      const payload = {
+        updated_at: new Date().toISOString()
+      };
+      if (fields.visitDate !== undefined) payload.visit_date = fields.visitDate;
+      if (fields.doctorName !== undefined) payload.doctor_name = fields.doctorName;
+      if (fields.facilityName !== undefined) payload.facility_name = fields.facilityName;
+      if (fields.specialty !== undefined) payload.specialty = fields.specialty;
+      if (fields.diagnosis !== undefined) payload.diagnosis = fields.diagnosis;
+      if (fields.notes !== undefined) payload.notes = fields.notes;
+      if (fields.cost !== undefined) payload.cost = Number(fields.cost) || 0;
+      if (fields.accountName !== undefined) payload.account_name = fields.accountName || null;
+      if (fields.transactionId !== undefined) payload.transaction_id = fields.transactionId || null;
+      if (fields.nextVisitDate !== undefined) payload.next_visit_date = fields.nextVisitDate || null;
+
+      let query = supabase.from('doctor_visits').update(payload).eq('id', visitId);
+      if (userId) query = query.eq('user_id', userId);
+      const { error } = await query;
+      if (error) console.error('Cloud update doctor visit error:', error);
+    } catch (e) {
+      console.error('Catch updateDoctorVisit:', e);
+    }
+  },
+
+  async deleteDoctorVisit(visitId, userId = null) {
+    if (!isSupabaseConfigured() || !supabase || !visitId) return;
+    try {
+      let query = supabase.from('doctor_visits').delete().eq('id', visitId);
+      if (userId) query = query.eq('user_id', userId);
+      const { error } = await query;
+      if (error) console.error('Cloud delete doctor visit error:', error);
+    } catch (e) {
+      console.error('Catch deleteDoctorVisit:', e);
+    }
+  },
+
+  // SEHATKU: OBAT & JADWAL MINUM (MEDICATIONS)
+  async insertMedication(userId, med) {
+    if (!isSupabaseConfigured() || !supabase || !userId || !med) return;
+    try {
+      const payload = {
+        id: med.id,
+        user_id: userId,
+        name: med.name,
+        dosage: med.dosage || '',
+        form: med.form || 'tablet',
+        instructions: med.instructions || '',
+        schedule_times: Array.isArray(med.scheduleTimes) ? med.scheduleTimes : [],
+        start_date: med.startDate || new Date().toISOString().split('T')[0],
+        end_date: med.endDate || null,
+        stock_remaining: med.stockRemaining !== null && med.stockRemaining !== undefined ? Number(med.stockRemaining) : null,
+        status: med.status || 'active',
+        dose_logs: Array.isArray(med.doseLogs) ? med.doseLogs : [],
+        doctor_visit_id: med.doctorVisitId || null,
+        cost: Number(med.cost) || 0,
+        account_name: med.accountName || null,
+        transaction_id: med.transactionId || null
+      };
+      const { error } = await supabase.from('medications').insert(payload);
+      if (error) console.error('Cloud insert medication error:', error);
+    } catch (e) {
+      console.error('Catch insertMedication:', e);
+    }
+  },
+
+  async updateMedication(medId, fields, userId = null) {
+    if (!isSupabaseConfigured() || !supabase || !medId) return;
+    try {
+      const payload = {
+        updated_at: new Date().toISOString()
+      };
+      if (fields.name !== undefined) payload.name = fields.name;
+      if (fields.dosage !== undefined) payload.dosage = fields.dosage;
+      if (fields.form !== undefined) payload.form = fields.form;
+      if (fields.instructions !== undefined) payload.instructions = fields.instructions;
+      if (fields.scheduleTimes !== undefined) payload.schedule_times = Array.isArray(fields.scheduleTimes) ? fields.scheduleTimes : [];
+      if (fields.startDate !== undefined) payload.start_date = fields.startDate;
+      if (fields.endDate !== undefined) payload.end_date = fields.endDate || null;
+      if (fields.stockRemaining !== undefined) payload.stock_remaining = fields.stockRemaining !== null && fields.stockRemaining !== undefined ? Number(fields.stockRemaining) : null;
+      if (fields.status !== undefined) payload.status = fields.status;
+      if (fields.doseLogs !== undefined) payload.dose_logs = Array.isArray(fields.doseLogs) ? fields.doseLogs : [];
+      if (fields.doctorVisitId !== undefined) payload.doctor_visit_id = fields.doctorVisitId || null;
+      if (fields.cost !== undefined) payload.cost = Number(fields.cost) || 0;
+      if (fields.accountName !== undefined) payload.account_name = fields.accountName || null;
+      if (fields.transactionId !== undefined) payload.transaction_id = fields.transactionId || null;
+
+      let query = supabase.from('medications').update(payload).eq('id', medId);
+      if (userId) query = query.eq('user_id', userId);
+      const { error } = await query;
+      if (error) console.error('Cloud update medication error:', error);
+    } catch (e) {
+      console.error('Catch updateMedication:', e);
+    }
+  },
+
+  async deleteMedication(medId, userId = null) {
+    if (!isSupabaseConfigured() || !supabase || !medId) return;
+    try {
+      let query = supabase.from('medications').delete().eq('id', medId);
+      if (userId) query = query.eq('user_id', userId);
+      const { error } = await query;
+      if (error) console.error('Cloud delete medication error:', error);
+    } catch (e) {
+      console.error('Catch deleteMedication:', e);
     }
   }
 };

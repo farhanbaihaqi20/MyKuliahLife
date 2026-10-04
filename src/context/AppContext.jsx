@@ -147,6 +147,29 @@ const reconcileUserData = (cloudData, cached, userId) => {
     cloudData.debts = cached?.debts || [];
   }
 
+  // 7. Reconcile Health (SehatKu: Doctor Visits & Medications)
+  if ((!cloudData.doctorVisits || cloudData.doctorVisits.length === 0) && cached?.doctorVisits && cached.doctorVisits.length > 0) {
+    cloudData.doctorVisits = cached.doctorVisits;
+    if (userId) {
+      cached.doctorVisits.forEach(v => {
+        cloudService.insertDoctorVisit(userId, v).catch(err => console.warn('Sync cached doctor visit error:', err));
+      });
+    }
+  } else if (!cloudData.doctorVisits) {
+    cloudData.doctorVisits = cached?.doctorVisits || [];
+  }
+
+  if ((!cloudData.medications || cloudData.medications.length === 0) && cached?.medications && cached.medications.length > 0) {
+    cloudData.medications = cached.medications;
+    if (userId) {
+      cached.medications.forEach(m => {
+        cloudService.insertMedication(userId, m).catch(err => console.warn('Sync cached medication error:', err));
+      });
+    }
+  } else if (!cloudData.medications) {
+    cloudData.medications = cached?.medications || [];
+  }
+
   // Background auto-heal Supabase
   if (needsCloudHealing && userId) {
     profileService.updateProfile(userId, healingPayload).catch(err => {
@@ -887,6 +910,45 @@ export const AppProvider = ({ children }) => {
   const activeDebtsCount = useMemo(() => {
     return (data.debts || []).filter(d => d.status === 'active').length;
   }, [data.debts]);
+
+  // --- SEHATKU (HEALTH) COMPUTED ---
+  const activeMedications = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return (data.medications || []).filter(m => {
+      if (m.status !== 'active') return false;
+      if (m.endDate && m.endDate < todayStr) return false;
+      return true;
+    });
+  }, [data.medications]);
+
+  const todayDoseSchedule = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const items = [];
+    activeMedications.forEach(med => {
+      (med.scheduleTimes || []).forEach(time => {
+        const log = (med.doseLogs || []).find(l => l.date === todayStr && l.time === time);
+        items.push({
+          medId: med.id,
+          medName: med.name,
+          dosage: med.dosage,
+          form: med.form,
+          instructions: med.instructions,
+          time,
+          status: log?.status || 'pending',
+          takenAt: log?.takenAt || null
+        });
+      });
+    });
+    return items.sort((a, b) => String(a.time).localeCompare(String(b.time)));
+  }, [activeMedications]);
+
+  const upcomingVisit = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const upcoming = (data.doctorVisits || [])
+      .filter(v => v.nextVisitDate && v.nextVisitDate >= todayStr)
+      .sort((a, b) => String(a.nextVisitDate).localeCompare(String(b.nextVisitDate)));
+    return upcoming[0] || null;
+  }, [data.doctorVisits]);
 
   // --- ACCOUNTS CRUD ---
   const addAccount = (acc) => {
@@ -2041,6 +2103,199 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // --- SEHATKU (HEALTH) CRUD ---
+  const addDoctorVisit = async (visit) => {
+    const visitId = visit.id || generateUUID();
+    const cost = Number(visit.cost) || 0;
+    const newVisit = {
+      id: visitId,
+      visitDate: visit.visitDate || new Date().toISOString().split('T')[0],
+      doctorName: (visit.doctorName || '').trim(),
+      facilityName: (visit.facilityName || '').trim(),
+      specialty: visit.specialty || '',
+      diagnosis: visit.diagnosis || '',
+      notes: visit.notes || '',
+      cost,
+      accountName: visit.accountName || null,
+      transactionId: null,
+      nextVisitDate: visit.nextVisitDate || null
+    };
+
+    // Optional: catat biaya ke transaksi pengeluaran
+    if (cost > 0 && newVisit.accountName) {
+      const tx = await addTransaction({
+        type: 'expense',
+        category: 'Kesehatan',
+        amount: cost,
+        accountName: newVisit.accountName,
+        merchant: newVisit.facilityName || newVisit.doctorName || 'Fasilitas Kesehatan',
+        note: `🩺 Kunjungan dokter${newVisit.doctorName ? ': ' + newVisit.doctorName : ''}${newVisit.diagnosis ? ' — ' + newVisit.diagnosis : ''}`,
+        icon: '🩺',
+        date: newVisit.visitDate
+      });
+      if (tx?.id) newVisit.transactionId = tx.id;
+    }
+
+    setData(prev => ({
+      ...prev,
+      doctorVisits: [newVisit, ...(Array.isArray(prev.doctorVisits) ? prev.doctorVisits : [])]
+    }));
+    if (user?.id) {
+      cloudService.insertDoctorVisit(user.id, newVisit).catch(err => console.warn(err));
+    }
+    return newVisit;
+  };
+
+  const editDoctorVisit = (visitId, fields) => {
+    setData(prev => {
+      const nextVisits = (Array.isArray(prev.doctorVisits) ? prev.doctorVisits : []).map(v =>
+        String(v.id) === String(visitId) ? { ...v, ...fields } : v
+      );
+      return { ...prev, doctorVisits: nextVisits };
+    });
+    if (user?.id) {
+      cloudService.updateDoctorVisit(visitId, fields, user.id).catch(err => console.warn(err));
+    }
+  };
+
+  const deleteDoctorVisit = async (visitId) => {
+    const target = (data.doctorVisits || []).find(v => String(v.id) === String(visitId));
+    setData(prev => ({
+      ...prev,
+      doctorVisits: (Array.isArray(prev.doctorVisits) ? prev.doctorVisits : []).filter(v => String(v.id) !== String(visitId)),
+      // Lepaskan tautan obat yang merujuk kunjungan ini
+      medications: (Array.isArray(prev.medications) ? prev.medications : []).map(m =>
+        String(m.doctorVisitId) === String(visitId) ? { ...m, doctorVisitId: null } : m
+      ),
+      // Hapus transaksi biaya tertaut (jika ada)
+      transactions: target?.transactionId
+        ? (Array.isArray(prev.transactions) ? prev.transactions : []).filter(t => String(t.id) !== String(target.transactionId))
+        : prev.transactions
+    }));
+    if (target?.transactionId && user?.id) {
+      cloudService.deleteTransaction(user.id, target.transactionId, data.accounts || []).catch(err => console.warn(err));
+    }
+    if (user?.id) {
+      cloudService.deleteDoctorVisit(visitId, user.id).catch(err => console.warn(err));
+    }
+  };
+
+  const addMedication = async (med) => {
+    const medId = med.id || generateUUID();
+    const cost = Number(med.cost) || 0;
+    const newMed = {
+      id: medId,
+      name: (med.name || 'Obat Baru').trim(),
+      dosage: med.dosage || '',
+      form: med.form || 'tablet',
+      instructions: med.instructions || '',
+      scheduleTimes: Array.isArray(med.scheduleTimes) ? [...med.scheduleTimes].sort() : [],
+      startDate: med.startDate || new Date().toISOString().split('T')[0],
+      endDate: med.endDate || null,
+      stockRemaining: med.stockRemaining !== null && med.stockRemaining !== undefined && med.stockRemaining !== '' ? Number(med.stockRemaining) : null,
+      status: 'active',
+      doseLogs: [],
+      doctorVisitId: med.doctorVisitId || null,
+      cost,
+      accountName: med.accountName || null,
+      transactionId: null
+    };
+
+    // Optional: catat biaya obat ke transaksi pengeluaran
+    if (cost > 0 && newMed.accountName) {
+      const tx = await addTransaction({
+        type: 'expense',
+        category: 'Kesehatan',
+        amount: cost,
+        accountName: newMed.accountName,
+        merchant: 'Apotek / Pembelian Obat',
+        note: `💊 Beli obat: ${newMed.name}${newMed.dosage ? ' ' + newMed.dosage : ''}`,
+        icon: '💊',
+        date: newMed.startDate
+      });
+      if (tx?.id) newMed.transactionId = tx.id;
+    }
+
+    setData(prev => ({
+      ...prev,
+      medications: [newMed, ...(Array.isArray(prev.medications) ? prev.medications : [])]
+    }));
+    if (user?.id) {
+      cloudService.insertMedication(user.id, newMed).catch(err => console.warn(err));
+    }
+    return newMed;
+  };
+
+  const editMedication = (medId, fields) => {
+    setData(prev => {
+      const nextMeds = (Array.isArray(prev.medications) ? prev.medications : []).map(m =>
+        String(m.id) === String(medId) ? { ...m, ...fields } : m
+      );
+      return { ...prev, medications: nextMeds };
+    });
+    if (user?.id) {
+      cloudService.updateMedication(medId, fields, user.id).catch(err => console.warn(err));
+    }
+  };
+
+  const deleteMedication = async (medId) => {
+    const target = (data.medications || []).find(m => String(m.id) === String(medId));
+    setData(prev => ({
+      ...prev,
+      medications: (Array.isArray(prev.medications) ? prev.medications : []).filter(m => String(m.id) !== String(medId)),
+      transactions: target?.transactionId
+        ? (Array.isArray(prev.transactions) ? prev.transactions : []).filter(t => String(t.id) !== String(target.transactionId))
+        : prev.transactions
+    }));
+    if (target?.transactionId && user?.id) {
+      cloudService.deleteTransaction(user.id, target.transactionId, data.accounts || []).catch(err => console.warn(err));
+    }
+    if (user?.id) {
+      cloudService.deleteMedication(medId, user.id).catch(err => console.warn(err));
+    }
+  };
+
+  const logMedicationDose = (medId, { date, time, status = 'taken' }) => {
+    const todayStr = date || new Date().toISOString().split('T')[0];
+    let updatedMed = null;
+
+    setData(prev => {
+      const nextMeds = (Array.isArray(prev.medications) ? prev.medications : []).map(m => {
+        if (String(m.id) !== String(medId)) return m;
+        const oldLogs = Array.isArray(m.doseLogs) ? m.doseLogs : [];
+        const existingIdx = oldLogs.findIndex(l => l.date === todayStr && l.time === time);
+        const prevStatus = existingIdx >= 0 ? oldLogs[existingIdx]?.status : null;
+        const entry = {
+          date: todayStr,
+          time,
+          status,
+          takenAt: status === 'taken' ? new Date().toISOString() : null
+        };
+        const logs = [...oldLogs];
+        if (existingIdx >= 0) {
+          logs[existingIdx] = entry;
+        } else {
+          logs.push(entry);
+        }
+        // Kurangi stok hanya saat transisi menjadi 'taken'
+        let stock = m.stockRemaining;
+        if (stock !== null && stock !== undefined && status === 'taken' && prevStatus !== 'taken') {
+          stock = Math.max(0, Number(stock) - 1);
+        }
+        updatedMed = { ...m, doseLogs: logs, stockRemaining: stock };
+        return updatedMed;
+      });
+      return { ...prev, medications: nextMeds };
+    });
+
+    if (user?.id && updatedMed) {
+      cloudService.updateMedication(medId, {
+        doseLogs: updatedMed.doseLogs,
+        stockRemaining: updatedMed.stockRemaining
+      }, user.id).catch(err => console.warn(err));
+    }
+  };
+
   // --- SEMESTER & ACADEMIC TRANSITION ---
   const promoteToNextSemester = () => {
     const nextSem = (activeSemester || 1) + 1;
@@ -2719,7 +2974,20 @@ export const AppProvider = ({ children }) => {
         deleteFuelLog,
         findLinkedTransaction,
         updateFuelSettings,
-        fetchFuelPrices
+        fetchFuelPrices,
+        // SehatKu (Health)
+        doctorVisits: data.doctorVisits || [],
+        medications: data.medications || [],
+        activeMedications,
+        todayDoseSchedule,
+        upcomingVisit,
+        addDoctorVisit,
+        editDoctorVisit,
+        deleteDoctorVisit,
+        addMedication,
+        editMedication,
+        deleteMedication,
+        logMedicationDose
       }}
     >
       {children}

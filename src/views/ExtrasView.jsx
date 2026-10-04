@@ -3,9 +3,11 @@ import { Sparkles } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import FuelDashboard from '../components/extras/FuelDashboard';
 import DebtDashboard from '../components/extras/DebtDashboard';
+import HealthDashboard from '../components/health/HealthDashboard';
 
 import iconFuel from '../assets/extras/extra-fuel.png';
 import iconDebt from '../assets/extras/extra-debt.png';
+import iconHealth from '../assets/extras/extra-health.png';
 import iconMaintenance from '../assets/extras/extra-maintenance.png';
 import iconSplitBill from '../assets/extras/extra-splitbill.png';
 import iconLifestyle from '../assets/extras/extra-lifestyle.png';
@@ -20,6 +22,10 @@ export const ExtrasView = () => {
 
   if (extrasSubtab === 'debt') {
     return <DebtDashboard onBack={() => setExtrasSubtab('menu')} />;
+  }
+
+  if (extrasSubtab === 'health') {
+    return <HealthDashboard onBack={() => setExtrasSubtab('menu')} />;
   }
 
   const extraFeatures = [
@@ -38,6 +44,14 @@ export const ExtrasView = () => {
       iconImg: iconFuel,
       isReady: true,
       onClick: () => setExtrasSubtab('fuel')
+    },
+    {
+      id: 'health',
+      title: 'SehatKu',
+      desc: 'Catat riwayat dokter, jadwal & pengingat minum obat harianmu.',
+      iconImg: iconHealth,
+      isReady: true,
+      onClick: () => setExtrasSubtab('health')
     },
     {
       id: 'maintenance',
