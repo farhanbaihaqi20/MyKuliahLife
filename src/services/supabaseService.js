@@ -571,7 +571,8 @@ export const dataSyncService = {
         fuelSettingsRes,
         debtsRes,
         doctorVisitsRes,
-        medicationsRes
+        medicationsRes,
+        wellnessRes
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
         supabase.from('accounts').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
@@ -586,7 +587,8 @@ export const dataSyncService = {
         supabase.from('fuel_settings').select('*').eq('user_id', userId).maybeSingle().then(r => r, () => ({ data: null })),
         supabase.from('debts').select('*').eq('user_id', userId).order('created_date', { ascending: false }).then(r => r, () => ({ data: [] })),
         supabase.from('doctor_visits').select('*').eq('user_id', userId).order('visit_date', { ascending: false }).then(r => r, () => ({ data: [] })),
-        supabase.from('medications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).then(r => r, () => ({ data: [] }))
+        supabase.from('medications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).then(r => r, () => ({ data: [] })),
+        supabase.from('user_wellness').select('*').eq('user_id', userId).maybeSingle().then(r => r, () => ({ data: null }))
       ]);
 
       if (!profileRes.data) {
@@ -792,7 +794,12 @@ export const dataSyncService = {
           cost: Number(m.cost) || 0,
           accountName: m.account_name || null,
           transactionId: m.transaction_id || null
-        }))
+        })),
+        waterIntakeLogs: Array.isArray(wellnessRes?.data?.water_intake_logs) ? wellnessRes.data.water_intake_logs : [],
+        waterIntakeTarget: Number(wellnessRes?.data?.water_intake_target) || 2000,
+        sleepLogs: Array.isArray(wellnessRes?.data?.sleep_logs) ? wellnessRes.data.sleep_logs : [],
+        bmiLogs: Array.isArray(wellnessRes?.data?.bmi_logs) ? wellnessRes.data.bmi_logs : [],
+        moodLogs: Array.isArray(wellnessRes?.data?.mood_logs) ? wellnessRes.data.mood_logs : []
       };
     } catch (err) {
       console.error('Failed to load user data from Supabase:', err);
@@ -1743,6 +1750,32 @@ export const cloudService = {
       if (error) console.error('Cloud delete medication error:', error);
     } catch (e) {
       console.error('Catch deleteMedication:', e);
+    }
+  },
+
+  // =========================================================================
+  // SEHATKU: WELLNESS (AIR, TIDUR, BMI, MOOD)
+  // =========================================================================
+  async syncUserWellness(userId, wellnessData) {
+    if (!isSupabaseConfigured() || !supabase || !userId || !wellnessData) return;
+    try {
+      const payload = {
+        user_id: userId,
+        water_intake_target: Number(wellnessData.waterIntakeTarget) || 2000,
+        water_intake_logs: Array.isArray(wellnessData.waterIntakeLogs) ? wellnessData.waterIntakeLogs : [],
+        sleep_logs: Array.isArray(wellnessData.sleepLogs) ? wellnessData.sleepLogs : [],
+        bmi_logs: Array.isArray(wellnessData.bmiLogs) ? wellnessData.bmiLogs : [],
+        mood_logs: Array.isArray(wellnessData.moodLogs) ? wellnessData.moodLogs : [],
+        updated_at: new Date().toISOString()
+      };
+      const { error } = await supabase
+        .from('user_wellness')
+        .upsert(payload, { onConflict: 'user_id' });
+      if (error) {
+        console.warn('Supabase syncUserWellness error:', error);
+      }
+    } catch (e) {
+      console.warn('Catch syncUserWellness:', e);
     }
   }
 };

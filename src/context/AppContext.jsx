@@ -170,6 +170,43 @@ const reconcileUserData = (cloudData, cached, userId) => {
     cloudData.medications = cached?.medications || [];
   }
 
+  // 8. Reconcile SehatKu Wellness
+  const hasLocalWellness = cached && (
+    (cached.waterIntakeLogs && cached.waterIntakeLogs.length > 0) ||
+    (cached.sleepLogs && cached.sleepLogs.length > 0) ||
+    (cached.bmiLogs && cached.bmiLogs.length > 0) ||
+    (cached.moodLogs && cached.moodLogs.length > 0)
+  );
+  const cloudHasWellness = cloudData.waterIntakeLogs && (
+    cloudData.waterIntakeLogs.length > 0 ||
+    (cloudData.sleepLogs && cloudData.sleepLogs.length > 0) ||
+    (cloudData.bmiLogs && cloudData.bmiLogs.length > 0) ||
+    (cloudData.moodLogs && cloudData.moodLogs.length > 0)
+  );
+
+  if (!cloudHasWellness && hasLocalWellness) {
+    cloudData.waterIntakeLogs = cached.waterIntakeLogs || [];
+    cloudData.waterIntakeTarget = Number(cached.waterIntakeTarget) || 2000;
+    cloudData.sleepLogs = cached.sleepLogs || [];
+    cloudData.bmiLogs = cached.bmiLogs || [];
+    cloudData.moodLogs = cached.moodLogs || [];
+    if (userId) {
+      cloudService.syncUserWellness(userId, {
+        waterIntakeTarget: cloudData.waterIntakeTarget,
+        waterIntakeLogs: cloudData.waterIntakeLogs,
+        sleepLogs: cloudData.sleepLogs,
+        bmiLogs: cloudData.bmiLogs,
+        moodLogs: cloudData.moodLogs
+      }).catch(err => console.warn('Background wellness healing error:', err));
+    }
+  } else {
+    cloudData.waterIntakeLogs = Array.isArray(cloudData.waterIntakeLogs) ? cloudData.waterIntakeLogs : (cached?.waterIntakeLogs || []);
+    cloudData.waterIntakeTarget = Number(cloudData.waterIntakeTarget) || cached?.waterIntakeTarget || 2000;
+    cloudData.sleepLogs = Array.isArray(cloudData.sleepLogs) ? cloudData.sleepLogs : (cached?.sleepLogs || []);
+    cloudData.bmiLogs = Array.isArray(cloudData.bmiLogs) ? cloudData.bmiLogs : (cached?.bmiLogs || []);
+    cloudData.moodLogs = Array.isArray(cloudData.moodLogs) ? cloudData.moodLogs : (cached?.moodLogs || []);
+  }
+
   // Background auto-heal Supabase
   if (needsCloudHealing && userId) {
     profileService.updateProfile(userId, healingPayload).catch(err => {
@@ -949,6 +986,31 @@ export const AppProvider = ({ children }) => {
       .sort((a, b) => String(a.nextVisitDate).localeCompare(String(b.nextVisitDate)));
     return upcoming[0] || null;
   }, [data.doctorVisits]);
+
+  // --- SEHATKU (WELLNESS) COMPUTED ---
+  const todayWaterIntake = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return (data.waterIntakeLogs || [])
+      .filter(l => l.date === today)
+      .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  }, [data.waterIntakeLogs]);
+
+  const todaySleepLog = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const logs = (data.sleepLogs || []).filter(l => l.date === today);
+    return logs.length > 0 ? logs[0] : null;
+  }, [data.sleepLogs]);
+
+  const latestBmi = useMemo(() => {
+    const logs = [...(data.bmiLogs || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    return logs[0] || null;
+  }, [data.bmiLogs]);
+
+  const todayMood = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const logs = (data.moodLogs || []).filter(l => l.date === today);
+    return logs.length > 0 ? logs[0] : null;
+  }, [data.moodLogs]);
 
   // --- ACCOUNTS CRUD ---
   const addAccount = (acc) => {
@@ -2296,6 +2358,233 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // --- SEHATKU (WELLNESS): WATER INTAKE CRUD ---
+  const addWaterIntake = (amount, time = null) => {
+    const today = new Date().toISOString().split('T')[0];
+    const nowTime = time || new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+    const newEntry = {
+      id: generateUUID(),
+      date: today,
+      time: nowTime,
+      amount: Number(amount) || 250
+    };
+    const nextLogs = [newEntry, ...(Array.isArray(data.waterIntakeLogs) ? data.waterIntakeLogs : [])];
+    setData(prev => ({
+      ...prev,
+      waterIntakeLogs: nextLogs
+    }));
+    if (user?.id) {
+      cloudService.syncUserWellness(user.id, {
+        waterIntakeTarget: data.waterIntakeTarget || 2000,
+        waterIntakeLogs: nextLogs,
+        sleepLogs: data.sleepLogs || [],
+        bmiLogs: data.bmiLogs || [],
+        moodLogs: data.moodLogs || []
+      });
+    }
+    return newEntry;
+  };
+
+  const deleteWaterIntake = (id) => {
+    const nextLogs = (Array.isArray(data.waterIntakeLogs) ? data.waterIntakeLogs : []).filter(l => String(l.id) !== String(id));
+    setData(prev => ({
+      ...prev,
+      waterIntakeLogs: nextLogs
+    }));
+    if (user?.id) {
+      cloudService.syncUserWellness(user.id, {
+        waterIntakeTarget: data.waterIntakeTarget || 2000,
+        waterIntakeLogs: nextLogs,
+        sleepLogs: data.sleepLogs || [],
+        bmiLogs: data.bmiLogs || [],
+        moodLogs: data.moodLogs || []
+      });
+    }
+  };
+
+  const updateWaterTarget = (targetMl) => {
+    const valid = Math.max(500, Math.min(6000, Number(targetMl) || 2000));
+    setData(prev => ({
+      ...prev,
+      waterIntakeTarget: valid
+    }));
+    if (user?.id) {
+      cloudService.syncUserWellness(user.id, {
+        waterIntakeTarget: valid,
+        waterIntakeLogs: data.waterIntakeLogs || [],
+        sleepLogs: data.sleepLogs || [],
+        bmiLogs: data.bmiLogs || [],
+        moodLogs: data.moodLogs || []
+      });
+    }
+  };
+
+  // --- SEHATKU (WELLNESS): SLEEP TRACKER CRUD ---
+  const addSleepLog = ({ sleepTime, wakeTime, quality = 'cukup', notes = '', date = null }) => {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    let durationHours = 0;
+    try {
+      const [sh, sm] = (sleepTime || '23:00').split(':').map(Number);
+      const [wh, wm] = (wakeTime || '07:00').split(':').map(Number);
+      let sMinutes = sh * 60 + sm;
+      let wMinutes = wh * 60 + wm;
+      if (wMinutes < sMinutes) {
+        wMinutes += 24 * 60; // crossed midnight
+      }
+      durationHours = Math.round(((wMinutes - sMinutes) / 60) * 10) / 10;
+    } catch {
+      durationHours = 7;
+    }
+
+    const newLog = {
+      id: generateUUID(),
+      date: targetDate,
+      sleepTime: sleepTime || '23:00',
+      wakeTime: wakeTime || '07:00',
+      durationHours,
+      quality, // 'kurang' | 'cukup' | 'nyenyak'
+      notes: (notes || '').trim()
+    };
+
+    const existing = (Array.isArray(data.sleepLogs) ? data.sleepLogs : []).filter(l => l.date !== targetDate);
+    const nextLogs = [newLog, ...existing];
+    setData(prev => ({
+      ...prev,
+      sleepLogs: nextLogs
+    }));
+    if (user?.id) {
+      cloudService.syncUserWellness(user.id, {
+        waterIntakeTarget: data.waterIntakeTarget || 2000,
+        waterIntakeLogs: data.waterIntakeLogs || [],
+        sleepLogs: nextLogs,
+        bmiLogs: data.bmiLogs || [],
+        moodLogs: data.moodLogs || []
+      });
+    }
+    return newLog;
+  };
+
+  const deleteSleepLog = (id) => {
+    const nextLogs = (Array.isArray(data.sleepLogs) ? data.sleepLogs : []).filter(l => String(l.id) !== String(id));
+    setData(prev => ({
+      ...prev,
+      sleepLogs: nextLogs
+    }));
+    if (user?.id) {
+      cloudService.syncUserWellness(user.id, {
+        waterIntakeTarget: data.waterIntakeTarget || 2000,
+        waterIntakeLogs: data.waterIntakeLogs || [],
+        sleepLogs: nextLogs,
+        bmiLogs: data.bmiLogs || [],
+        moodLogs: data.moodLogs || []
+      });
+    }
+  };
+
+  // --- SEHATKU (WELLNESS): BMI CALCULATOR CRUD ---
+  const addBmiLog = ({ height, weight, notes = '' }) => {
+    const h = Number(height) || 0;
+    const w = Number(weight) || 0;
+    if (h <= 0 || w <= 0) return null;
+
+    const heightInMeters = h / 100;
+    const bmiVal = Math.round((w / (heightInMeters * heightInMeters)) * 10) / 10;
+
+    let category = 'normal';
+    if (bmiVal < 18.5) category = 'underweight';
+    else if (bmiVal < 25) category = 'normal';
+    else if (bmiVal < 30) category = 'overweight';
+    else category = 'obesity';
+
+    const newLog = {
+      id: generateUUID(),
+      date: new Date().toISOString().split('T')[0],
+      height: h,
+      weight: w,
+      bmi: bmiVal,
+      category,
+      notes: (notes || '').trim()
+    };
+
+    const nextLogs = [newLog, ...(Array.isArray(data.bmiLogs) ? data.bmiLogs : [])];
+    setData(prev => ({
+      ...prev,
+      bmiLogs: nextLogs
+    }));
+    if (user?.id) {
+      cloudService.syncUserWellness(user.id, {
+        waterIntakeTarget: data.waterIntakeTarget || 2000,
+        waterIntakeLogs: data.waterIntakeLogs || [],
+        sleepLogs: data.sleepLogs || [],
+        bmiLogs: nextLogs,
+        moodLogs: data.moodLogs || []
+      });
+    }
+    return newLog;
+  };
+
+  const deleteBmiLog = (id) => {
+    const nextLogs = (Array.isArray(data.bmiLogs) ? data.bmiLogs : []).filter(l => String(l.id) !== String(id));
+    setData(prev => ({
+      ...prev,
+      bmiLogs: nextLogs
+    }));
+    if (user?.id) {
+      cloudService.syncUserWellness(user.id, {
+        waterIntakeTarget: data.waterIntakeTarget || 2000,
+        waterIntakeLogs: data.waterIntakeLogs || [],
+        sleepLogs: data.sleepLogs || [],
+        bmiLogs: nextLogs,
+        moodLogs: data.moodLogs || []
+      });
+    }
+  };
+
+  // --- SEHATKU (WELLNESS): MOOD CHECK-IN CRUD ---
+  const setTodayMood = ({ mood, notes = '', date = null }) => {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    const newEntry = {
+      id: generateUUID(),
+      date: targetDate,
+      mood: Number(mood) || 3, // 1: buruk, 2: kurang, 3: biasa, 4: baik, 5: sangat baik
+      notes: (notes || '').trim()
+    };
+
+    const existing = (Array.isArray(data.moodLogs) ? data.moodLogs : []).filter(m => m.date !== targetDate);
+    const nextLogs = [newEntry, ...existing];
+    setData(prev => ({
+      ...prev,
+      moodLogs: nextLogs
+    }));
+    if (user?.id) {
+      cloudService.syncUserWellness(user.id, {
+        waterIntakeTarget: data.waterIntakeTarget || 2000,
+        waterIntakeLogs: data.waterIntakeLogs || [],
+        sleepLogs: data.sleepLogs || [],
+        bmiLogs: data.bmiLogs || [],
+        moodLogs: nextLogs
+      });
+    }
+    return newEntry;
+  };
+
+  const deleteMoodLog = (id) => {
+    const nextLogs = (Array.isArray(data.moodLogs) ? data.moodLogs : []).filter(m => String(m.id) !== String(id));
+    setData(prev => ({
+      ...prev,
+      moodLogs: nextLogs
+    }));
+    if (user?.id) {
+      cloudService.syncUserWellness(user.id, {
+        waterIntakeTarget: data.waterIntakeTarget || 2000,
+        waterIntakeLogs: data.waterIntakeLogs || [],
+        sleepLogs: data.sleepLogs || [],
+        bmiLogs: data.bmiLogs || [],
+        moodLogs: nextLogs
+      });
+    }
+  };
+
   // --- SEMESTER & ACADEMIC TRANSITION ---
   const promoteToNextSemester = () => {
     const nextSem = (activeSemester || 1) + 1;
@@ -2987,7 +3276,26 @@ export const AppProvider = ({ children }) => {
         addMedication,
         editMedication,
         deleteMedication,
-        logMedicationDose
+        logMedicationDose,
+        // SehatKu (Wellness)
+        waterIntakeLogs: data.waterIntakeLogs || [],
+        waterIntakeTarget: data.waterIntakeTarget || 2000,
+        todayWaterIntake,
+        addWaterIntake,
+        deleteWaterIntake,
+        updateWaterTarget,
+        sleepLogs: data.sleepLogs || [],
+        todaySleepLog,
+        addSleepLog,
+        deleteSleepLog,
+        bmiLogs: data.bmiLogs || [],
+        latestBmi,
+        addBmiLog,
+        deleteBmiLog,
+        moodLogs: data.moodLogs || [],
+        todayMood,
+        setTodayMood,
+        deleteMoodLog
       }}
     >
       {children}

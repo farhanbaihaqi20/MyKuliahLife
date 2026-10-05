@@ -18,6 +18,7 @@ import MedicationFormModal from './MedicationFormModal';
 import DoctorVisitFormModal from './DoctorVisitFormModal';
 import MedicationDetailModal from './MedicationDetailModal';
 import DoctorVisitDetailModal from './DoctorVisitDetailModal';
+import WellnessGrid from './WellnessGrid';
 
 const FORM_EMOJI = {
   tablet: '💊',
@@ -204,6 +205,13 @@ export const HealthDashboard = ({ onBack }) => {
           onClick={() => setActiveTab('visits')}
         >
           Riwayat ({doctorVisits.length})
+        </button>
+        <button
+          type="button"
+          className={`health-filter-pill ${activeTab === 'wellness' ? 'active' : ''}`}
+          onClick={() => setActiveTab('wellness')}
+        >
+          Wellness
         </button>
       </nav>
 
@@ -407,6 +415,11 @@ export const HealthDashboard = ({ onBack }) => {
             })}
           </div>
         )
+      )}
+
+      {/* TAB: WELLNESS */}
+      {activeTab === 'wellness' && (
+        <WellnessGrid />
       )}
 
       {/* Add Action Sheet */}

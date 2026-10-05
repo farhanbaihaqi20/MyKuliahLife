@@ -1,6 +1,6 @@
 import { INITIAL_DATA, CLEAN_DATA, normalizeBudgetCategories, normalizeCategoryName } from '../constants/initialData';
 import { supabase, isSupabaseConfigured } from './supabase';
-import { profileService, dataSyncService } from './supabaseService';
+import { profileService, dataSyncService, cloudService } from './supabaseService';
 
 const BASE_STORAGE_KEY = 'mykuliahlife_app_data';
 const LEGACY_STORAGE_KEY = 'myuang_app_data';
@@ -77,6 +77,11 @@ export const loadLocalData = (userId = null) => {
         debts: Array.isArray(parsed.debts) ? parsed.debts : [],
         doctorVisits: Array.isArray(parsed.doctorVisits) ? parsed.doctorVisits : [],
         medications: Array.isArray(parsed.medications) ? parsed.medications : [],
+        waterIntakeLogs: Array.isArray(parsed.waterIntakeLogs) ? parsed.waterIntakeLogs : [],
+        waterIntakeTarget: Number(parsed.waterIntakeTarget) || 2000,
+        sleepLogs: Array.isArray(parsed.sleepLogs) ? parsed.sleepLogs : [],
+        bmiLogs: Array.isArray(parsed.bmiLogs) ? parsed.bmiLogs : [],
+        moodLogs: Array.isArray(parsed.moodLogs) ? parsed.moodLogs : [],
         profile: {
           ...CLEAN_DATA.profile,
           ...(typeof parsed.profile === 'object' && parsed.profile !== null ? parsed.profile : {})
@@ -130,6 +135,15 @@ export const syncWithCloud = async (localData, userId = null) => {
       startDayOfMonth: localData.budget?.startDayOfMonth,
       monthlyBudget: localData.budget?.totalBudget,
       budgetCategories: localData.budget?.categories || []
+    });
+
+    // 2. Sync Wellness to Supabase Cloud
+    await cloudService.syncUserWellness(targetUserId, {
+      waterIntakeTarget: localData.waterIntakeTarget || 2000,
+      waterIntakeLogs: localData.waterIntakeLogs || [],
+      sleepLogs: localData.sleepLogs || [],
+      bmiLogs: localData.bmiLogs || [],
+      moodLogs: localData.moodLogs || []
     });
 
     return { success: true, mode: 'cloud', message: 'Data berhasil disinkronkan ke Supabase Cloud!' };

@@ -30,7 +30,7 @@ const MainScreen = () => {
     }
   };
 
-  const showGenericHeader = activeTab !== 'home' && !(activeTab === 'extras' && (extrasSubtab === 'fuel' || extrasSubtab === 'debt'));
+  const showGenericHeader = activeTab !== 'home' && !(activeTab === 'extras' && extrasSubtab !== 'menu');
 
   return (
     <div className="mobile-device-frame">

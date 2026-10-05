@@ -574,7 +574,14 @@ export const INITIAL_DATA = {
       pertamax_green: 19150,
       pertamax_turbo: 19600
     }
-  }
+  },
+  doctorVisits: [],
+  medications: [],
+  waterIntakeLogs: [],
+  waterIntakeTarget: 2000,
+  sleepLogs: [],
+  bmiLogs: [],
+  moodLogs: []
 };
 
 export const CLEAN_DATA = {
@@ -612,6 +619,11 @@ export const CLEAN_DATA = {
   debts: [],
   doctorVisits: [],
   medications: [],
+  waterIntakeLogs: [],
+  waterIntakeTarget: 2000,
+  sleepLogs: [],
+  bmiLogs: [],
+  moodLogs: [],
   courses: [],
   assignments: [],
   courseNotes: [],

@@ -14115,3 +14115,1181 @@ body,
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ========================================================
+   SEHATKU: WELLNESS MODULE (Clean, Native, Minimalist)
+   ======================================================== */
+.wellness-grid-container {
+  width: 100%;
+}
+
+.wellness-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 360px) {
+  .wellness-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wellness-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 18px;
+  padding: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: inherit;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.wellness-card:hover {
+  transform: translateY(-2px);
+  border-color: #0D9488;
+  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.1);
+}
+
+.dark .wellness-card {
+  background: #1E293B;
+  border-color: #334155;
+  box-shadow: none;
+}
+
+.dark .wellness-card:hover {
+  border-color: #14B8A6;
+  box-shadow: 0 6px 16px rgba(20, 184, 166, 0.12);
+}
+
+.wellness-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.wellness-card-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wellness-card-icon-box.water {
+  background: #E0F2FE;
+  color: #0284C7;
+}
+
+.wellness-card-icon-box.sleep {
+  background: #EDE9FE;
+  color: #7C3AED;
+}
+
+.wellness-card-icon-box.bmi {
+  background: #DCFCE7;
+  color: #16A34A;
+}
+
+.wellness-card-icon-box.mood {
+  background: #FEF3C7;
+  color: #D97706;
+}
+
+.dark .wellness-card-icon-box.water {
+  background: #0369A133;
+  color: #38BDF8;
+}
+
+.dark .wellness-card-icon-box.sleep {
+  background: #6D28D933;
+  color: #A78BFA;
+}
+
+.dark .wellness-card-icon-box.bmi {
+  background: #15803D33;
+  color: #4ADE80;
+}
+
+.dark .wellness-card-icon-box.mood {
+  background: #B4530933;
+  color: #FCD34D;
+}
+
+.wellness-card-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  text-transform: capitalize;
+}
+
+.wellness-card-badge.water {
+  background: #F0F9FF;
+  color: #0369A1;
+}
+
+.wellness-card-badge.sleep {
+  background: #F5F3FF;
+  color: #6D28D9;
+}
+
+.wellness-card-badge.bmi {
+  background: #F0FDF4;
+  color: #15803D;
+}
+
+.wellness-card-badge.mood {
+  background: #FFFBEB;
+  color: #B45309;
+}
+
+.dark .wellness-card-badge.water {
+  background: #0369A133;
+  color: #7DD3FC;
+}
+
+.dark .wellness-card-badge.sleep {
+  background: #6D28D933;
+  color: #C4B5FD;
+}
+
+.dark .wellness-card-badge.bmi {
+  background: #15803D33;
+  color: #86EFAC;
+}
+
+.dark .wellness-card-badge.mood {
+  background: #B4530933;
+  color: #FDE68A;
+}
+
+.wellness-card-body {
+  margin-bottom: 12px;
+}
+
+.wellness-card-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748B;
+  margin-bottom: 4px;
+}
+
+.dark .wellness-card-title {
+  color: #94A3B8;
+}
+
+.wellness-card-primary {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0F172A;
+  margin-bottom: 3px;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dark .wellness-card-primary {
+  color: #F8FAFC;
+}
+
+.wellness-card-unit {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94A3B8;
+}
+
+.wellness-card-sub {
+  display: block;
+  font-size: 11px;
+  color: #94A3B8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wellness-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid #F1F5F9;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0D9488;
+}
+
+.dark .wellness-card-footer {
+  border-top-color: #334155;
+  color: #5EEAD4;
+}
+
+/* --- Wellness Subview Base --- */
+.wellness-subview {
+  width: 100%;
+}
+
+.wellness-subview-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.wellness-subview-title-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.wellness-subview-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.dark .wellness-subview-title {
+  color: #F8FAFC;
+}
+
+.wellness-subview-sub {
+  display: block;
+  font-size: 11.5px;
+  color: #64748B;
+  margin-top: 2px;
+}
+
+.dark .wellness-subview-sub {
+  color: #94A3B8;
+}
+
+.wellness-hero-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.dark .wellness-hero-card {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.wellness-hero-card.water-hero {
+  background: linear-gradient(150deg, #FFFFFF 0%, #F0F9FF 100%);
+  border-color: #BAE6FD;
+}
+
+.dark .wellness-hero-card.water-hero {
+  background: linear-gradient(150deg, #1E293B 0%, #0369A122 100%);
+  border-color: #0369A144;
+}
+
+.wellness-hero-card.sleep-hero {
+  background: linear-gradient(150deg, #FFFFFF 0%, #FAF5FF 100%);
+  border-color: #E9D5FF;
+}
+
+.dark .wellness-hero-card.sleep-hero {
+  background: linear-gradient(150deg, #1E293B 0%, #6D28D922 100%);
+  border-color: #6D28D944;
+}
+
+.wellness-hero-card.bmi-hero {
+  background: linear-gradient(150deg, #FFFFFF 0%, #F0FDF4 100%);
+  border-color: #BBF7D0;
+}
+
+.dark .wellness-hero-card.bmi-hero {
+  background: linear-gradient(150deg, #1E293B 0%, #15803D22 100%);
+  border-color: #15803D44;
+}
+
+.wellness-hero-card.mood-hero {
+  background: linear-gradient(150deg, #FFFFFF 0%, #FFFBEB 100%);
+  border-color: #FDE68A;
+}
+
+.dark .wellness-hero-card.mood-hero {
+  background: linear-gradient(150deg, #1E293B 0%, #B4530922 100%);
+  border-color: #B4530944;
+}
+
+/* --- Water Subview --- */
+.water-hero-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.water-hero-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #0284C7;
+}
+
+.dark .water-hero-label {
+  color: #38BDF8;
+}
+
+.water-drop-icon {
+  color: #0284C7;
+}
+
+.wellness-target-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: #FFFFFF;
+  border: 1px solid #BAE6FD;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0369A1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wellness-target-edit-btn:hover {
+  background: #E0F2FE;
+}
+
+.dark .wellness-target-edit-btn {
+  background: #0F172A;
+  border-color: #0369A1;
+  color: #7DD3FC;
+}
+
+.wellness-target-edit-form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wellness-target-input {
+  width: 76px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid #0284C7;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0F172A;
+  background: #FFFFFF;
+}
+
+.dark .wellness-target-input {
+  background: #0F172A;
+  color: #F8FAFC;
+}
+
+.wellness-target-save-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: #0284C7;
+  color: #FFFFFF;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.water-hero-stats {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.water-hero-main-num {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.water-num-current {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0284C7;
+  letter-spacing: -0.5px;
+}
+
+.dark .water-num-current {
+  color: #38BDF8;
+}
+
+.water-num-divider {
+  font-size: 18px;
+  color: #94A3B8;
+  font-weight: 600;
+}
+
+.water-num-target {
+  font-size: 16px;
+  font-weight: 700;
+  color: #64748B;
+}
+
+.dark .water-num-target {
+  color: #94A3B8;
+}
+
+.water-num-unit {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94A3B8;
+}
+
+.water-hero-pct-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: #E0F2FE;
+  color: #0369A1;
+}
+
+.dark .water-hero-pct-badge {
+  background: #0369A133;
+  color: #7DD3FC;
+}
+
+.water-progress-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 99px;
+  background: #E2E8F0;
+  overflow: hidden;
+  position: relative;
+}
+
+.dark .water-progress-track {
+  background: #334155;
+}
+
+.water-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0284C7 0%, #38BDF8 100%);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+.wellness-section {
+  margin-bottom: 20px;
+}
+
+.wellness-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.dark .wellness-section-title {
+  color: #94A3B8;
+}
+
+.water-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.water-quick-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.water-quick-btn:hover {
+  border-color: #0284C7;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(2, 132, 199, 0.1);
+}
+
+.dark .water-quick-btn {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.dark .water-quick-btn:hover {
+  border-color: #38BDF8;
+}
+
+.water-quick-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.water-quick-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.water-quick-amount {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.dark .water-quick-amount {
+  color: #F8FAFC;
+}
+
+.water-quick-label {
+  font-size: 11px;
+  color: #64748B;
+}
+
+.dark .water-quick-label {
+  color: #94A3B8;
+}
+
+/* --- Shared Logs & Empty Cards --- */
+.wellness-empty-card {
+  background: #FFFFFF;
+  border: 1px dashed #CBD5E1;
+  border-radius: 14px;
+  padding: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: #64748B;
+  line-height: 1.5;
+}
+
+.dark .wellness-empty-card {
+  background: #1E293B;
+  border-color: #334155;
+  color: #94A3B8;
+}
+
+.wellness-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wellness-log-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 10px 14px;
+}
+
+.dark .wellness-log-item {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.wellness-log-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.wellness-log-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.wellness-log-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.wellness-log-main {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.dark .wellness-log-main {
+  color: #F8FAFC;
+}
+
+.wellness-log-sub {
+  font-size: 11px;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dark .wellness-log-sub {
+  color: #94A3B8;
+}
+
+.wellness-log-del-btn {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.wellness-log-del-btn:hover {
+  background: #FEE2E2;
+  color: #EF4444;
+}
+
+.dark .wellness-log-del-btn:hover {
+  background: #EF444422;
+  color: #F87171;
+}
+
+.wellness-note-input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  font-size: 12px;
+  font-family: inherit;
+  color: #0F172A;
+  box-sizing: border-box;
+}
+
+.dark .wellness-note-input {
+  background: #0F172A;
+  border-color: #334155;
+  color: #F8FAFC;
+}
+
+/* --- Sleep Subview --- */
+.sleep-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sleep-time-inputs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sleep-time-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sleep-time-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6D28D9;
+}
+
+.dark .sleep-time-label {
+  color: #C4B5FD;
+}
+
+.sleep-time-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.dark .sleep-time-input {
+  background: #0F172A;
+  border-color: #334155;
+  color: #F8FAFC;
+}
+
+.sleep-time-arrow {
+  color: #94A3B8;
+  font-size: 18px;
+  font-weight: 700;
+  padding-top: 18px;
+}
+
+.sleep-duration-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #F5F3FF;
+  color: #6D28D9;
+  font-size: 12px;
+}
+
+.dark .sleep-duration-pill {
+  background: #6D28D922;
+  color: #C4B5FD;
+}
+
+.sleep-quality-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sleep-quality-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.dark .sleep-quality-title {
+  color: #94A3B8;
+}
+
+.sleep-quality-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.sleep-quality-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.sleep-quality-chip.active {
+  background: #7C3AED;
+  border-color: #7C3AED;
+  color: #FFFFFF;
+}
+
+.dark .sleep-quality-chip {
+  background: #0F172A;
+  border-color: #334155;
+}
+
+.dark .sleep-quality-chip.active {
+  background: #7C3AED;
+  border-color: #7C3AED;
+}
+
+.sleep-quality-emoji {
+  font-size: 18px;
+}
+
+.sleep-quality-label {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sleep-submit-btn,
+.mood-submit-btn,
+.bmi-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.sleep-submit-btn {
+  background: #7C3AED;
+  color: #FFFFFF;
+}
+
+.sleep-submit-btn:hover {
+  background: #6D28D9;
+}
+
+.sleep-log-title-row,
+.bmi-log-title-row,
+.mood-log-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.sleep-log-quality-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: capitalize;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #F5F3FF;
+  color: #6D28D9;
+}
+
+.dark .sleep-log-quality-badge {
+  background: #6D28D922;
+  color: #C4B5FD;
+}
+
+/* --- BMI Subview --- */
+.bmi-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bmi-inputs-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.bmi-input-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bmi-input-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #16A34A;
+}
+
+.dark .bmi-input-label {
+  color: #4ADE80;
+}
+
+.bmi-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.bmi-text-input {
+  width: 100%;
+  padding: 8px 34px 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+  box-sizing: border-box;
+}
+
+.dark .bmi-text-input {
+  background: #0F172A;
+  border-color: #334155;
+  color: #F8FAFC;
+}
+
+.bmi-input-unit {
+  position: absolute;
+  right: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94A3B8;
+  pointer-events: none;
+}
+
+.bmi-placeholder-box {
+  background: #FFFFFF;
+  border: 1px dashed #CBD5E1;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  font-size: 11.5px;
+  color: #64748B;
+}
+
+.dark .bmi-placeholder-box {
+  background: #0F172A;
+  border-color: #334155;
+  color: #94A3B8;
+}
+
+.bmi-result-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bmi-result-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bmi-result-score-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.bmi-result-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.dark .bmi-result-label {
+  color: #94A3B8;
+}
+
+.bmi-result-score {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: -0.5px;
+}
+
+.dark .bmi-result-score {
+  color: #F8FAFC;
+}
+
+.bmi-result-status-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.bmi-status-badge {
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.bmi-underweight {
+  background: #EFF6FF;
+  color: #2563EB;
+}
+
+.bmi-normal {
+  background: #ECFDF5;
+  color: #059669;
+}
+
+.bmi-overweight {
+  background: #FFFBEB;
+  color: #D97706;
+}
+
+.bmi-obesity {
+  background: #FEF2F2;
+  color: #DC2626;
+}
+
+.dark .bmi-underweight {
+  background: #2563EB22;
+  color: #60A5FA;
+}
+
+.dark .bmi-normal {
+  background: #05966922;
+  color: #34D399;
+}
+
+.dark .bmi-overweight {
+  background: #D9770622;
+  color: #FBBF24;
+}
+
+.dark .bmi-obesity {
+  background: #DC262622;
+  color: #F87171;
+}
+
+.bmi-ideal-range-hint {
+  font-size: 10.5px;
+  color: #64748B;
+}
+
+.dark .bmi-ideal-range-hint {
+  color: #94A3B8;
+}
+
+.bmi-gauge-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 99px;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  background: #E2E8F0;
+}
+
+.bmi-gauge-zone {
+  height: 100%;
+}
+
+.bmi-gauge-zone.under {
+  width: 17.5%;
+  background: #60A5FA;
+}
+
+.bmi-gauge-zone.normal {
+  width: 32%;
+  background: #34D399;
+}
+
+.bmi-gauge-zone.over {
+  width: 25%;
+  background: #FBBF24;
+}
+
+.bmi-gauge-zone.obese {
+  width: 25.5%;
+  background: #F87171;
+}
+
+.bmi-gauge-marker {
+  position: absolute;
+  top: -2px;
+  width: 4px;
+  height: 12px;
+  background: #0F172A;
+  border-radius: 2px;
+  transform: translateX(-50%);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+}
+
+.dark .bmi-gauge-marker {
+  background: #FFFFFF;
+}
+
+.bmi-save-btn {
+  background: #16A34A;
+  color: #FFFFFF;
+}
+
+.bmi-save-btn:hover {
+  background: #15803D;
+}
+
+/* --- Mood Subview --- */
+.mood-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mood-form-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #B45309;
+  text-align: center;
+}
+
+.dark .mood-form-title {
+  color: #FCD34D;
+}
+
+.mood-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.mood-option-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.mood-option-chip.active {
+  background: #F59E0B;
+  border-color: #F59E0B;
+  color: #FFFFFF;
+  transform: scale(1.04);
+}
+
+.dark .mood-option-chip {
+  background: #0F172A;
+  border-color: #334155;
+}
+
+.dark .mood-option-chip.active {
+  background: #F59E0B;
+  border-color: #F59E0B;
+}
+
+.mood-emoji {
+  font-size: 22px;
+}
+
+.mood-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.mood-submit-btn {
+  background: #F59E0B;
+  color: #FFFFFF;
+}
+
+.mood-submit-btn:hover {
+  background: #D97706;
+}
