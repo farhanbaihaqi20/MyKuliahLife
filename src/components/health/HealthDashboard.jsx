@@ -60,6 +60,7 @@ export const HealthDashboard = ({ onBack }) => {
   const [editingVisit, setEditingVisit] = useState(null);
   const [detailMed, setDetailMed] = useState(null);
   const [detailVisit, setDetailVisit] = useState(null);
+  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
 
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
 
@@ -71,13 +72,19 @@ export const HealthDashboard = ({ onBack }) => {
   const todayPct = todayTotal > 0 ? Math.round((todayTaken / todayTotal) * 100) : 0;
 
   const handleAddNew = () => {
-    if (activeTab === 'visits') {
-      setEditingVisit(null);
-      setIsVisitFormOpen(true);
-    } else {
-      setEditingMed(null);
-      setIsMedFormOpen(true);
-    }
+    setIsAddSheetOpen(true);
+  };
+
+  const openMedForm = () => {
+    setIsAddSheetOpen(false);
+    setEditingMed(null);
+    setIsMedFormOpen(true);
+  };
+
+  const openVisitForm = () => {
+    setIsAddSheetOpen(false);
+    setEditingVisit(null);
+    setIsVisitFormOpen(true);
   };
 
   return (
@@ -109,7 +116,7 @@ export const HealthDashboard = ({ onBack }) => {
           type="button"
           className="health-add-btn"
           onClick={handleAddNew}
-          title={activeTab === 'visits' ? 'Catat Kunjungan' : 'Tambah Obat'}
+          title="Tambah catatan kesehatan"
         >
           <Plus size={16} />
           <span>Baru</span>
@@ -400,6 +407,47 @@ export const HealthDashboard = ({ onBack }) => {
             })}
           </div>
         )
+      )}
+
+      {/* Add Action Sheet */}
+      {isAddSheetOpen && (
+        <div className="health-modal-backdrop animate-fade-in" onClick={() => setIsAddSheetOpen(false)}>
+          <div
+            className="health-modal-card health-add-sheet animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="health-modal-header">
+              <div>
+                <h3 className="health-modal-title">Tambah Catatan</h3>
+                <span className="health-modal-sub">Pilih jenis catatan kesehatan</span>
+              </div>
+            </div>
+
+            <div className="health-add-options">
+              <button type="button" className="health-add-option" onClick={openMedForm}>
+                <div className="health-add-option-icon is-med">
+                  <Pill size={20} />
+                </div>
+                <div className="health-add-option-text">
+                  <span className="health-add-option-title">Tambah Obat</span>
+                  <span className="health-add-option-desc">Atur jadwal & pengingat minum obat</span>
+                </div>
+                <ChevronRight size={16} className="health-med-chevron" />
+              </button>
+
+              <button type="button" className="health-add-option" onClick={openVisitForm}>
+                <div className="health-add-option-icon is-visit">
+                  <Stethoscope size={20} />
+                </div>
+                <div className="health-add-option-text">
+                  <span className="health-add-option-title">Catat Kunjungan Dokter</span>
+                  <span className="health-add-option-desc">Riwayat periksa, diagnosis & kontrol</span>
+                </div>
+                <ChevronRight size={16} className="health-med-chevron" />
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modals */}

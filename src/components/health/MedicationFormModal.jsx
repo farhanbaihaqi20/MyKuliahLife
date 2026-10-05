@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Plus, Trash2, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatRupiahNumber, parseRupiahNumber } from '../../utils/formatters';
+import { recommendSchedule, canAddTime, FREQ_OPTIONS } from '../../utils/medScheduler';
 
 const FORM_OPTIONS = [
   { id: 'tablet', label: 'Tablet', emoji: '💊' },
@@ -19,8 +20,10 @@ export const MedicationFormModal = ({ isOpen, onClose, initialData = null }) => 
   const [dosage, setDosage] = useState('');
   const [form, setForm] = useState('tablet');
   const [instructions, setInstructions] = useState('');
+  const [frequency, setFrequency] = useState(1);
   const [scheduleTimes, setScheduleTimes] = useState([]);
   const [newTime, setNewTime] = useState('08:00');
+  const [recommendReason, setRecommendReason] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [hasEndDate, setHasEndDate] = useState(false);
@@ -37,7 +40,10 @@ export const MedicationFormModal = ({ isOpen, onClose, initialData = null }) => 
       setDosage(initialData.dosage || '');
       setForm(initialData.form || 'tablet');
       setInstructions(initialData.instructions || '');
-      setScheduleTimes(Array.isArray(initialData.scheduleTimes) ? [...initialData.scheduleTimes] : []);
+      const existingTimes = Array.isArray(initialData.scheduleTimes) ? [...initialData.scheduleTimes] : [];
+      setScheduleTimes(existingTimes);
+      setFrequency(Math.max(1, Math.min(4, existingTimes.length || 1)));
+      setRecommendReason('');
       setStartDate(initialData.startDate || new Date().toISOString().split('T')[0]);
       setEndDate(initialData.endDate || '');
       setHasEndDate(Boolean(initialData.endDate));
@@ -52,6 +58,8 @@ export const MedicationFormModal = ({ isOpen, onClose, initialData = null }) => 
       setForm('tablet');
       setInstructions('');
       setScheduleTimes([]);
+      setFrequency(1);
+      setRecommendReason('');
       setNewTime('08:00');
       setStartDate(new Date().toISOString().split('T')[0]);
       setEndDate('');
@@ -67,10 +75,41 @@ export const MedicationFormModal = ({ isOpen, onClose, initialData = null }) => 
 
   if (!isOpen) return null;
 
+  // Rekomendasi jadwal pintar berdasarkan frekuensi & jadwal obat lain
+  const applySmartSchedule = (freq, { force = false } = {}) => {
+    const result = recommendSchedule({
+      frequency: freq,
+      medications: data.medications || [],
+      excludeMedId: initialData?.id || null,
+      currentTimes: scheduleTimes
+    });
+    if (force || result.changed) {
+      setScheduleTimes(result.times);
+      setRecommendReason(result.reason);
+    } else {
+      setRecommendReason(result.reason);
+    }
+  };
+
+  const handleFrequencyChange = (freq) => {
+    const f = Number(freq);
+    setFrequency(f);
+    applySmartSchedule(f);
+  };
+
   const handleAddTime = () => {
     if (!newTime) return;
-    if (scheduleTimes.includes(newTime)) return;
+    if (scheduleTimes.includes(newTime)) {
+      setErrorMsg(`Jam ${newTime} sudah ada di jadwal`);
+      return;
+    }
+    if (!canAddTime(scheduleTimes, newTime)) {
+      setErrorMsg('Jarak antar jam minum minimal 1 jam');
+      return;
+    }
+    setErrorMsg('');
     setScheduleTimes(prev => [...prev, newTime].sort());
+    setRecommendReason('');
   };
 
   const handleRemoveTime = (t) => {
@@ -86,6 +125,10 @@ export const MedicationFormModal = ({ isOpen, onClose, initialData = null }) => 
     }
     if (scheduleTimes.length === 0) {
       setErrorMsg('Tambahkan minimal satu jam minum obat');
+      return;
+    }
+    if (scheduleTimes.length !== frequency) {
+      setErrorMsg(`Frekuensi ${frequency}x sehari membutuhkan tepat ${frequency} jam minum (saat ini ${scheduleTimes.length})`);
       return;
     }
 
@@ -187,9 +230,36 @@ export const MedicationFormModal = ({ isOpen, onClose, initialData = null }) => 
             />
           </div>
 
-          {/* Jadwal Jam */}
+          {/* Jadwal Jam — Frekuensi + Rekomendasi Pintar */}
           <div className="health-form-group">
-            <label className="health-form-label">Jam Minum Obat</label>
+            <label className="health-form-label">Frekuensi Minum</label>
+            <div className="health-freq-row">
+              {FREQ_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={`health-freq-chip ${frequency === opt.value ? 'active' : ''}`}
+                  onClick={() => handleFrequencyChange(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="health-form-group">
+            <div className="health-schedule-head">
+              <label className="health-form-label">Jam Minum Obat</label>
+              <button
+                type="button"
+                className="health-smart-btn"
+                onClick={() => applySmartSchedule(frequency, { force: true })}
+                title="Hitung ulang jam optimal berdasarkan frekuensi & jadwal obat lain"
+              >
+                <Sparkles size={12} />
+                <span>Rekomendasi Pintar</span>
+              </button>
+            </div>
             <div className="health-time-add-row">
               <input
                 type="time"
@@ -206,6 +276,11 @@ export const MedicationFormModal = ({ isOpen, onClose, initialData = null }) => 
                 <span>Tambah</span>
               </button>
             </div>
+            {recommendReason && (
+              <span className="health-smart-reason">
+                <Sparkles size={10} /> {recommendReason}
+              </span>
+            )}
             {scheduleTimes.length > 0 && (
               <div className="health-time-chips">
                 {scheduleTimes.map(t => (
@@ -223,6 +298,9 @@ export const MedicationFormModal = ({ isOpen, onClose, initialData = null }) => 
                 ))}
               </div>
             )}
+            <span className="health-form-hint">
+              {scheduleTimes.length}/{frequency} jam terisi — sistem menyarankan jam optimal yang selaras dengan obat lain
+            </span>
           </div>
 
           {/* Periode */}

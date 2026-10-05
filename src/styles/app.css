@@ -13922,3 +13922,196 @@ body,
 .dark .health-detail-cost-value {
   color: #5EEAD4;
 }
+
+/* --- Health: Frequency Picker & Smart Schedule --- */
+.health-freq-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.health-freq-chip {
+  padding: 8px 4px;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.health-freq-chip:hover {
+  border-color: #99F6E4;
+  color: #0F766E;
+}
+
+.health-freq-chip.active {
+  background: #0D9488;
+  border-color: #0D9488;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+}
+
+.dark .health-freq-chip {
+  background: #0F172A;
+  border-color: #334155;
+  color: #94A3B8;
+}
+
+.dark .health-freq-chip.active {
+  background: #0D9488;
+  border-color: #0D9488;
+  color: #FFFFFF;
+}
+
+.health-schedule-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.health-smart-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px dashed #0D9488;
+  background: #F0FDFA;
+  color: #0F766E;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.health-smart-btn:hover {
+  background: #CCFBF1;
+  border-style: solid;
+}
+
+.dark .health-smart-btn {
+  background: #134E4A33;
+  color: #5EEAD4;
+  border-color: #0F766E;
+}
+
+.health-smart-reason {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0F766E;
+  margin-top: 2px;
+}
+
+.dark .health-smart-reason {
+  color: #5EEAD4;
+}
+
+.health-form-hint {
+  font-size: 10.5px;
+  color: #94A3B8;
+  margin-top: 2px;
+}
+
+/* --- Health: Add Action Sheet --- */
+.health-add-sheet {
+  padding-bottom: 24px;
+}
+
+.health-add-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.health-add-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.health-add-option:hover {
+  border-color: #0D9488;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.1);
+  transform: translateY(-1px);
+}
+
+.dark .health-add-option {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.health-add-option-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.health-add-option-icon.is-med {
+  background: #F0FDFA;
+  color: #0D9488;
+}
+
+.health-add-option-icon.is-visit {
+  background: #EFF6FF;
+  color: #2563EB;
+}
+
+.dark .health-add-option-icon.is-med {
+  background: #134E4A55;
+  color: #5EEAD4;
+}
+
+.dark .health-add-option-icon.is-visit {
+  background: #1E3A8A55;
+  color: #93C5FD;
+}
+
+.health-add-option-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.health-add-option-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.dark .health-add-option-title {
+  color: #F1F5F9;
+}
+
+.health-add-option-desc {
+  font-size: 11.5px;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
