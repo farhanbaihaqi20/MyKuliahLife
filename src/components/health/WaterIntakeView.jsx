@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Droplets, Plus, Trash2, Settings2, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { getLocalDateString } from '../../utils/formatters';
 
 export const WaterIntakeView = ({ onBack }) => {
   const {
@@ -17,7 +18,7 @@ export const WaterIntakeView = ({ onBack }) => {
   const [customAmount, setCustomAmount] = useState('');
   const [showCustomModal, setShowCustomModal] = useState(false);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateString();
   const todayLogs = waterIntakeLogs.filter(log => log.date === todayStr);
 
   const percentage = Math.min(100, Math.round((todayWaterIntake / (waterIntakeTarget || 2000)) * 100));

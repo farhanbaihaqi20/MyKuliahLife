@@ -12,7 +12,7 @@ import {
   Activity
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { formatRupiahNumber, maskMoney } from '../../utils/formatters';
+import { formatRupiahNumber, maskMoney, getLocalDateString } from '../../utils/formatters';
 import { MascotEmptyState } from '../common/MascotEmptyState';
 import MedicationFormModal from './MedicationFormModal';
 import DoctorVisitFormModal from './DoctorVisitFormModal';
@@ -63,7 +63,7 @@ export const HealthDashboard = ({ onBack }) => {
   const [detailVisit, setDetailVisit] = useState(null);
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
 
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayStr = useMemo(() => getLocalDateString(), []);
 
   const todayTaken = useMemo(
     () => todayDoseSchedule.filter(d => d.status === 'taken').length,

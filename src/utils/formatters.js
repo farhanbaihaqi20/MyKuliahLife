@@ -48,6 +48,26 @@ export const formatCompactRupiah = (val, isVisible = true) => {
 };
 
 /**
+ * Returns a date formatted as YYYY-MM-DD in the user's LOCAL timezone.
+ * Avoids timezone shift bugs caused by new Date().toISOString().split('T')[0]
+ * when user is in UTC+ timezones (such as Indonesia WIB/WITA/WIT).
+ */
+export const getLocalDateString = (date = new Date()) => {
+  if (!date) return '';
+  if (typeof date === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}/.test(date)) {
+      return date.split('T')[0];
+    }
+  }
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/**
  * Returns relative date information for transactions (Hari Ini, Kemarin, Besok, or formatted date)
  * Safely parses YYYY-MM-DD components to avoid timezone shifting issues.
  */

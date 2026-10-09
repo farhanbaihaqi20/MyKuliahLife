@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { formatRupiahNumber, parseRupiahNumber } from '../../utils/formatters';
+import { formatRupiahNumber, parseRupiahNumber, getLocalDateString } from '../../utils/formatters';
 
 const SPECIALTY_OPTIONS = [
   'Umum', 'Gigi', 'Mata', 'THT', 'Kulit', 'Penyakit Dalam',
@@ -26,7 +26,7 @@ export const DoctorVisitFormModal = ({ isOpen, onClose, initialData = null }) =>
 
   useEffect(() => {
     if (initialData) {
-      setVisitDate(initialData.visitDate || new Date().toISOString().split('T')[0]);
+      setVisitDate(initialData.visitDate || getLocalDateString());
       setDoctorName(initialData.doctorName || '');
       setFacilityName(initialData.facilityName || '');
       setSpecialty(initialData.specialty || 'Umum');
@@ -38,7 +38,7 @@ export const DoctorVisitFormModal = ({ isOpen, onClose, initialData = null }) =>
       setCostStr(initialData.cost ? formatRupiahNumber(initialData.cost) : '');
       setAccountName(initialData.accountName || data.accounts?.[0]?.name || '');
     } else {
-      setVisitDate(new Date().toISOString().split('T')[0]);
+      setVisitDate(getLocalDateString());
       setDoctorName('');
       setFacilityName('');
       setSpecialty('Umum');
@@ -65,7 +65,7 @@ export const DoctorVisitFormModal = ({ isOpen, onClose, initialData = null }) =>
     const numericCost = trackCost && !initialData ? parseRupiahNumber(costStr) : 0;
 
     const payload = {
-      visitDate: visitDate || new Date().toISOString().split('T')[0],
+      visitDate: visitDate || getLocalDateString(),
       doctorName: doctorName.trim(),
       facilityName: facilityName.trim(),
       specialty,

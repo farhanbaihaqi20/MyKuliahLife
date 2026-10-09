@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Check, ArrowDown, ArrowUp, ArrowRightLeft, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { formatRupiahNumber, parseRupiahNumber } from '../../utils/formatters';
+import { formatRupiahNumber, parseRupiahNumber, getLocalDateString } from '../../utils/formatters';
 import { DEFAULT_BUDGET_CATEGORIES } from '../../constants/initialData';
 import { CategoryIcon } from '../common/CategoryIcon';
 
@@ -63,7 +63,7 @@ export default function EditTransactionModal({ transaction, isOpen, onClose }) {
       setToAccountName(transaction.toAccountName || fallbackTo);
       setMerchant(transaction.merchant === '-' ? '' : (transaction.merchant || ''));
       setNote(transaction.note || '');
-      setDate(transaction.date || new Date().toISOString().split('T')[0]);
+      setDate(transaction.date || getLocalDateString());
       setIcon(transaction.icon || '💸');
       setIsSubmitting(false);
     }

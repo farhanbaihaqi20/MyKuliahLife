@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { X, Pencil, Trash2, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { getLocalDateString } from '../../utils/formatters';
 
 const FORM_EMOJI = {
   tablet: '💊',
@@ -19,7 +20,7 @@ export const MedicationDetailModal = ({ med, onClose, onEdit }) => {
     const logs = Array.isArray(med.doseLogs) ? med.doseLogs : [];
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
-    const cutoffStr = cutoff.toISOString().split('T')[0];
+    const cutoffStr = getLocalDateString(cutoff);
     const recent = logs.filter(l => l.date >= cutoffStr);
     const taken = recent.filter(l => l.status === 'taken').length;
     const skipped = recent.filter(l => l.status === 'skipped').length;

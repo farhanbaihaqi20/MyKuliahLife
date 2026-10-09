@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { maskMoney, getRelativeDateInfo } from '../utils/formatters';
+import { maskMoney, getRelativeDateInfo, getLocalDateString } from '../utils/formatters';
 import { SmartBudgetTipCard } from '../components/finance/SmartBudgetTipCard';
 import { CategoryIcon } from '../components/common/CategoryIcon';
 import { MascotEmptyState } from '../components/common/MascotEmptyState';
@@ -65,10 +65,11 @@ export const HomeView = () => {
 
   // Transactions for today only
   const todayTransactions = useMemo(() => {
+    const todayLocal = getLocalDateString();
     return (data.transactions || []).filter(tx => {
       if (!tx.date) return false;
       const rel = getRelativeDateInfo(tx.date);
-      return rel.isToday;
+      return rel.isToday || tx.date === todayLocal || tx.date.startsWith(todayLocal);
     });
   }, [data.transactions]);
 

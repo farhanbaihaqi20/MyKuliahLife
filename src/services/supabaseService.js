@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { isValidUUID, isValidEmail, sanitizeText } from '../utils/security';
 import { normalizeBudgetCategories, normalizeCategoryName } from '../constants/initialData';
+import { getLocalDateString } from '../utils/formatters';
 
 /**
  * Supabase Service Layer: Menangani Otentikasi dan Sinkronisasi Database
@@ -633,26 +634,45 @@ export const dataSyncService = {
           accountNumber: a.account_number || '',
           notes: a.notes || ''
         })),
-        transactions: (transactionsRes.data || []).map(t => ({
-          id: t.id,
-          type: t.type,
-          amount: Number(t.amount),
-          accountName: t.account_name || 'Bank',
-          toAccountName: t.to_account_name || null,
-          category: t.type === 'transfer' ? 'Transfer Antar Akun' : normalizeCategoryName(t.category),
-          merchant: t.merchant || '',
-          note: t.note || '',
-          date: t.date,
-          icon: t.icon || (t.type === 'transfer' ? '🔄' : '💸'),
-          debtId: t.debt_id || null
-        })),
+        transactions: (transactionsRes.data || []).map(t => {
+          let txDate = t.date;
+          // Auto-heal UTC timezone bug if transaction was created in early morning (00:00 - 07:00 WIB)
+          if (t.created_at && t.date) {
+            const createdLocal = new Date(t.created_at);
+            const localCreatedDate = getLocalDateString(createdLocal);
+            if (localCreatedDate && localCreatedDate !== t.date) {
+              const [ty, tm, td] = t.date.split('-').map(Number);
+              const targetDateObj = new Date(ty, tm - 1, td);
+              const diffDays = Math.round((createdLocal.getTime() - targetDateObj.getTime()) / (1000 * 60 * 60 * 24));
+              if (diffDays === 1) {
+                txDate = localCreatedDate;
+                // Auto-heal in Supabase database asynchronously
+                supabase.from('transactions').update({ date: localCreatedDate }).eq('id', t.id).then();
+              }
+            }
+          }
+          return {
+            id: t.id,
+            type: t.type,
+            amount: Number(t.amount),
+            accountName: t.account_name || 'Bank',
+            toAccountName: t.to_account_name || null,
+            category: t.type === 'transfer' ? 'Transfer Antar Akun' : normalizeCategoryName(t.category),
+            merchant: t.merchant || '',
+            note: t.note || '',
+            date: txDate,
+            icon: t.icon || (t.type === 'transfer' ? '🔄' : '💸'),
+            debtId: t.debt_id || null,
+            createdAt: t.created_at
+          };
+        }),
         courses: (coursesRes.data || []).map(c => {
           const courseAtt = (attendanceRes.data || [])
             .filter(att => att.course_id === c.id && att.status && att.status !== 'unrecorded')
             .map(att => ({
               meeting: Number(att.meeting_number),
               status: att.status,
-              date: att.created_at ? att.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+              date: att.created_at ? getLocalDateString(new Date(att.created_at)) : getLocalDateString()
             }));
 
           return {
@@ -1139,7 +1159,7 @@ export const cloudService = {
         merchant: tx.merchant || '',
         note: tx.note || '',
         icon: tx.icon || '💸',
-        date: tx.date || new Date().toISOString().split('T')[0],
+        date: tx.date || getLocalDateString(),
         debt_id: tx.debtId || null
       };
       let { error } = await supabase.from('transactions').insert(payload);
@@ -1234,7 +1254,7 @@ export const cloudService = {
               merchant: fields.merchant || '',
               note: fields.note || '',
               icon: fields.icon || '💸',
-              date: fields.date || new Date().toISOString().split('T')[0],
+              date: fields.date || getLocalDateString(),
               debt_id: fields.debtId || null
             };
             let { error: insErr } = await supabase.from('transactions').insert(insertPayload);
@@ -1261,7 +1281,7 @@ export const cloudService = {
           merchant: fields.merchant || '',
           note: fields.note || '',
           icon: fields.icon || '💸',
-          date: fields.date || new Date().toISOString().split('T')[0],
+          date: fields.date || getLocalDateString(),
           debt_id: fields.debtId || null
         };
         let { error: insErr } = await supabase.from('transactions').insert(insertPayload);
@@ -1419,7 +1439,7 @@ export const cloudService = {
       const payload = {
         id: log.id,
         user_id: userId,
-        date: log.date || new Date().toISOString().split('T')[0],
+        date: log.date || getLocalDateString(),
         fuel_type: log.fuelType,
         amount: Number(log.amount),
         liters: Number(log.liters),
@@ -1485,7 +1505,7 @@ export const cloudService = {
         const insertPayload = {
           id: logId,
           user_id: userId,
-          date: log.date || new Date().toISOString().split('T')[0],
+          date: log.date || getLocalDateString(),
           fuel_type: log.fuelType || 'pertalite',
           amount: Number(log.amount) || 0,
           liters: Number(log.liters) || 0,
@@ -1550,7 +1570,7 @@ export const cloudService = {
         total_amount: Number(debt.totalAmount || debt.amount || 0),
         remaining_amount: Number(debt.remainingAmount ?? debt.totalAmount ?? 0),
         account_name: debt.accountName || null,
-        created_date: debt.createdDate || new Date().toISOString().split('T')[0],
+        created_date: debt.createdDate || getLocalDateString(),
         due_date: debt.dueDate || null,
         status: debt.status || 'active',
         settled_date: debt.settledDate || null,
@@ -1626,7 +1646,7 @@ export const cloudService = {
       const payload = {
         id: visit.id,
         user_id: userId,
-        visit_date: visit.visitDate || new Date().toISOString().split('T')[0],
+        visit_date: visit.visitDate || getLocalDateString(),
         doctor_name: visit.doctorName || '',
         facility_name: visit.facilityName || '',
         specialty: visit.specialty || '',
@@ -1694,7 +1714,7 @@ export const cloudService = {
         form: med.form || 'tablet',
         instructions: med.instructions || '',
         schedule_times: Array.isArray(med.scheduleTimes) ? med.scheduleTimes : [],
-        start_date: med.startDate || new Date().toISOString().split('T')[0],
+        start_date: med.startDate || getLocalDateString(),
         end_date: med.endDate || null,
         stock_remaining: med.stockRemaining !== null && med.stockRemaining !== undefined ? Number(med.stockRemaining) : null,
         status: med.status || 'active',

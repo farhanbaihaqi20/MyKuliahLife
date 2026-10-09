@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Fuel, Check, Sparkles, Wallet, Info, Calendar, Gauge, Edit3, ArrowRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { getLocalDateString } from '../../utils/formatters';
 
 export const FuelLogModal = ({
   isOpen,
@@ -22,7 +23,7 @@ export const FuelLogModal = ({
 
   const [fuelType, setFuelType] = useState(initialFuelType || 'pertalite');
   const [nominalStr, setNominalStr] = useState('');
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => getLocalDateString());
   const [selectedAccount, setSelectedAccount] = useState('');
   const [station, setStation] = useState('SPBU Pertamina');
   const [odometer, setOdometer] = useState('');
@@ -41,7 +42,7 @@ export const FuelLogModal = ({
       const logFuelType = editingLog.fuelType || 'pertalite';
       setFuelType(logFuelType);
       setNominalStr(editingLog.amount ? Number(editingLog.amount).toLocaleString('id-ID') : '');
-      setDate(editingLog.date || new Date().toISOString().split('T')[0]);
+      setDate(editingLog.date || getLocalDateString());
       setStation(editingLog.station || 'SPBU Pertamina');
       setOdometer(
         editingLog.odometer !== null && editingLog.odometer !== undefined
@@ -69,7 +70,7 @@ export const FuelLogModal = ({
     } else {
       setFuelType(initialFuelType || 'pertalite');
       setNominalStr('');
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(getLocalDateString());
       setStation('SPBU Pertamina');
       setOdometer('');
       setNote('');

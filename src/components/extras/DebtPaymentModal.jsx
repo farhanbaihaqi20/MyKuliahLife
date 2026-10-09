@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../../context/AppContext';
-import { formatRupiahNumber, parseRupiahNumber } from '../../utils/formatters';
+import { formatRupiahNumber, parseRupiahNumber, getLocalDateString } from '../../utils/formatters';
 
 export const DebtPaymentModal = ({ isOpen, onClose, debt }) => {
   const { data, recordDebtPayment } = useApp();
@@ -17,7 +17,7 @@ export const DebtPaymentModal = ({ isOpen, onClose, debt }) => {
     if (debt) {
       setAmountStr(formatRupiahNumber(debt.remainingAmount || 0));
       setAccountName(debt.accountName || data.accounts?.find(a => a.isPrimary)?.name || data.accounts?.[0]?.name || '');
-      setPaymentDate(new Date().toISOString().split('T')[0]);
+      setPaymentDate(getLocalDateString());
       setNote('');
       setErrorMsg('');
     }
@@ -53,7 +53,7 @@ export const DebtPaymentModal = ({ isOpen, onClose, debt }) => {
 
     await recordDebtPayment(debt.id, {
       amount: numericAmount,
-      date: paymentDate || new Date().toISOString().split('T')[0],
+      date: paymentDate || getLocalDateString(),
       accountName,
       note: note.trim()
     });

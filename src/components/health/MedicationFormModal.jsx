@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Trash2, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { formatRupiahNumber, parseRupiahNumber } from '../../utils/formatters';
+import { formatRupiahNumber, parseRupiahNumber, getLocalDateString } from '../../utils/formatters';
 import { recommendSchedule, canAddTime, FREQ_OPTIONS } from '../../utils/medScheduler';
 
 const FORM_OPTIONS = [
@@ -44,7 +44,7 @@ export const MedicationFormModal = ({ isOpen, onClose, initialData = null }) => 
       setScheduleTimes(existingTimes);
       setFrequency(Math.max(1, Math.min(4, existingTimes.length || 1)));
       setRecommendReason('');
-      setStartDate(initialData.startDate || new Date().toISOString().split('T')[0]);
+      setStartDate(initialData.startDate || getLocalDateString());
       setEndDate(initialData.endDate || '');
       setHasEndDate(Boolean(initialData.endDate));
       setTrackStock(initialData.stockRemaining !== null && initialData.stockRemaining !== undefined);
@@ -61,7 +61,7 @@ export const MedicationFormModal = ({ isOpen, onClose, initialData = null }) => 
       setFrequency(1);
       setRecommendReason('');
       setNewTime('08:00');
-      setStartDate(new Date().toISOString().split('T')[0]);
+      setStartDate(getLocalDateString());
       setEndDate('');
       setHasEndDate(false);
       setTrackStock(false);
@@ -141,7 +141,7 @@ export const MedicationFormModal = ({ isOpen, onClose, initialData = null }) => 
       form,
       instructions: instructions.trim(),
       scheduleTimes: [...scheduleTimes].sort(),
-      startDate: startDate || new Date().toISOString().split('T')[0],
+      startDate: startDate || getLocalDateString(),
       endDate: hasEndDate && endDate ? endDate : null,
       stockRemaining: stock
     };

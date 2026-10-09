@@ -1,6 +1,7 @@
 import { INITIAL_DATA, CLEAN_DATA, normalizeBudgetCategories, normalizeCategoryName } from '../constants/initialData';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { profileService, dataSyncService, cloudService } from './supabaseService';
+import { getLocalDateString } from '../utils/formatters';
 
 const BASE_STORAGE_KEY = 'mykuliahlife_app_data';
 const LEGACY_STORAGE_KEY = 'myuang_app_data';
@@ -37,11 +38,28 @@ export const loadLocalData = (userId = null) => {
         parsed.budget.categories = normalizeBudgetCategories(parsed.budget.categories, tot);
       }
       if (Array.isArray(parsed.transactions)) {
-        parsed.transactions = parsed.transactions.map(t => ({
-          ...t,
-          toAccountName: t.toAccountName || t.to_account_name || null,
-          category: t.type === 'transfer' ? 'Transfer Antar Akun' : normalizeCategoryName(t.category)
-        }));
+        parsed.transactions = parsed.transactions.map(t => {
+          let txDate = t.date;
+          const createdAt = t.createdAt || t.created_at;
+          if (createdAt && t.date) {
+            const createdLocal = new Date(createdAt);
+            const localCreatedDate = getLocalDateString(createdLocal);
+            if (localCreatedDate && localCreatedDate !== t.date) {
+              const [ty, tm, td] = t.date.split('-').map(Number);
+              const targetDateObj = new Date(ty, tm - 1, td);
+              const diffDays = Math.round((createdLocal.getTime() - targetDateObj.getTime()) / (1000 * 60 * 60 * 24));
+              if (diffDays === 1) {
+                txDate = localCreatedDate;
+              }
+            }
+          }
+          return {
+            ...t,
+            date: txDate,
+            toAccountName: t.toAccountName || t.to_account_name || null,
+            category: t.type === 'transfer' ? 'Transfer Antar Akun' : normalizeCategoryName(t.category)
+          };
+        });
       }
       // Ensure consistency for activeSemester and unlockedSemesters
       const safeActiveSemester = Math.min(Math.max(Number(parsed.activeSemester || parsed.profile?.semester || 1), 1), 14);

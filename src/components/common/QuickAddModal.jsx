@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { formatRupiahNumber, parseRupiahNumber } from '../../utils/formatters';
+import { formatRupiahNumber, parseRupiahNumber, getLocalDateString } from '../../utils/formatters';
 import { X, Check, DollarSign, BookOpen, CheckSquare, FileText } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -34,6 +34,7 @@ export const QuickAddModal = () => {
   const [txCategory, setTxCategory] = useState(data.budget?.categories?.[0]?.name || 'Makanan & minuman');
   const [txMerchant, setTxMerchant] = useState('');
   const [txNote, setTxNote] = useState('');
+  const [txDate, setTxDate] = useState(() => getLocalDateString());
   const [txError, setTxError] = useState('');
 
   // Synchronize txCategory when opened with pre-filled category or if current is invalid
@@ -51,13 +52,16 @@ export const QuickAddModal = () => {
     }
   }, [isQuickAddOpen, quickAddCategory, data.budget?.categories]);
 
-  // Synchronize txAccount & txToAccount whenever modal opens
+  // Synchronize txAccount, txToAccount, & txDate whenever modal opens
   React.useEffect(() => {
-    if (isQuickAddOpen && data.accounts && data.accounts.length > 0) {
-      const primary = data.accounts.find(a => a.isPrimary) || data.accounts[0];
-      setTxAccount(primary.name);
-      const secondary = data.accounts.find(a => a.name !== primary.name) || data.accounts[1];
-      setTxToAccount(secondary ? secondary.name : '');
+    if (isQuickAddOpen) {
+      setTxDate(getLocalDateString());
+      if (data.accounts && data.accounts.length > 0) {
+        const primary = data.accounts.find(a => a.isPrimary) || data.accounts[0];
+        setTxAccount(primary.name);
+        const secondary = data.accounts.find(a => a.name !== primary.name) || data.accounts[1];
+        setTxToAccount(secondary ? secondary.name : '');
+      }
     }
   }, [isQuickAddOpen, data.accounts]);
 
@@ -65,7 +69,7 @@ export const QuickAddModal = () => {
   const [asgCourseId, setAsgCourseId] = useState(activeSemesterCourses[0]?.id || '');
   const [asgTitle, setAsgTitle] = useState('');
   const [asgDesc, setAsgDesc] = useState('');
-  const [asgDeadline, setAsgDeadline] = useState(new Date().toISOString().split('T')[0] + 'T23:59');
+  const [asgDeadline, setAsgDeadline] = useState(() => getLocalDateString() + 'T23:59');
   const [asgPriority, setAsgPriority] = useState('medium');
 
   // Course Note form state
@@ -145,6 +149,7 @@ export const QuickAddModal = () => {
     }
 
     addTransaction({
+      date: txDate || getLocalDateString(),
       type: txType,
       amount: rawAmount,
       accountName: currentAcc.name,
@@ -494,6 +499,18 @@ export const QuickAddModal = () => {
                 className="input-field"
                 value={txNote}
                 onChange={(e) => setTxNote(e.target.value)}
+              />
+            </div>
+
+            {/* Tanggal Transaksi */}
+            <div className="input-group">
+              <label className="input-label">Tanggal Transaksi</label>
+              <input
+                type="date"
+                required
+                className="input-field"
+                value={txDate}
+                onChange={(e) => setTxDate(e.target.value)}
               />
             </div>
 

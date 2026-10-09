@@ -43,12 +43,14 @@ const toHHMM = (mins) => {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
+import { getLocalDateString } from './formatters';
+
 /**
  * Kumpulkan semua jam terjadwal dari obat AKTIF lain (selain yang sedang diedit).
  * Inilah "anchor" adaptif — termasuk jam yang pernah diubah manual user.
  */
 export const collectExistingTimes = (medications = [], excludeMedId = null) => {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateString();
   const times = [];
   (medications || []).forEach(med => {
     if (!med) return;

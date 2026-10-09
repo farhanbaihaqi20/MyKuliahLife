@@ -5,6 +5,7 @@ import { authService, profileService, dataSyncService, cloudService, storageServ
 import { INITIAL_DATA, CLEAN_DATA, normalizeBudgetCategories, normalizeCategoryName } from '../constants/initialData';
 import { getFinancialCycle } from '../utils/dateCycle';
 import { sanitizeSlug, sanitizeImageUrl } from '../utils/security';
+import { getLocalDateString, getRelativeDateInfo } from '../utils/formatters';
 
 const FUEL_API_BASE = 'https://nasgunawann.github.io/bensin-api/v1/provinsi';
 const FUEL_PRODUCT_MAP = {
@@ -109,11 +110,28 @@ const reconcileUserData = (cloudData, cached, userId) => {
     cloudData.budget.categories = normalizeBudgetCategories(cloudData.budget.categories, tot);
   }
   if (Array.isArray(cloudData.transactions)) {
-    cloudData.transactions = cloudData.transactions.map(t => ({
-      ...t,
-      toAccountName: t.toAccountName || t.to_account_name || null,
-      category: t.type === 'transfer' ? 'Transfer Antar Akun' : normalizeCategoryName(t.category)
-    }));
+    cloudData.transactions = cloudData.transactions.map(t => {
+      let txDate = t.date;
+      const createdAt = t.createdAt || t.created_at;
+      if (createdAt && t.date) {
+        const createdLocal = new Date(createdAt);
+        const localCreatedDate = getLocalDateString(createdLocal);
+        if (localCreatedDate && localCreatedDate !== t.date) {
+          const [ty, tm, td] = t.date.split('-').map(Number);
+          const targetDateObj = new Date(ty, tm - 1, td);
+          const diffDays = Math.round((createdLocal.getTime() - targetDateObj.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays === 1) {
+            txDate = localCreatedDate;
+          }
+        }
+      }
+      return {
+        ...t,
+        date: txDate,
+        toAccountName: t.toAccountName || t.to_account_name || null,
+        category: t.type === 'transfer' ? 'Transfer Antar Akun' : normalizeCategoryName(t.category)
+      };
+    });
   }
 
   // 5. Reconcile Fuel Data (keep cached if cloud is empty, merge metadata if cloud exists)
@@ -901,10 +919,14 @@ export const AppProvider = ({ children }) => {
   }, [data.transactions, financialCycle]);
 
   // Today's transaction summary
-  const todayDateStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayDateStr = useMemo(() => getLocalDateString(), []);
 
   const todayTransactions = useMemo(() => {
-    return data.transactions.filter(t => t.date === todayDateStr || (t.date && t.date.startsWith(todayDateStr)));
+    return (data.transactions || []).filter(t => {
+      if (!t.date) return false;
+      const rel = getRelativeDateInfo(t.date);
+      return rel.isToday || t.date === todayDateStr || t.date.startsWith(todayDateStr);
+    });
   }, [data.transactions, todayDateStr]);
 
   const todayIncome = useMemo(() => {
@@ -950,7 +972,7 @@ export const AppProvider = ({ children }) => {
 
   // --- SEHATKU (HEALTH) COMPUTED ---
   const activeMedications = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateString();
     return (data.medications || []).filter(m => {
       if (m.status !== 'active') return false;
       if (m.endDate && m.endDate < todayStr) return false;
@@ -959,7 +981,7 @@ export const AppProvider = ({ children }) => {
   }, [data.medications]);
 
   const todayDoseSchedule = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateString();
     const items = [];
     activeMedications.forEach(med => {
       (med.scheduleTimes || []).forEach(time => {
@@ -980,7 +1002,7 @@ export const AppProvider = ({ children }) => {
   }, [activeMedications]);
 
   const upcomingVisit = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateString();
     const upcoming = (data.doctorVisits || [])
       .filter(v => v.nextVisitDate && v.nextVisitDate >= todayStr)
       .sort((a, b) => String(a.nextVisitDate).localeCompare(String(b.nextVisitDate)));
@@ -989,14 +1011,14 @@ export const AppProvider = ({ children }) => {
 
   // --- SEHATKU (WELLNESS) COMPUTED ---
   const todayWaterIntake = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     return (data.waterIntakeLogs || [])
       .filter(l => l.date === today)
       .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
   }, [data.waterIntakeLogs]);
 
   const todaySleepLog = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const logs = (data.sleepLogs || []).filter(l => l.date === today);
     return logs.length > 0 ? logs[0] : null;
   }, [data.sleepLogs]);
@@ -1007,7 +1029,7 @@ export const AppProvider = ({ children }) => {
   }, [data.bmiLogs]);
 
   const todayMood = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const logs = (data.moodLogs || []).filter(l => l.date === today);
     return logs.length > 0 ? logs[0] : null;
   }, [data.moodLogs]);
@@ -1105,7 +1127,7 @@ export const AppProvider = ({ children }) => {
     const txId = tx.id || generateUUID();
     const newTx = {
       id: txId,
-      date: tx.date || new Date().toISOString().split('T')[0],
+      date: tx.date || getLocalDateString(),
       type: tx.type, // 'expense' | 'income' | 'transfer'
       category: tx.category,
       amount: Number(tx.amount),
@@ -1113,7 +1135,8 @@ export const AppProvider = ({ children }) => {
       toAccountName: tx.toAccountName,
       merchant: tx.merchant || '-',
       note: tx.note || '',
-      icon: tx.icon || '💸'
+      icon: tx.icon || '💸',
+      createdAt: tx.createdAt || new Date().toISOString()
     };
 
     let finalAccounts = [];
@@ -1443,7 +1466,7 @@ export const AppProvider = ({ children }) => {
             {
               id: `sh-${Date.now()}`,
               amount: depositAmount,
-              date: new Date().toISOString().split('T')[0],
+              date: getLocalDateString(),
               note
             },
             ...(st.history || [])
@@ -1490,7 +1513,7 @@ export const AppProvider = ({ children }) => {
       totalAmount: amount,
       remainingAmount: amount,
       accountName: debt.accountName || data.accounts?.[0]?.name || 'Dompet Utama (Cash)',
-      createdDate: debt.createdDate || new Date().toISOString().split('T')[0],
+      createdDate: debt.createdDate || getLocalDateString(),
       dueDate: debt.dueDate || null,
       status: 'active',
       settledDate: null,
@@ -1576,7 +1599,7 @@ export const AppProvider = ({ children }) => {
     const payAmount = Number(payment.amount || 0);
     if (payAmount <= 0) return;
 
-    const paymentDate = payment.date || new Date().toISOString().split('T')[0];
+    const paymentDate = payment.date || getLocalDateString();
     const accountName = payment.accountName || data.accounts?.[0]?.name || 'Dompet Utama (Cash)';
     const note = payment.note || '';
 
@@ -1694,7 +1717,7 @@ export const AppProvider = ({ children }) => {
     const targetAcc = accountName || target.accountName || data.accounts?.[0]?.name;
     await recordDebtPayment(debtId, {
       amount: target.remainingAmount,
-      date: new Date().toISOString().split('T')[0],
+      date: getLocalDateString(),
       accountName: targetAcc,
       note: 'Pelunasan penuh'
     });
@@ -1879,13 +1902,13 @@ export const AppProvider = ({ children }) => {
         merchant: logData.station || 'SPBU Pertamina',
         note: `⛽ ${fuelLabel} ${calculatedLiters.toFixed(2)}L @ Rp${fuelPrice.toLocaleString('id-ID')}${odoText}`,
         icon: '⛽',
-        date: logData.date || new Date().toISOString().split('T')[0]
+        date: logData.date || getLocalDateString()
       });
     }
 
     const newLog = {
       id: logId,
-      date: logData.date || new Date().toISOString().split('T')[0],
+      date: logData.date || getLocalDateString(),
       fuelType: logData.fuelType || 'pertalite',
       amount,
       liters: calculatedLiters,
@@ -2001,7 +2024,7 @@ export const AppProvider = ({ children }) => {
           accountName: targetAccountName,
           merchant: nextLog.station || 'SPBU Pertamina',
           note: txNote,
-          date: nextLog.date || new Date().toISOString().split('T')[0]
+          date: nextLog.date || getLocalDateString()
         });
       } else if (amount > 0) {
         const newTx = await addTransaction({
@@ -2012,7 +2035,7 @@ export const AppProvider = ({ children }) => {
           merchant: nextLog.station || 'SPBU Pertamina',
           note: txNote,
           icon: '⛽',
-          date: nextLog.date || new Date().toISOString().split('T')[0]
+          date: nextLog.date || getLocalDateString()
         });
         if (newTx?.id) {
           savedUpdatedLog.transactionId = newTx.id;
@@ -2171,7 +2194,7 @@ export const AppProvider = ({ children }) => {
     const cost = Number(visit.cost) || 0;
     const newVisit = {
       id: visitId,
-      visitDate: visit.visitDate || new Date().toISOString().split('T')[0],
+      visitDate: visit.visitDate || getLocalDateString(),
       doctorName: (visit.doctorName || '').trim(),
       facilityName: (visit.facilityName || '').trim(),
       specialty: visit.specialty || '',
@@ -2252,7 +2275,7 @@ export const AppProvider = ({ children }) => {
       form: med.form || 'tablet',
       instructions: med.instructions || '',
       scheduleTimes: Array.isArray(med.scheduleTimes) ? [...med.scheduleTimes].sort() : [],
-      startDate: med.startDate || new Date().toISOString().split('T')[0],
+      startDate: med.startDate || getLocalDateString(),
       endDate: med.endDate || null,
       stockRemaining: med.stockRemaining !== null && med.stockRemaining !== undefined && med.stockRemaining !== '' ? Number(med.stockRemaining) : null,
       status: 'active',
@@ -2318,7 +2341,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const logMedicationDose = (medId, { date, time, status = 'taken' }) => {
-    const todayStr = date || new Date().toISOString().split('T')[0];
+    const todayStr = date || getLocalDateString();
     let updatedMed = null;
 
     setData(prev => {
@@ -2360,7 +2383,7 @@ export const AppProvider = ({ children }) => {
 
   // --- SEHATKU (WELLNESS): WATER INTAKE CRUD ---
   const addWaterIntake = (amount, time = null) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const nowTime = time || new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
     const newEntry = {
       id: generateUUID(),
@@ -2421,7 +2444,7 @@ export const AppProvider = ({ children }) => {
 
   // --- SEHATKU (WELLNESS): SLEEP TRACKER CRUD ---
   const addSleepLog = ({ sleepTime, wakeTime, quality = 'cukup', notes = '', date = null }) => {
-    const targetDate = date || new Date().toISOString().split('T')[0];
+    const targetDate = date || getLocalDateString();
     let durationHours = 0;
     try {
       const [sh, sm] = (sleepTime || '23:00').split(':').map(Number);
@@ -2498,7 +2521,7 @@ export const AppProvider = ({ children }) => {
 
     const newLog = {
       id: generateUUID(),
-      date: new Date().toISOString().split('T')[0],
+      date: getLocalDateString(),
       height: h,
       weight: w,
       bmi: bmiVal,
@@ -2542,7 +2565,7 @@ export const AppProvider = ({ children }) => {
 
   // --- SEHATKU (WELLNESS): MOOD CHECK-IN CRUD ---
   const setTodayMood = ({ mood, notes = '', date = null }) => {
-    const targetDate = date || new Date().toISOString().split('T')[0];
+    const targetDate = date || getLocalDateString();
     const newEntry = {
       id: generateUUID(),
       date: targetDate,
@@ -2800,9 +2823,9 @@ export const AppProvider = ({ children }) => {
         const idx = existingAtt.findIndex(a => a.meeting === meetingNumber);
         if (idx >= 0) {
           newAtt = [...existingAtt];
-          newAtt[idx] = { ...newAtt[idx], status, date: new Date().toISOString().split('T')[0] };
+          newAtt[idx] = { ...newAtt[idx], status, date: getLocalDateString() };
         } else {
-          newAtt = [...existingAtt, { meeting: meetingNumber, status, date: new Date().toISOString().split('T')[0] }];
+          newAtt = [...existingAtt, { meeting: meetingNumber, status, date: getLocalDateString() }];
         }
       }
 
